@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/logo.png";
 
 function Register() {
@@ -23,10 +24,35 @@ function Register() {
     });
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log(formData);
-  };
+   const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (formData.password !== formData.confirmPassword) {
+    alert("Passwords do not match");
+    return;
+  }
+
+  try {
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/register",
+      {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        factoryName: formData.factoryName,
+        password: formData.password,
+      }
+    );
+
+    alert(res.data.message);
+
+  } catch (error) {
+    alert(
+      error.response?.data?.message ||
+      "Registration Failed"
+    );
+  }
+};
 
   return (
     <div className="bg-light min-vh-100">
