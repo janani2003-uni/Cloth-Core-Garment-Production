@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import axios from "axios";
 
 function Register() {
   const navigate = useNavigate(); // Added: navigation function
@@ -29,18 +30,33 @@ function Register() {
     }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    
-    // Added: Check if passwords match
-    if (formData.password !== formData.confirmPassword) {
-      setPasswordError("Passwords do not match!");
-      return;
-    }
-    
-    console.log(formData);
-    // You can add navigation or API call here
-  };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (formData.password !== formData.confirmPassword) {
+    setPasswordError("Passwords do not match!");
+    return;
+  }
+
+  try {
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/register",
+      {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        factoryName: formData.factoryName,
+        password: formData.password,
+      }
+    );
+
+    alert(res.data.message);
+    navigate("/");
+
+  } catch (err) {
+    alert(err.response?.data?.message || err.message);
+  }
+};
 
   return (
     <div className="bg-light min-vh-100">

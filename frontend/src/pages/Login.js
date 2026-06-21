@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/logo.png";
 function Login() {
 
@@ -19,11 +20,27 @@ function Login() {
       [name]: type === "checkbox" ? checked : value,
     });
   };
+  const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log(loginData);
-  };
+  
+
+  try {
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/login",
+      {
+        email: loginData.email,
+        password: loginData.password,
+      }
+    );
+
+    alert(res.data.message);
+
+  } catch (err) {
+    alert(err.response?.data?.message || err.message);
+  }
+};
+   
 
   return (
     <div className="bg-light min-vh-100">
