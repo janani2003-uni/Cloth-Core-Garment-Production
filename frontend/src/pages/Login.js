@@ -87,11 +87,17 @@ function Login() {
 
             <div>
 
-              <button className="btn btn-outline-primary rounded-pill px-4 me-2">
-                Login
-              </button>
+ <button
+  type="button"
+  className="btn btn-primary me-2 px-4"
+  onClick={() => {
+    navigate("/");
+  }}
+>
+  Login
+</button>
 <button
-  className="btn btn-primary rounded-pill px-4"
+  className="btn btn-primary me-2 px-4"
   onClick={() => navigate("/register")}
 >
   Register
@@ -126,13 +132,17 @@ function Login() {
                   Sign In
                 </h1>
 
-                <p className="text-center text-secondary mb-4">
-                  Don't have an account?
-                  <span className="text-primary fw-semibold">
-                    {" "}
-                    Create one here
-                  </span>
-                </p>
+               <p className="text-center text-secondary mb-4">
+  Don't have an account?{" "}
+
+  <span
+    className="text-primary fw-semibold"
+    style={{ cursor: "pointer" }}
+    onClick={() => navigate("/register")}
+  >
+    Create one here
+  </span>
+</p>
 
                 <form onSubmit={handleSubmit}>
 
@@ -188,12 +198,14 @@ function Login() {
 
                     </div>
 
-                    <a
-                      href="/"
-                      className="text-decoration-none"
-                    >
-                      Forgot Password?
-                    </a>
+
+<button
+  type="button"
+  className="btn btn-link text-decoration-none p-0"
+  onClick={() => navigate("/forgotpassword")}
+>
+  Forgot Password?
+</button>
 
                   </div>
 

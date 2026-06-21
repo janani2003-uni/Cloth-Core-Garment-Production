@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 function Register() {
+  const navigate = useNavigate(); // Added: navigation function
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -14,6 +15,7 @@ function Register() {
     agree: false,
   });
 
+  const [passwordError, setPasswordError] = useState(""); // Added: For password validation
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -21,11 +23,23 @@ function Register() {
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
+    // Clear password error when user types
+    if (name === "password" || name === "confirmPassword") {
+      setPasswordError("");
+    }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Added: Check if passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setPasswordError("Passwords do not match!");
+      return;
+    }
+    
     console.log(formData);
+    // You can add navigation or API call here
   };
 
   return (
@@ -64,9 +78,16 @@ function Register() {
                 <a className="nav-link">CONTACT US</a>
               </li>
             </ul>
-            <button className="btn btn-primary me-2 px-4">
-              Login
-            </button>
+           <button
+  type="button"
+  className="btn btn-primary me-2 px-4"
+  onClick={(e) => {
+    e.preventDefault();
+    navigate("/");
+  }}
+>
+  Login
+</button>
             <button className="btn btn-primary px-4">
               Register
             </button>
@@ -96,16 +117,15 @@ function Register() {
         </h1>
 
         <p className="mb-5">
-  Already registered?
-
-  <Link
-    to="/"
-    className="ms-2 fw-bold text-decoration-none"
-    style={{ color: "#f2a100" }}
-  >
-    Sign in here
-  </Link>
-</p>
+          Already registered?
+          <Link
+            to="/"
+            className="ms-2 fw-bold text-decoration-none"
+            style={{ color: "#f2a100" }}
+          >
+            Sign in here
+          </Link>
+        </p>
 
         <form onSubmit={handleSubmit}>
           <div className="row">
@@ -197,6 +217,12 @@ function Register() {
                 onChange={handleChange}
                 required
               />
+              {/* Added: Password error message */}
+              {passwordError && (
+                <div className="text-danger mt-1">
+                  {passwordError}
+                </div>
+              )}
             </div>
           </div>
 
