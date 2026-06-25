@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import logo from "../assets/logo.png";
-function Login() {
 
+function Login() {
   const navigate = useNavigate();
 
   const [loginData, setLoginData] = useState({
@@ -20,36 +20,38 @@ function Login() {
       [name]: type === "checkbox" ? checked : value,
     });
   };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/login",
+        {
+          email: loginData.email,
+          password: loginData.password,
+        }
+      );
 
-  try {
-    const res = await axios.post(
-      "http://localhost:5000/api/auth/login",
-      {
-        email: loginData.email,
-        password: loginData.password,
+      if (res.data.message === "Login Successful") {
+        // Store token or user data in localStorage if needed
+        if (loginData.remember) {
+          localStorage.setItem("user", JSON.stringify(res.data.user));
+        }
+        navigate("/dashboard");
+      } else {
+        alert(res.data.message || "Login failed");
       }
-    );
-
-    alert(res.data.message);
-
-  } catch (err) {
-    alert(err.response?.data?.message || err.message);
-  }
-};
-   
+    } catch (err) {
+      alert(err.response?.data?.message || err.message);
+    }
+  };
 
   return (
     <div className="bg-light min-vh-100">
-
       {/* Navbar */}
-
       <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
         <div className="container">
-
           <a className="navbar-brand d-flex align-items-center" href="/">
             <img
               src={logo}
@@ -58,15 +60,9 @@ function Login() {
               height="50"
               className="me-2"
             />
-
             <div>
-              <h5 className="mb-0 fw-bold text-primary">
-                ClothCore
-              </h5>
-
-              <small className="text-muted">
-                Garment Productions
-              </small>
+              <h5 className="mb-0 fw-bold text-primary">ClothCore</h5>
+              <small className="text-muted">Garment Productions</small>
             </div>
           </a>
 
@@ -79,96 +75,69 @@ function Login() {
           </button>
 
           <div className="collapse navbar-collapse" id="navbarNav">
-
             <ul className="navbar-nav mx-auto">
-
               <li className="nav-item">
                 <a className="nav-link" href="/">Home</a>
               </li>
-
               <li className="nav-item">
                 <a className="nav-link" href="/">Who We Are</a>
               </li>
-
               <li className="nav-item">
-                <a className="nav-link" href="/">
-                  Our Products & Materials
-                </a>
+                <a className="nav-link" href="/">Our Products & Materials</a>
               </li>
-
               <li className="nav-item">
                 <a className="nav-link" href="/">Contact Us</a>
               </li>
-
             </ul>
 
             <div>
-
- <button
-  type="button"
-  className="btn btn-primary me-2 px-4"
-  onClick={() => {
-    navigate("/");
-  }}
->
-  Login
-</button>
-<button
-  className="btn btn-primary me-2 px-4"
-  onClick={() => navigate("/register")}
->
-  Register
-</button>
-
+              <button
+                type="button"
+                className="btn btn-primary me-2 px-4"
+                onClick={() => navigate("/")}
+              >
+                Login
+              </button>
+              <button
+                className="btn btn-primary me-2 px-4"
+                onClick={() => navigate("/register")}
+              >
+                Register
+              </button>
             </div>
-
           </div>
-
         </div>
       </nav>
 
       {/* Login Card */}
-
       <div className="container">
-
         <div
           className="row justify-content-center align-items-center"
           style={{ minHeight: "85vh" }}
         >
-
           <div className="col-lg-5 col-md-7">
-
             <div
               className="card border-0 shadow-lg"
               style={{ borderRadius: "25px" }}
             >
-
               <div className="card-body p-5">
-
-                <h1 className="text-center fw-bold mb-2">
-                  Sign In
-                </h1>
-
-               <p className="text-center text-secondary mb-4">
-  Don't have an account?{" "}
-
-  <span
-    className="text-primary fw-semibold"
-    style={{ cursor: "pointer" }}
-    onClick={() => navigate("/register")}
-  >
-    Create one here
-  </span>
-</p>
+                <h1 className="text-center fw-bold mb-2">Sign In</h1>
+                <p className="text-center text-secondary mb-4">
+                  Don't have an account?{" "}
+                  <span
+                    className="text-primary fw-semibold"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => navigate("/register")}
+                  >
+                    Create one here
+                  </span>
+                </p>
 
                 <form onSubmit={handleSubmit}>
-
                   <div className="mb-3">
-
                     <label className="form-label fw-semibold">
                       Email Address
                     </label>
-
                     <input
                       type="email"
                       className="form-control form-control-lg"
@@ -176,16 +145,14 @@ function Login() {
                       name="email"
                       value={loginData.email}
                       onChange={handleChange}
+                      required
                     />
-
                   </div>
 
                   <div className="mb-3">
-
                     <label className="form-label fw-semibold">
                       Password
                     </label>
-
                     <input
                       type="password"
                       className="form-control form-control-lg"
@@ -193,14 +160,12 @@ function Login() {
                       name="password"
                       value={loginData.password}
                       onChange={handleChange}
+                      required
                     />
-
                   </div>
 
                   <div className="d-flex justify-content-between mb-4">
-
                     <div className="form-check">
-
                       <input
                         type="checkbox"
                         className="form-check-input"
@@ -208,22 +173,18 @@ function Login() {
                         checked={loginData.remember}
                         onChange={handleChange}
                       />
-
                       <label className="form-check-label">
                         Remember Me
                       </label>
-
                     </div>
 
-
-<button
-  type="button"
-  className="btn btn-link text-decoration-none p-0"
-  onClick={() => navigate("/forgotpassword")}
->
-  Forgot Password?
-</button>
-
+                    <button
+                      type="button"
+                      className="btn btn-link text-decoration-none p-0"
+                      onClick={() => navigate("/forgotpassword")}
+                    >
+                      Forgot Password?
+                    </button>
                   </div>
 
                   <button
@@ -232,19 +193,12 @@ function Login() {
                   >
                     SIGN IN
                   </button>
-
                 </form>
-
               </div>
-
             </div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }
