@@ -18,14 +18,14 @@ const features = [
 
 return ( <div className="home">
 
-```
+
   {/* Navbar */}
   <nav className="navbar">
     <div className="logo-section">
       <img src={logo} alt="ClothCore Logo" className="logo" />
       <div>
         <h2>ClothCore</h2>
-        <p>Garment Productions</p>
+        <p>Garment Productions</p> 
       </div>
     </div>
 
@@ -125,7 +125,7 @@ return ( <div className="home">
   <div className="about-left">
     <p className="section-subtitle">WHO WE ARE</p>
 
-```
+
 <h2>
   Built by Industry Experts,
   for the Garment Trade
@@ -154,7 +154,7 @@ return ( <div className="home">
 
   <div className="about-right">
 
-```
+
 <div className="info-card">
   <h3>Our Mission</h3>
   <p>
@@ -178,12 +178,211 @@ return ( <div className="home">
     and customer success.
   </p>
 </div>
-```
+
 
   </div>
 
 </section>
+{/* Leadership Team Section */}
+<section className="team-section">
 
+  <p className="section-subtitle">
+    LEADERSHIP TEAM
+  </p>
+
+  <h2>
+    The People Behind ClothCore
+  </h2>
+
+  <div className="team-grid">
+
+    <div className="team-card">
+      <div className="team-avatar ceo">AR</div>
+
+      <h3>Chief Executive Officer</h3>
+
+      <p>
+        15 years in garment operations.
+        Former production director at one
+        of Sri Lanka's largest apparel groups.
+      </p>
+    </div>
+
+    <div className="team-card">
+      <div className="team-avatar cto">NP</div>
+
+      <h3>Chief Technology Officer</h3>
+
+      <p>
+        Full-stack engineer with a decade
+        in enterprise software. Passionate
+        about simplifying industrial workflows.
+      </p>
+    </div>
+
+    <div className="team-card">
+      <div className="team-avatar ops">DW</div>
+
+      <h3>Head of Operations</h3>
+
+      <p>
+        Specialist in lean manufacturing
+        and quality systems. Holds certifications
+        in Six Sigma and ISO 9001 implementation.
+      </p>
+    </div>
+
+  </div>
+
+</section>
+{/* Products Section */}
+<section className="products-section" id="products">
+
+  <p className="section-subtitle">
+    OUR PRODUCTS & MATERIALS
+  </p>
+
+  <h2>
+    Garment Management, End to End
+  </h2>
+
+  <div className="product-grid">
+
+    <div className="product-card">
+      <div className="product-top">
+        <span className="product-icon">📋</span>
+      </div>
+      <div className="product-content"></div>
+      <h3>Order Management</h3>
+      <p>
+        Track purchase orders, work orders and delivery
+      schedules from a single dashboard.
+      </p>
+    </div>
+    
+
+    <div className="product-card">
+      <div className="product-top">
+        <span className="product-icon">📦</span>
+      </div>
+      <div className="product-content"></div>
+      <h3>Inventory Module</h3>
+      <p>
+        Full visibility into raw materials,
+        WIP batches and finished goods stock levels.
+      </p>
+    </div>
+    
+
+    <div className="product-card">
+      <div className="product-top">
+        <span className="product-icon">🏭</span>
+      </div>
+      <div className="product-content"></div>
+      <h3>Production Planner</h3>
+      <p>
+        Schedule cutting, sewing and quality
+        checkpoints with ease.
+      </p>
+    </div>
+
+  </div>
+
+  <div className="material-grid">
+
+    <div className="material-card">
+      <div className="material-circle cotton"></div>
+      <h3>Cotton</h3>
+      <p>120 rolls in stock</p>
+    </div>
+
+    <div className="material-card">
+      <div className="material-circle silk"></div>
+      <h3>Silk</h3>
+      <p>34 rolls in stock</p>
+    </div>
+
+    <div className="material-card">
+      <div className="material-circle denim"></div>
+      <h3>Denim</h3>
+      <p>76 rolls in stock</p>
+    </div>
+
+    <div className="material-card">
+      <div className="material-circle linen"></div>
+      <h3>Linen</h3>
+      <p>52 rolls in stock</p>
+    </div>
+
+  </div>
+
+</section>
+{/* Contact Section */}
+<section className="contact-section" id="contact">
+
+  <p className="section-subtitle">
+    CONTACT US
+  </p>
+
+  <h2>
+    Let's Start a Conversation
+  </h2>
+
+  <p className="contact-text">
+    Whether you're ready to demo ClothCore or just
+    exploring, our team is here to help you find
+    the right fit for your factory.
+  </p>
+
+  <div className="contact-card">
+
+    <div className="contact-item">
+      <span>📧</span>
+      <div>
+        <h4>Email</h4>
+        <p>clothcore@gmail.com</p>
+      </div>
+    </div>
+
+    <div className="contact-item">
+      <span>📞</span>
+      <div>
+        <h4>Phone</h4>
+        <p>0741862226</p>
+      </div>
+    </div>
+
+    <div className="contact-item">
+      <span>📍</span>
+      <div>
+        <h4>Office</h4>
+        <p>12 Kanuwa, Seeduwa, Sri Lanka</p>
+      </div>
+    </div>
+
+    <div className="contact-item">
+      <span>⏰</span>
+      <div>
+        <h4>Working Hours</h4>
+        <p>Mon - Fri, 8.30 AM - 5.30 PM</p>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+{/* Footer */}
+<footer className="footer">
+  <h3>ClothCore</h3>
+
+  <p>
+    Smart Garment Production Management System
+  </p>
+
+  <p>
+    © 2026 ClothCore. All Rights Reserved.
+  </p>
+</footer>
 </div>
 
 
