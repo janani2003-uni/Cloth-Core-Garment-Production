@@ -22,7 +22,14 @@ function VerifyCode() {
             alt="logo"
             width="60"
           />
-
+   <div className="ms-3">
+              <div className="fw-bold" style={{ fontSize: "30px", color: "#0b3aa0" }}>
+                ClothCore
+              </div>
+              <div style={{ fontSize: "14px", color: "#6c757d", lineHeight: "1.2" }}>
+                Garment Productions
+              </div>
+            </div>
           <div>
 
             <button

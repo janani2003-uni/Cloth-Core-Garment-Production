@@ -14,6 +14,7 @@ import ReviewSubmit from "./pages/ReviewSubmit";
 import OrderSuccess from "./pages/OrderSuccess";
 import Settings from "./pages/Settings";
 import SecuritySettings from "./pages/SecuritySettings";
+import "./App.css";
 
 function App() {
   return (

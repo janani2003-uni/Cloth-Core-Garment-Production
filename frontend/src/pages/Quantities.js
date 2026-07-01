@@ -20,6 +20,14 @@ function Quantities() {
         height: "auto"
       }}
     />
+       <div className="ms-3">
+              <div className="fw-bold" style={{ fontSize: "30px", color: "#0b3aa0" }}>
+                ClothCore
+              </div>
+              <div style={{ fontSize: "14px", color: "#6c757d", lineHeight: "1.2" }}>
+                Garment Productions
+              </div>
+            </div>
 
     <div className="d-flex align-items-center">
 
@@ -122,72 +130,109 @@ function Quantities() {
 </h3>
 
 <p className="mb-3">
-  Size Breakdown (Minimum 50 total units)
+  Enter quantities and delivery information.
 </p>
 
-<div className="row text-center mb-4">
-
-  {["S", "M", "L", "XL", "XXL"].map((size) => (
-    <div className="col" key={size}>
-      <div
-        className="border rounded p-3"
-        style={{ minHeight: "90px" }}
-      >
-        <h4>{size}</h4>
-
-        <input
-          type="number"
-          className="form-control"
-          min="0"
-        />
-      </div>
-    </div>
-  ))}
-
-</div>
-
-<div className="d-flex justify-content-end mb-4">
-
-  <div
-    className="border rounded px-4 py-2"
-    style={{ fontSize: "24px" }}
-  >
-    Total Quantity:
-    <strong> 100</strong>
+{/* Size Breakdown Table */}
+<div className="mb-4">
+  <label className="fw-bold mb-2">
+    Size Breakdown (Minimum 100 total units)
+  </label>
+  
+  <div className="table-responsive">
+    <table className="table table-bordered text-center">
+      <thead>
+        <tr>
+          <th style={{ width: "100px" }}></th>
+          {["S", "M", "L", "XL", "XXL"].map((size) => (
+            <th key={size}>{size}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td className="fw-bold">Quantity</td>
+          {["S", "M", "L", "XL", "XXL"].map((size) => (
+            <td key={size}>
+              <div className="d-flex align-items-center justify-content-center gap-2">
+                <input
+                  type="number"
+                  className="form-control form-control-sm text-center"
+                  style={{ width: "190px" }}
+                  min="0"
+                  defaultValue={size === "S" ? 40 : size === "M" ? 40 : size === "L" ? 50 : size === "XL" ? 20 : 0}
+                />
+              </div>
+            </td>
+          ))}
+        </tr>
+      </tbody>
+    </table>
   </div>
-
 </div>
 
-<div className="mb-4">
-
-  <label className="mb-2">
-    Requested Delivery Date
-  </label>
-
-  <input
-    type="date"
-    className="form-control"
-    style={{ maxWidth: "300px" }}
-  />
-
-  <small className="text-muted">
-    Standard production time is 3-4 weeks.
-  </small>
-
+{/* Total Quantity */}
+<div className="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <span className="fw-bold">Total Quantity:</span>
+    <span className="ms-2">150 units</span>
+  </div>
+  <div>
+    <span className="text-muted">Minimum Required: 100 units</span>
+  </div>
 </div>
 
+{/* Requirement Met Checkbox */}
 <div className="mb-4">
+  <div className="form-check">
+    <input
+      className="form-check-input"
+      type="checkbox"
+      id="requirementMet"
+    />
+    <label className="form-check-label" htmlFor="requirementMet">
+      Requirement Met
+    </label>
+  </div>
+</div>
 
-  <label className="mb-2">
-    Special Instructions / Notes
+<hr />
+
+{/* Delivery Date Section */}
+<div className="row mb-4">
+  <div className="col-md-6">
+    <label className="fw-bold mb-2">
+      Requested Delivery Date
+    </label>
+    <input
+      type="date"
+      className="form-control"
+      style={{ maxWidth: "300px" }}
+      defaultValue="2026-03-26"
+    />
+  </div>
+  <div className="col-md-6">
+    <label className="fw-bold mb-2">
+      Production Time
+    </label>
+    <p className="mb-0">4 weeks</p>
+    <small className="text-muted">Estimated Finish Date: 02/04/2026</small>
+  </div>
+</div>
+
+{/* Special Instructions */}
+<div className="mb-4">
+  <label className="fw-bold mb-2">
+    Special Instructions / Notes (Optional)
   </label>
-
   <textarea
-    rows="4"
+    rows="3"
     className="form-control"
-    placeholder="Any specific details about stitching, packaging, or delivery..."
+    placeholder="e.g. Logo, left pocket, individual packaging, add labels..."
   ></textarea>
-
+  <small className="text-muted">
+    Any specific details about stitching, packaging, or delivery...
+  </small>
 </div>
 
 <hr />

@@ -8,7 +8,8 @@ function Dashboard() {
      const [showAccount, setShowAccount] = useState(false);
      const [showHelp, setShowHelp] = useState(false);
      const [showProfileSettings, setShowProfileSettings] = useState(false);
-     const [activeTab, setActiveTab] = useState("profile"); // මෙය එකතු කරන්න
+     const [activeTab, setActiveTab] = useState("profile");
+     const [showSecurity, setShowSecurity] = useState(false);
      
   return (
      <>
@@ -78,7 +79,6 @@ function Dashboard() {
 
               <div className="d-flex align-items-center gap-3">
                 <h5 className="mb-0">🔔</h5>
-
                 <div
   className="position-relative"
   style={{ cursor: "pointer" }}
@@ -348,7 +348,16 @@ function Dashboard() {
               <p className="text-muted">Manage your account and preferences</p>
               <hr />
 
-              <div className="card mb-3">
+              {/* Profile Settings Card - Click to open Profile Settings */}
+              <div 
+                className="card mb-3"
+                style={{ cursor: "pointer" }}
+                onClick={() => {
+                  setShowAccount(false);
+                  setShowProfileSettings(true);
+                  setActiveTab("profile");
+                }}
+              >
                 <div className="card-body d-flex justify-content-between align-items-center">
                   <div>
                     <h5 className="mb-1">👤 Profile Settings</h5>
@@ -358,15 +367,22 @@ function Dashboard() {
                 </div>
               </div>
 
-              <div className="card mb-3">
-                <div className="card-body d-flex justify-content-between align-items-center">
-                  <div>
-                    <h5 className="mb-1">🔒 Change Password</h5>
-                    <small className="text-muted">Update your account password</small>
-                  </div>
-                  <span>›</span>
-                </div>
-              </div>
+              <div 
+  className="card mb-3"
+  style={{ cursor: "pointer" }}
+  onClick={() => {
+    setShowAccount(false);
+    setShowSecurity(true);
+  }}
+>
+  <div className="card-body d-flex justify-content-between align-items-center">
+    <div>
+      <h5 className="mb-1">🔒 Change Password</h5>
+      <small className="text-muted">Update your account password</small>
+    </div>
+    <span>›</span>
+  </div>
+</div>
 
               {/* Help & Support Card */}
               <div
@@ -399,7 +415,193 @@ function Dashboard() {
       </div>
     )}
 
-    {/* Help & Support Modal */}
+      {/* Security Modal */}
+    {showSecurity && (
+      <div
+        className="position-fixed top-0 start-0 w-100 h-100"
+        style={{
+          background: "rgba(0,0,0,0.5)",
+          zIndex: 9999
+        }}
+      >
+        <div
+          className="bg-white rounded shadow"
+          style={{
+            width: "1200px",
+            maxWidth: "95%",
+            margin: "40px auto",
+            minHeight: "700px"
+          }}
+        >
+          {/* Header - My Account style */}
+          <div className="d-flex justify-content-between p-3 border-bottom">
+            <h2 className="fw-bold mb-0">Security & Privacy</h2>
+            <button
+              className="btn-close"
+              onClick={() => setShowSecurity(false)}
+            ></button>
+          </div>
+
+          <div className="row g-0">
+            
+            {/* Left Menu */}
+            <div className="col-md-3 border-end p-4">
+              <button 
+                className="btn btn-light w-100 text-start mb-3"
+                onClick={() => {
+                  setShowSecurity(false);
+                  setShowProfileSettings(true);
+                  setActiveTab("profile");
+                }}
+              >
+                👤 Profile Settings
+              </button>
+
+              <button 
+                className="btn btn-primary w-100 text-start mb-3"
+                onClick={() => setActiveTab("security")}
+              >
+                🔒 Security & Privacy
+              </button>
+
+              <button 
+                className="btn btn-light w-100 text-start mb-3"
+                onClick={() => {
+                  setShowSecurity(false);
+                  setShowProfileSettings(true);
+                  setActiveTab("notifications");
+                }}
+              >
+                🔔 Notifications
+              </button>
+
+              <button 
+                className="btn btn-light w-100 text-start mb-3"
+                onClick={() => {
+                  setShowSecurity(false);
+                  setShowHelp(true);
+                }}
+              >
+                ❓ Help & Support
+              </button>
+            </div>
+
+            {/* Right Side */}
+            <div className="col-md-9 p-4">
+              <h3 className="fw-bold mb-1">Security & Privacy</h3>
+              <p className="text-muted">Keep your account safe.</p>
+              <hr />
+
+              <div className="row mt-4">
+                {/* Change Password Section */}
+                <div className="col-md-6">
+                  <div className="card">
+                    <div className="card-body">
+                      <h5 className="mb-4">Change Password</h5>
+
+                      <div className="mb-3">
+                        <label className="form-label">Current Password</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          placeholder="Enter current password"
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">New Password</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          placeholder="Enter new password"
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Confirm Password</label>
+                        <input
+                          type="password"
+                          className="form-control"
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+
+                      <button className="btn btn-primary w-100">
+                        Update Password
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Settings Section */}
+                <div className="col-md-6">
+                  <div className="card mb-3">
+                    <div className="card-body">
+                      <h5>Two-Factor Authentication</h5>
+                      <p className="text-muted">Status: Disabled</p>
+                      <button className="btn btn-outline-primary w-100">
+                        Enable 2FA
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="card">
+                    <div className="card-body">
+                      <h5>Privacy Settings</h5>
+
+                      <div className="form-check form-switch mb-3">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="emailPrivacySec"
+                        />
+                        <label className="form-check-label" htmlFor="emailPrivacySec">
+                          Make my email private
+                        </label>
+                      </div>
+
+                      <div className="form-check form-switch mb-3">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="searchPrivacySec"
+                        />
+                        <label className="form-check-label" htmlFor="searchPrivacySec">
+                          Hide profile from search engines
+                        </label>
+                      </div>
+
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="activityPrivacySec"
+                          defaultChecked
+                        />
+                        <label className="form-check-label" htmlFor="activityPrivacySec">
+                          Show online status
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-end mt-4">
+                <button className="btn btn-secondary me-2" onClick={() => setShowSecurity(false)}>
+                  Cancel
+                </button>
+                <button className="btn btn-primary">
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+       {/* Help & Support Modal */}
     {showHelp && (
       <div
         className="position-fixed top-0 start-0 w-100 h-100"
@@ -413,138 +615,140 @@ function Dashboard() {
           style={{
             width: "1200px",
             maxWidth: "95%",
-            margin: "20px auto",
+            margin: "40px auto",
             minHeight: "700px"
           }}
         >
 
           {/* Header */}
           <div className="d-flex justify-content-between align-items-center p-4 border-bottom">
-
             <div>
-              <h2 className="fw-bold mb-1">
-                Help & Support
-              </h2>
+              <h2 className="fw-bold mb-1">Help & Support</h2>
             </div>
-
             <button
               className="btn-close"
               onClick={() => setShowHelp(false)}
             ></button>
-
           </div>
 
           <div className="row g-0">
 
             {/* Left Menu */}
             <div className="col-md-3 border-end p-4">
+              <button 
+                className="btn btn-light w-100 text-start mb-3"
+                onClick={() => {
+                  setShowHelp(false);
+                  setShowProfileSettings(true);
+                  setActiveTab("profile");
+                }}
+              >
+                👤 Profile Settings
+              </button>
+
+              <button 
+                className="btn btn-light w-100 text-start mb-3"
+                onClick={() => {
+                  setShowHelp(false);
+                  setShowSecurity(true);
+                }}
+              >
+                🔒 Security & Privacy
+              </button>
 
               <button 
                 className="btn btn-light w-100 text-start mb-3"
                 onClick={() => {
                   setShowHelp(false);
                   setShowProfileSettings(true);
-                  setActiveTab("profile"); // Profile tab එක active කරන්න
+                  setActiveTab("notifications");
                 }}
               >
-                👤 Profile Settings
-              </button>
-
-              <button className="btn btn-light w-100 text-start mb-3">
-                🔒 Security & Privacy
-              </button>
-
-              <button className="btn btn-light w-100 text-start mb-3">
                 🔔 Notifications
               </button>
 
               <button className="btn btn-primary w-100 text-start mb-3">
                 ❓ Help & Support
               </button>
-
             </div>
 
             {/* Right Side */}
             <div className="col-md-9 p-4">
 
-              <h3 className="fw-bold">
-                How can we help you?
-              </h3>
-
-              <p className="text-muted">
-                Find answers or contact our support team.
-              </p>
-
-              {/* Contact Support */}
-              <div className="card mb-4">
-                <div className="card-body">
-
-                  <h5>🎧 Contact Support</h5>
-
-                  <p className="text-muted">
-                    Our support team is here to help you.
-                  </p>
-
-                  <hr />
-
-                  <div className="d-flex justify-content-between mb-3">
-                    <div>
-                      <strong>Email</strong>
-                      <br />
-                      support@clothcore.lk
-                    </div>
-
-                    <button className="btn btn-outline-primary">
-                      Send Email
-                    </button>
-                  </div>
-
-                  <hr />
-
-                  <div className="d-flex justify-content-between mb-3">
-                    <div>
-                      <strong>Phone</strong>
-                      <br />
-                      +94 11 234 5678
-                    </div>
-
-                    <button className="btn btn-outline-primary">
-                      Call Now
-                    </button>
-                  </div>
-
-                  <hr />
-
-                  <div className="d-flex justify-content-between">
-                    <div>
-                      <strong>Support Hours</strong>
-                      <br />
-                      Mon - Fri : 9.00 AM - 5.00 PM
-                    </div>
-
-                    <button className="btn btn-success">
-                      Open Now
-                    </button>
-                  </div>
-
+              <div className="d-flex justify-content-between mb-4">
+                <div>
+                  <h3 className="fw-bold">Help & Support</h3>
+                  <p className="text-muted">Get help and contact support.</p>
                 </div>
               </div>
+              <hr />
 
-              {/* Chat */}
-              <div className="card">
-                <div className="card-body d-flex justify-content-between align-items-center">
+              <div className="row mt-4">
+                <div className="col-md-12">
+                  <h5 className="fw-bold mb-3">How can we help you?</h5>
+                  <p className="text-muted">Find answers or contact our support team.</p>
 
-                  <div>
-                    <h5>Still need help?</h5>
-                    <p className="mb-0 text-muted">
-                      Chat with our support team for quick assistance.
-                    </p>
+                  <div className="card mt-3">
+                    <div className="card-body">
+                      <h5 className="mb-3">🎧 Contact Support</h5>
+                      <p className="text-muted">Our support team is here to help you.</p>
+                      <hr />
+
+                      <div className="row">
+                        <div className="col-md-6 mb-3">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <strong>Email</strong>
+                              <br />
+                              <span className="text-muted">support@clothcore.lk</span>
+                            </div>
+                            <button className="btn btn-outline-primary">
+                              Send Email
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="col-md-6 mb-3">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <strong>Phone</strong>
+                              <br />
+                              <span className="text-muted">+94 11 234 5678</span>
+                            </div>
+                            <button className="btn btn-outline-primary">
+                              Call Now
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="col-md-6 mb-3">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <strong>Support Hours</strong>
+                              <br />
+                              <span className="text-muted">Mon - Fri : 9.00 AM - 5.00 PM</span>
+                            </div>
+                            <button className="btn btn-success">
+                              Open Now
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="col-md-6">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <strong>Still need help?</strong>
+                              <br />
+                              <span className="text-muted">Chat with our support team for quick assistance.</span>
+                            </div>
+                            <button className="btn btn-primary">
+                              Start Chat
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-
-                  <button className="btn btn-primary px-5">
-                    Start Chat
-                  </button>
-
                 </div>
               </div>
 
@@ -716,50 +920,243 @@ function Dashboard() {
                 </>
               )}
 
-              {/* Security & Privacy Tab */}
-              {activeTab === "security" && (
-                <>
-                  <div className="d-flex justify-content-between mb-4">
-                    <div>
-                      <h3 className="fw-bold">Security & Privacy</h3>
-                      <p className="text-muted">Manage your security settings and privacy preferences.</p>
-                    </div>
-                  </div>
-                  <hr />
-                  <div className="p-4 text-center">
-                    <h5>🔒 Security Settings</h5>
-                    <p className="text-muted">Change password, enable 2FA, and more.</p>
-                    <button className="btn btn-primary mt-3">Change Password</button>
-                  </div>
-                </>
-              )}
+             {activeTab === "security" && (
+<>
+  <h3 className="fw-bold">
+    Security & Privacy
+  </h3>
 
-              {/* Notifications Tab */}
-              {activeTab === "notifications" && (
-                <>
-                  <div className="d-flex justify-content-between mb-4">
-                    <div>
-                      <h3 className="fw-bold">Notifications</h3>
-                      <p className="text-muted">Manage your notification preferences.</p>
-                    </div>
-                  </div>
-                  <hr />
-                  <div className="p-4">
-                    <div className="form-check form-switch mb-3">
-                      <input className="form-check-input" type="checkbox" id="emailNotif" defaultChecked />
-                      <label className="form-check-label" htmlFor="emailNotif">Email Notifications</label>
-                    </div>
-                    <div className="form-check form-switch mb-3">
-                      <input className="form-check-input" type="checkbox" id="smsNotif" />
-                      <label className="form-check-label" htmlFor="smsNotif">SMS Notifications</label>
-                    </div>
-                    <div className="form-check form-switch mb-3">
-                      <input className="form-check-input" type="checkbox" id="pushNotif" defaultChecked />
-                      <label className="form-check-label" htmlFor="pushNotif">Push Notifications</label>
-                    </div>
-                  </div>
-                </>
-              )}
+  <p className="text-muted">
+    Keep your account safe.
+  </p>
+
+  <hr />
+
+  <div className="row mt-4">
+
+    <div className="col-md-6">
+
+      <div className="card">
+        <div className="card-body">
+
+          <h5 className="mb-4">
+            Change Password
+          </h5>
+
+          <div className="mb-3">
+            <label>Current Password</label>
+            <input
+              type="password"
+              className="form-control"
+            />
+          </div>
+
+          <div className="mb-3">
+            <label>New Password</label>
+            <input
+              type="password"
+              className="form-control"
+            />
+          </div>
+
+          <div className="mb-3">
+            <label>Confirm Password</label>
+            <input
+              type="password"
+              className="form-control"
+            />
+          </div>
+
+          <button className="btn btn-primary w-100">
+            Update Password
+          </button>
+
+        </div>
+      </div>
+
+    </div>
+
+    <div className="col-md-6">
+
+      <div className="card mb-3">
+        <div className="card-body">
+
+          <h5>Two-Factor Authentication</h5>
+
+          <p className="text-muted">
+            Status: Disabled
+          </p>
+
+          <button className="btn btn-outline-primary">
+            Enable 2FA
+          </button>
+
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="card-body">
+
+          <h5>Privacy</h5>
+
+          <div className="form-check form-switch mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+            />
+            <label className="form-check-label">
+              Make my email private
+            </label>
+          </div>
+
+          <div className="form-check form-switch mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+            />
+            <label className="form-check-label">
+              Hide profile from search engines
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</>
+)}
+
+{activeTab === "notifications" && (
+<>
+  <div className="d-flex justify-content-between mb-4">
+    <div>
+      <h3 className="fw-bold">Notifications</h3>
+      <p className="text-muted">Choose how you want to receive notifications.</p>
+    </div>
+  </div>
+  <hr />
+
+  <div className="row mt-4">
+
+    {/* Left Side */}
+    <div className="col-md-6">
+
+      <div className="card">
+        <div className="card-body">
+
+          <h5 className="mb-4">
+            Email Notifications
+          </h5>
+
+          <div className="d-flex justify-content-between mb-3">
+            <span>Order updates</span>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                defaultChecked
+              />
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-between mb-3">
+            <span>New messages</span>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                defaultChecked
+              />
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-between mb-3">
+            <span>Promotions & Offers</span>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+              />
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-between mb-3">
+            <span>Security Alerts</span>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                defaultChecked
+              />
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-between">
+            <span>Account Activity</span>
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                defaultChecked
+              />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    {/* Right Side */}
+    <div className="col-md-6">
+
+      <div className="card mb-3">
+        <div className="card-body">
+
+          <h5>Browser Notifications</h5>
+
+          <p className="text-muted">
+            Status: Disabled
+          </p>
+
+          <button className="btn btn-outline-secondary w-100">
+            Enable
+          </button>
+
+        </div>
+      </div>
+
+      <div className="card mb-3">
+        <div className="card-body">
+
+          <h5>SMS Notifications</h5>
+
+          <p className="text-muted">
+            Status: Disabled
+          </p>
+
+          <button className="btn btn-outline-secondary w-100">
+            Enable
+          </button>
+
+        </div>
+      </div>
+
+      <div className="text-end mt-4">
+
+        <button className="btn btn-primary px-4">
+          Save Preferences
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+</>
+)}
             </div>
           </div>
         </div>
