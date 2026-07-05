@@ -1,13 +1,45 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/logo.png";
 
 function VerifyCode() {
   const navigate = useNavigate();
   const { state } = useLocation();
 
-  const handleVerify = () => {
-    navigate("/reset-password", { state });
-  };
+  const handleVerify = async () => {
+
+  const otp = document.querySelectorAll("input");
+
+  let enteredOtp = "";
+
+  otp.forEach((item) => {
+    enteredOtp += item.value;
+  });
+
+  try {
+
+    const response = await axios.post(
+      "http://127.0.0.1:5000/api/auth/verify-otp",
+      {
+        email: state.email,
+        otp: enteredOtp,
+      }
+    );
+
+    alert(response.data.message);
+
+    navigate("/reset-password", {
+      state: {
+        email: state.email,
+        otp: enteredOtp,
+      },
+    });
+
+  } catch (error) {
+    alert(error.response?.data?.message || error.message);
+  }
+
+};
 
   return (
     <div className="bg-light min-vh-100">
@@ -78,7 +110,7 @@ function VerifyCode() {
 
         <div className="d-flex justify-content-center gap-5 mb-4">
 
-          {[1, 2, 3, 4, 5].map((item) => (
+          {[1, 2, 3, 4, 5,6].map((item) => (
             <input
               key={item}
               type="text"
