@@ -24,12 +24,13 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    try {
+    try {  
       const res = await axios.post(
         "http://localhost:5000/api/auth/login",
         {
           email: loginData.email,
-          password: loginData.password,
+              password: loginData.password,
+
         }
       );
 
@@ -60,6 +61,14 @@ function Login() {
               height="50"
               className="me-2"
             />
+               <div className="ms-3">
+              <div className="fw-bold" style={{ fontSize: "30px", color: "#0b3aa0" }}>
+                ClothCore
+              </div>
+              <div style={{ fontSize: "14px", color: "#6c757d", lineHeight: "1.2" }}>
+                Garment Productions
+              </div>
+            </div>
             <div>
               <h5 className="mb-0 fw-bold text-primary">ClothCore</h5>
               <small className="text-muted">Garment Productions</small>
