@@ -1,22 +1,46 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../assets/logo.png";
 
 function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const navigate = useNavigate(); // ✅ ADD THIS
 
-  const handleUpdate = () => {
-    if (password !== confirm) {
-      alert("Passwords do not match");
-      return;
-    }
+  const navigate = useNavigate();
+  const { state } = useLocation();
+  console.log(state);
+console.log(state?.otp);
 
-    // 👉 Later connect backend here
+  const handleUpdate = async () => {
+  if (password !== confirm) {
+    alert("Passwords do not match");
+    return;
+  }
 
-   navigate("/password-reset-success");
-  };
+  try {
+    console.log("Email:", state.email);
+console.log("OTP:", state.otp);
+console.log("New Password:", password);
+    const response = await axios.post(
+      "http://127.0.0.1:5000/api/auth/reset-password",
+      {
+        email: state.email,
+        otp: state.otp,
+        newPassword: password,
+      }
+    );
+
+    alert(response.data.message);
+
+    navigate("/password-reset-success");
+
+  } catch (error) {
+    console.log(error);
+
+    alert(error.response?.data?.message || error.message);
+  }
+};
 
   return (
     <div className="container-fluid vh-100">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
 
@@ -6,16 +7,33 @@ function ForgotPassword() {
   const [email, setEmail] = useState("");
   const navigate = useNavigate();
 
-  const handleVerify = () => {
-    if (!email.trim()) {
-      alert("Please enter your email.");
-      return;
-    }
+  const handleVerify = async () => {
+  if (!email.trim()) {
+    alert("Please enter your email.");
+    return;
+  }
+
+  try {
+    const response = await axios.post(
+      "http://127.0.0.1:5000/api/auth/forgot-password",
+      {
+        email,
+      }
+    );
+
+    alert(response.data.message);
 
     navigate("/verify-code", {
       state: { email },
     });
-  };
+
+  }catch (error) {
+  console.log(error);
+  console.log(error.response);
+
+  alert(error.response?.data?.message || error.message);
+}
+};  
 
   return (
     <div className="bg-light min-vh-100">
