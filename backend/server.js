@@ -12,13 +12,19 @@ console.log(process.env.MONGO_URI);
 
 console.log("Trying to connect MongoDB...");
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => {
-  console.log("MongoDB Connected");
-})
-.catch((err) => {
-  console.log("Mongo Error:", err);
-});
+
+
+
+mongoose
+  .connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 30000
+  })
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log("Mongo Error:", err.message));
+
+
+
+
 
 
 app.get("/", (req, res) => {
