@@ -52,3 +52,28 @@
   box-shadow: 0 10px 25px rgba(0,0,0,0.25);
   cursor: pointer;
 }
+
+
+/* Custom column for 5 columns per row */
+.col-xl-2-4 {
+  flex: 0 0 auto;
+  width: 20%;
+}
+
+@media (max-width: 1200px) {
+  .col-xl-2-4 {
+    width: 33.333%;
+  }
+}
+
+@media (max-width: 992px) {
+  .col-xl-2-4 {
+    width: 50%;
+  }
+}
+
+@media (max-width: 576px) {
+  .col-xl-2-4 {
+    width: 100%;
+  }
+}

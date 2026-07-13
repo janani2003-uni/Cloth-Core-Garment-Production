@@ -8,7 +8,6 @@ import ResetPassword from "./pages/ResetPassword";
 import PasswordResetSuccess from "./pages/PasswordResetSuccess";
 import Dashboard from "./pages/Dashboard.js";
 import Orders from "./pages/Orders";
-import PlaceBulkOrder from "./pages/PlaceBulkOrder";
 import Quantities from "./pages/Quantities";
 import ReviewSubmit from "./pages/ReviewSubmit";
 import OrderSuccess from "./pages/OrderSuccess";
@@ -26,6 +25,7 @@ import OrderStep5 from "./pages/OrderStep5";
 import OrderStep6 from "./pages/OrderStep6";
 
 import Sidebar from "./components/Sidebar";
+import AdminDashboard from "./pages/Admin/AdminDashboard";
 
 import "./App.css";
 
@@ -42,7 +42,6 @@ function App() {
         <Route path="/password-reset-success" element={<PasswordResetSuccess />}/>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/orders" element={<Orders />} />
-        <Route path="/place-order" element={<PlaceBulkOrder />} />
         <Route path="/quantities" element={<Quantities />} />
         <Route path="/review-submit" element={<ReviewSubmit />} />
         <Route path="/order-success" element={<OrderSuccess />} />
@@ -58,7 +57,7 @@ function App() {
         <Route path="/order-delivery" element={<OrderDelivery />} />
         <Route path="/step5" element={<OrderStep5 />} />
         <Route path="/step6" element={<OrderStep6 />} />
-       
+       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </BrowserRouter>
   );
