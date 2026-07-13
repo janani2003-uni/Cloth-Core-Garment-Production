@@ -4,7 +4,7 @@ import logo from "../assets/logo.png";
 import axios from "axios";
 
 function Register() {
-  const navigate = useNavigate(); // Added: navigation function
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -16,103 +16,138 @@ function Register() {
     agree: false,
   });
 
-  const [passwordError, setPasswordError] = useState(""); // Added: For password validation
+  const [passwordError, setPasswordError] = useState("");
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
+
     setFormData({
       ...formData,
       [name]: type === "checkbox" ? checked : value,
     });
-    // Clear password error when user types
+
     if (name === "password" || name === "confirmPassword") {
       setPasswordError("");
     }
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (formData.password !== formData.confirmPassword) {
-    setPasswordError("Passwords do not match!");
-    return;
-  }
+    // Password validation
+const passwordRegex =
+  /^(?=(.*[!@#$%^&*(),.?":{}|<>]){2,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
 
-  try {
-    const res = await axios.post(
-      "http://localhost:5000/api/auth/register",
-      {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        factoryName: formData.factoryName,
-        password: formData.password,
-      }
-    );
+if (!passwordRegex.test(formData.password)) {
+  setPasswordError(
+    "Password must be 8–20 characters and include at least 2 special characters, 1 uppercase letter, 1 lowercase letter and 1 number."
+  );
+  return;
+}
 
-    alert(res.data.message);
-    navigate("/");
+if (formData.password !== formData.confirmPassword) {
+  setPasswordError("Passwords do not match!");
+  return;
+}
 
-  } catch (err) {
-    alert(err.response?.data?.message || err.message);
-  }
-};
+    try {
+      const res = await axios.post(
+        "http://localhost:5000/api/auth/register",
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          factoryName: formData.factoryName,
+          password: formData.password,
+        }
+      );
+
+      alert(res.data.message);
+      navigate("/");
+    } catch (err) {
+      alert(err.response?.data?.message || err.message);
+    }
+  };
 
   return (
     <div className="bg-light min-vh-100">
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg bg-white shadow-sm">
         <div className="container">
-          <a className="navbar-brand" href="/">
-            <img
-              src={logo}
-              alt="logo"
-              width="55"
-            />
-               <div className="ms-3">
-              <div className="fw-bold" style={{ fontSize: "30px", color: "#0b3aa0" }}>
+          <a className="navbar-brand d-flex align-items-center" href="/">
+            <img src={logo} alt="ClothCore logo" width="55" />
+
+            <div className="ms-3">
+              <div
+                className="fw-bold"
+                style={{
+                  fontSize: "30px",
+                  color: "#0b3aa0",
+                }}
+              >
                 ClothCore
               </div>
-              <div style={{ fontSize: "14px", color: "#6c757d", lineHeight: "1.2" }}>
+
+              <div
+                style={{
+                  fontSize: "14px",
+                  color: "#6c757d",
+                  lineHeight: "1.2",
+                }}
+              >
                 Garment Productions
               </div>
             </div>
           </a>
+
           <button
             className="navbar-toggler"
+            type="button"
             data-bs-toggle="collapse"
             data-bs-target="#navbarNav"
           >
             <span className="navbar-toggler-icon"></span>
           </button>
+
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav mx-auto">
               <li className="nav-item">
-                <a className="nav-link">HOME</a>
+                <a className="nav-link" href="/">
+                  HOME
+                </a>
               </li>
+
               <li className="nav-item">
-                <a className="nav-link">WHO WE ARE</a>
+                <a className="nav-link" href="#who-we-are">
+                  WHO WE ARE
+                </a>
               </li>
+
               <li className="nav-item">
-                <a className="nav-link">
+                <a className="nav-link" href="#products">
                   OUR PRODUCTS & MATERIALS
                 </a>
               </li>
+
               <li className="nav-item">
-                <a className="nav-link">CONTACT US</a>
+                <a className="nav-link" href="#contact">
+                  CONTACT US
+                </a>
               </li>
             </ul>
-           <button
-  type="button"
-  className="btn btn-primary me-2 px-4"
-  onClick={(e) => {
-    e.preventDefault();
-    navigate("/");
-  }}
->
-  Login
-</button>
-            <button className="btn btn-primary px-4">
+
+            <button
+              type="button"
+              className="btn btn-primary me-2 px-4"
+              onClick={() => navigate("/")}
+            >
+              Login
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-primary px-4"
+            >
               Register
             </button>
           </div>
@@ -125,16 +160,17 @@ function Register() {
           className="fw-bold mb-2"
           style={{
             color: "#f2a100",
-            letterSpacing: "3px"
+            letterSpacing: "3px",
           }}
         >
           GET STARTED
         </p>
+
         <h1
           className="fw-bold"
           style={{
             fontFamily: "serif",
-            letterSpacing: "3px"
+            letterSpacing: "3px",
           }}
         >
           Create Account
@@ -157,6 +193,7 @@ function Register() {
               <label className="form-label fw-semibold">
                 First Name
               </label>
+
               <input
                 type="text"
                 className="form-control form-control-lg"
@@ -172,6 +209,7 @@ function Register() {
               <label className="form-label fw-semibold">
                 Last Name
               </label>
+
               <input
                 type="text"
                 className="form-control form-control-lg"
@@ -187,6 +225,7 @@ function Register() {
               <label className="form-label fw-semibold">
                 Email Address
               </label>
+
               <input
                 type="email"
                 className="form-control form-control-lg"
@@ -202,6 +241,7 @@ function Register() {
               <label className="form-label fw-semibold">
                 Factory Name
               </label>
+
               <input
                 type="text"
                 className="form-control form-control-lg"
@@ -217,6 +257,7 @@ function Register() {
               <label className="form-label fw-semibold">
                 Password
               </label>
+
               <input
                 type="password"
                 className="form-control form-control-lg"
@@ -226,24 +267,49 @@ function Register() {
                 onChange={handleChange}
                 required
               />
+
+              <small
+  className="text-muted"
+  style={{
+    fontSize: "12px",
+    lineHeight: "1.5",
+    display: "block",
+    marginTop: "8px",
+  }}
+>
+  <strong>Password Requirements</strong>
+  <br />
+  ✓ 8–20 characters
+  <br />
+  ✓ At least 1 uppercase letter
+  <br />
+  ✓ At least 1 lowercase letter
+  <br />
+  ✓ At least 1 number
+  <br />
+  ✓ At least 2 special characters
+</small>
             </div>
 
             <div className="col-md-6 mb-4">
               <label className="form-label fw-semibold">
                 Confirm Password
               </label>
+
               <input
                 type="password"
-                className="form-control form-control-lg"
+                className={`form-control form-control-lg ${
+                  passwordError ? "is-invalid" : ""
+                }`}
                 name="confirmPassword"
                 placeholder="Confirm Password"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
               />
-              {/* Added: Password error message */}
+
               {passwordError && (
-                <div className="text-danger mt-1">
+                <div className="invalid-feedback">
                   {passwordError}
                 </div>
               )}
@@ -256,15 +322,24 @@ function Register() {
                 className="form-check-input"
                 type="checkbox"
                 name="agree"
+                id="agree"
                 checked={formData.agree}
                 onChange={handleChange}
                 required
               />
-              <label className="form-check-label">
+
+              <label
+                className="form-check-label"
+                htmlFor="agree"
+              >
                 I agree to the
-                <span className="text-primary fw-bold"> Terms & Conditions </span>
+                <span className="text-primary fw-bold">
+                  {" "}Terms & Conditions{" "}
+                </span>
                 and
-                <span className="text-primary fw-bold"> Privacy Policy</span>
+                <span className="text-primary fw-bold">
+                  {" "}Privacy Policy
+                </span>
               </label>
             </div>
           </div>
@@ -275,7 +350,7 @@ function Register() {
               className="btn btn-primary w-100 py-3 fw-bold"
               style={{
                 borderRadius: "10px",
-                fontSize: "18px"
+                fontSize: "18px",
               }}
             >
               CREATE MY ACCOUNT
