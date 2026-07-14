@@ -1,8 +1,9 @@
 // src/pages/Admin/AdminDashboard.js
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Adminsidebar from "../../components/Adminsidebar";
 import Admintopbar from "../../components/Admintopbar";
+import axios from "axios";
 import { 
   People, 
   Clipboard, 
@@ -41,59 +42,107 @@ ChartJS.register(
   Filler
 );
 
+const API_URL = "http://localhost:5000/api/dashboard";
+
 function AdminDashboard() {
   const navigate = useNavigate();
   const [selectedPeriod, setSelectedPeriod] = useState('This Month');
+  const [dashboardData, setDashboardData] = useState({
+  stats: {
+    totalUsers: 0,
+    totalOrders: 0,
+    totalRevenue: 0,
+    products: 0,
+    lowStockItems: 0,
+  },
+  recentOrders: [],
+});
+
+const [loading, setLoading] = useState(true);
+const [error, setError] = useState("");
+
+const fetchDashboardData = async () => {
+  try {
+    setLoading(true);
+    setError("");
+
+    const response = await axios.get(API_URL);
+
+    setDashboardData({
+      stats: response.data.stats || {
+        totalUsers: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        products: 0,
+        lowStockItems: 0,
+      },
+      recentOrders: response.data.recentOrders || [],
+    });
+  } catch (err) {
+    console.error("Dashboard Fetch Error:", err);
+
+    setError(
+      err.response?.data?.message ||
+      "Could not load dashboard data."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
+
+useEffect(() => {
+  fetchDashboardData();
+}, []);
 
   // Stats Data
-  const stats = [
-    { 
-      label: 'Total Users', 
-      value: '1,248', 
-      change: '+12.5%', 
-      trend: 'up',
-      icon: People, 
-      color: '#6366f1', 
-      bg: 'rgba(99,102,241,0.1)' 
-    },
-    { 
-      label: 'Total Orders', 
-      value: '2,456', 
-      change: '+18.3%', 
-      trend: 'up',
-      icon: Clipboard, 
-      color: '#f59e0b', 
-      bg: 'rgba(245,158,11,0.1)' 
-    },
-    { 
-      label: 'Total Revenue', 
-      value: 'LKR 4,850,000', 
-      change: '+15.7%', 
-      trend: 'up',
-      icon: Wallet2, 
-      color: '#10b981', 
-      bg: 'rgba(16,185,129,0.1)' 
-    },
-    { 
-      label: 'Products', 
-      value: '856', 
-      change: '+8.2%', 
-      trend: 'up',
-      icon: Box, 
-      color: '#8b5cf6', 
-      bg: 'rgba(139,92,246,0.1)' 
-    },
-    { 
-      label: 'Low Stock Items', 
-      value: '23', 
-      change: '-5.3%', 
-      trend: 'down',
-      icon: ExclamationTriangle, 
-      color: '#ef4444', 
-      bg: 'rgba(239,68,68,0.1)' 
-    }
-  ];
-
+  // Stats Data from backend
+const stats = [
+  {
+    label: "Total Users",
+    value: dashboardData.stats.totalUsers.toLocaleString(),
+    change: "+12.5%",
+    trend: "up",
+    icon: People,
+    color: "#6366f1",
+    bg: "rgba(99,102,241,0.1)",
+  },
+  {
+    label: "Total Orders",
+    value: dashboardData.stats.totalOrders.toLocaleString(),
+    change: "+18.3%",
+    trend: "up",
+    icon: Clipboard,
+    color: "#f59e0b",
+    bg: "rgba(245,158,11,0.1)",
+  },
+  {
+    label: "Total Revenue",
+    value: `LKR ${dashboardData.stats.totalRevenue.toLocaleString()}`,
+    change: "+15.7%",
+    trend: "up",
+    icon: Wallet2,
+    color: "#10b981",
+    bg: "rgba(16,185,129,0.1)",
+  },
+  {
+    label: "Products",
+    value: dashboardData.stats.products.toLocaleString(),
+    change: "+8.2%",
+    trend: "up",
+    icon: Box,
+    color: "#8b5cf6",
+    bg: "rgba(139,92,246,0.1)",
+  },
+  {
+    label: "Low Stock Items",
+    value: dashboardData.stats.lowStockItems.toLocaleString(),
+    change: "-5.3%",
+    trend: "down",
+    icon: ExclamationTriangle,
+    color: "#ef4444",
+    bg: "rgba(239,68,68,0.1)",
+  },
+];
   // Chart Data
   const chartData = {
     labels: ['Apr 1', 'Apr 5', 'Apr 10', 'Apr 15', 'Apr 20', 'Apr 25', 'Apr 30'],
@@ -168,14 +217,36 @@ function AdminDashboard() {
   };
 
   // Recent Orders
-  const recentOrders = [
-    { id: 'ORD-2026-001', customer: 'Saman Perera', amount: 'LKR 750,000', status: 'Processing', statusColor: '#f59e0b', date: '15 Apr 2026' },
-    { id: 'ORD-2026-002', customer: 'Nimal Fernando', amount: 'LKR 450,000', status: 'Completed', statusColor: '#10b981', date: '14 Apr 2026' },
-    { id: 'ORD-2026-003', customer: 'Kamal Dewasiri', amount: 'LKR 320,000', status: 'Pending', statusColor: '#6366f1', date: '14 Apr 2026' },
-    { id: 'ORD-2026-004', customer: 'Supun Weerasinghe', amount: 'LKR 620,000', status: 'Completed', statusColor: '#10b981', date: '13 Apr 2026' },
-    { id: 'ORD-2026-005', customer: 'Dilshan Jayawardana', amount: 'LKR 280,000', status: 'Cancelled', statusColor: '#ef4444', date: '12 Apr 2026' }
-  ];
+ const getOrderStatusColor = (status) => {
+  const colors = {
+    Pending: "#6366f1",
+    Approved: "#10b981",
+    Production: "#f59e0b",
+    Delivered: "#10b981",
+    Cancelled: "#ef4444",
+  };
 
+  return colors[status] || "#64748b";
+};
+
+const formatOrderDate = (date) => {
+  if (!date) return "N/A";
+
+  return new Date(date).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
+
+const recentOrders = dashboardData.recentOrders.map((order) => ({
+  id: order.orderId || "N/A",
+  customer: order.customerName || "Unknown Customer",
+  amount: `LKR ${Number(order.totalAmount || 0).toLocaleString()}`,
+  status: order.status || "Pending",
+  statusColor: getOrderStatusColor(order.status),
+  date: formatOrderDate(order.createdAt),
+}));
   // Top Selling Products
   const topProducts = [
     { name: 'School Uniform', sold: 850, revenue: 'LKR 1,275,000' },

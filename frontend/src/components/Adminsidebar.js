@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   House, 
   People,
+  PersonGear,
   Box, 
   Clipboard, 
   Truck,
@@ -22,10 +23,11 @@ function Adminsidebar() {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/dashboard', icon: House, label: 'Dashboard' },
-    { path: '/users', icon: People, label: 'Users Management' },
-    { path: '/products', icon: Box, label: 'Products' },
-    { path: '/orders', icon: Clipboard, label: 'Orders' },
+  { path: '/admin-dashboard', icon: House, label: 'Dashboard' },
+    { path: '/users', icon: People, label: 'User Management' },
+    { path: '/staff', icon: PersonGear, label: 'Staff Management' },  // ✅ NEW: Staff Management
+{ path: '/production', icon: Box, label: 'Production' },   
+{ path: '/admin/orders', icon: Clipboard, label: 'Orders' },
     { path: '/inventory', icon: Truck, label: 'Inventory' },
     { path: '/payments', icon: CreditCard, label: 'Payments' },
     { path: '/reports', icon: BarChart, label: 'Reports' },
@@ -45,6 +47,14 @@ function Adminsidebar() {
 
   const handleMyAccount = () => {
     navigate('/settings', { state: { activeTab: 'profile' } });
+  };
+
+  // Check if a path is active
+  const isPathActive = (path) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard';
+    }
+    return location.pathname.startsWith(path);
   };
 
   return (
@@ -87,8 +97,7 @@ function Adminsidebar() {
       <div className="flex-grow-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
-                          (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+          const isActive = isPathActive(item.path);
           
           return (
             <div
@@ -280,4 +289,4 @@ function Adminsidebar() {
   );
 }
 
-export default Adminsidebar; // Export as Adminsidebar
+export default Adminsidebar;

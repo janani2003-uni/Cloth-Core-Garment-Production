@@ -1,9 +1,19 @@
+
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
+
 const authRoutes = require("./routes/authRoutes");
+const staffRoutes = require("./routes/staffRoutes"); // <-- Added
+const orderRoutes = require("./routes/orderRoutes");
+const productionRoutes = require("./routes/productionRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const inventoryRoutes = require(
+  "./routes/inventoryRoutes"
+);
+const dashboardRoutes = require("./routes/dashboardRoutes");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -11,6 +21,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+// Routes
+app.use("/api/auth", authRoutes);
+app.use("/api/staff", staffRoutes); // <-- Added
+app.use("/api/orders", orderRoutes);
+app.use("/api/inventory", inventoryRoutes);
+app.use("/api/production", productionRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/dashboard", dashboardRoutes);
 app.get("/", (req, res) => {
   res.send("Backend Running Successfully");
 });
@@ -23,8 +41,6 @@ mongoose
   })
   .then(() => {
     console.log("MongoDB Connected");
-
-    app.use("/api/auth", authRoutes);
 
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

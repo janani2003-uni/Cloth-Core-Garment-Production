@@ -22,6 +22,16 @@ const UserSchema = new mongoose.Schema({
     required: true,
   },
 
+  joinedDate: {
+  type: Date,
+  default: Date.now,
+},
+
+lastLogin: {
+  type: Date,
+  default: null,
+},
+
   password: {
     type: String,
     required: true,

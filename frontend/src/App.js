@@ -14,6 +14,7 @@ import OrderSuccess from "./pages/OrderSuccess";
 import Settings from "./pages/Settings";
 import SecuritySettings from "./pages/SecuritySettings";
 
+
 import OrderStep1 from "./pages/OrderStep1";
 
 import OrderStep2 from "./pages/OrderStep2";
@@ -23,16 +24,30 @@ import OrderStep4 from "./pages/OrderStep4";
 import OrderDelivery from "./pages/OrderDelivery";
 import OrderStep5 from "./pages/OrderStep5";
 import OrderStep6 from "./pages/OrderStep6";
-
 import Sidebar from "./components/Sidebar";
-import AdminDashboard from "./pages/Admin/AdminDashboard";
 
+import AdminDashboard from "./pages/Admin/AdminDashboard";
+import AdminUserManagement from "./pages/Admin/AdminUserManagement";
+import Adminsidebar from "./components/Adminsidebar";
+import AdminStaffManagement from "./pages/Admin/AdminStaffManagement";
+import Inventory from "./pages/Admin/Inventory";
+import AdminAddStaff from "./pages/Admin/AdminAddStaff";
+import AdminProduction from "./pages/Admin/AdminProduction";
 import "./App.css";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+
+
+<Route path="/admin-dashboard" element={<AdminDashboard />} />
+<Route path="/production" element={<AdminProduction />} />
+<Route path="/inventory" element={<Inventory />} />
+<Route path="/staff/add" element={<AdminAddStaff />} />
+
+
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
@@ -57,7 +72,9 @@ function App() {
         <Route path="/order-delivery" element={<OrderDelivery />} />
         <Route path="/step5" element={<OrderStep5 />} />
         <Route path="/step6" element={<OrderStep6 />} />
-       <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/users" element={<AdminUserManagement />} />
+        <Route path="/staff" element={<AdminStaffManagement />} />
+     
       </Routes>
     </BrowserRouter>
   );
