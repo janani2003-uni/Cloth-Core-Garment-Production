@@ -1,3 +1,4 @@
+const bcrypt = require("bcryptjs");
 const express = require("express");
 const router = express.Router();
 const nodemailer = require("nodemailer");
@@ -50,15 +51,17 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    const user = new User({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: normalizedEmail,
-      factoryName: factoryName.trim(),
-      password,
-      role: "User",
-      status: "Active",
-    });
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+const user = new User({
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    email: normalizedEmail,
+    factoryName: factoryName.trim(),
+    password: hashedPassword,
+    role: "User",
+    status: "Active",
+});
 
     await user.save();
 
@@ -93,11 +96,36 @@ router.post("/login", async (req, res) => {
       email: normalizedEmail,
     });
 
-    if (!user || user.password !== password) {
-      return res.status(400).json({
-        message: "Invalid Email or Password",
-      });
-    }
+    if (!user) {
+  return res.status(400).json({
+    message: "Invalid Email or Password",
+  });
+}
+
+let isPasswordCorrect = false;
+
+const passwordIsHashed =
+  typeof user.password === "string" &&
+  user.password.startsWith("$2");
+
+if (passwordIsHashed) {
+  isPasswordCorrect = await bcrypt.compare(
+    password,
+    user.password
+  );
+} else {
+  isPasswordCorrect = user.password === password;
+
+  if (isPasswordCorrect) {
+    user.password = await bcrypt.hash(password, 10);
+  }
+}
+
+if (!isPasswordCorrect) {
+  return res.status(400).json({
+    message: "Invalid Email or Password",
+  });
+}
 
     user.lastLogin = new Date();
     await user.save();
@@ -219,15 +247,17 @@ router.post("/users", async (req, res) => {
       });
     }
 
-    const newUser = new User({
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      email: normalizedEmail,
-      factoryName: factoryName.trim(),
-      password,
-      role: role?.trim() || "User",
-      status: status?.trim() || "Active",
-    });
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+const newUser = new User({
+    firstName: firstName.trim(),
+    lastName: lastName.trim(),
+    email: normalizedEmail,
+    factoryName: factoryName.trim(),
+    password: hashedPassword,
+    role: role?.trim() || "User",
+    status: status?.trim() || "Active",
+});
 
     await newUser.save();
     await Notification.create({
@@ -474,9 +504,9 @@ router.post("/reset-password", async (req, res) => {
       });
     }
 
-    user.password = newPassword;
-    user.otp = undefined;
-    user.otpExpiry = undefined;
+   user.password = await bcrypt.hash(newPassword, 10);
+user.otp = undefined;
+user.otpExpiry = undefined;
 
     await user.save();
 

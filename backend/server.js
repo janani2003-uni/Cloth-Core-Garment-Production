@@ -2,7 +2,11 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
-require("dotenv").config();
+const path = require("path");
+
+require("dotenv").config({
+  path: path.join(__dirname, ".env"),
+});
 
 
 const authRoutes = require("./routes/authRoutes");
@@ -35,6 +39,10 @@ app.get("/", (req, res) => {
 
 console.log("Trying to connect MongoDB...");
 
+if (!process.env.MONGO_URI) {
+  console.error("MONGO_URI is missing from backend/.env");
+  process.exit(1);
+}
 mongoose
   .connect(process.env.MONGO_URI, {
     serverSelectionTimeoutMS: 30000,

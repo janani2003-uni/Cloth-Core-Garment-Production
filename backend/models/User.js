@@ -1,47 +1,81 @@
 const mongoose = require("mongoose");
 
-const UserSchema = new mongoose.Schema({
-  firstName: {
-    type: String,
-    required: true,
-  },
+const userSchema = new mongoose.Schema(
+  {
+    firstName: {
+      type: String,
+      required: [true, "First name is required"],
+      trim: true,
+    },
 
-  lastName: {
-    type: String,
-    required: true,
-  },
+    lastName: {
+      type: String,
+      required: [true, "Last name is required"],
+      trim: true,
+    },
 
-  email: {
-    type: String,
-    required: true,
-    unique: true,
-  },
+    email: {
+      type: String,
+      required: [true, "Email is required"],
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
 
-  factoryName: {
-    type: String,
-    required: true,
-  },
+    factoryName: {
+      type: String,
+      required: [true, "Factory name is required"],
+      trim: true,
+    },
 
-  joinedDate: {
-  type: Date,
-  default: Date.now,
-},
+    role: {
+      type: String,
+      enum: [
+        "User",
+        "Admin",
+        "Shop Owner",
+        "Production Supervisor",
+        "Inventory Clerk",
+        "Finance",
+      ],
+      default: "User",
+    },
 
-lastLogin: {
-  type: Date,
-  default: null,
-},
+    status: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Active",
+    },
 
-  password: {
-    type: String,
-    required: true,
-  },
-   otp: {
-    type: String,
-  },
-  otpExpiry: {
-    type: Date,
-  },
-});
+    joinedDate: {
+      type: Date,
+      default: Date.now,
+    },
 
-module.exports = mongoose.model("User", UserSchema);
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+
+    password: {
+      type: String,
+      required: [true, "Password is required"],
+      minlength: [8, "Password must contain at least 8 characters"],
+    },
+
+    otp: {
+      type: String,
+      default: null,
+    },
+
+    otpExpiry: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  }
+);
+
+module.exports = mongoose.model("User", userSchema);

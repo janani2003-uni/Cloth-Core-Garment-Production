@@ -33,6 +33,7 @@ import AdminStaffManagement from "./pages/Admin/AdminStaffManagement";
 import Inventory from "./pages/Admin/Inventory";
 import AdminAddStaff from "./pages/Admin/AdminAddStaff";
 import AdminProduction from "./pages/Admin/AdminProduction";
+import AdminOrders from "./pages/Admin/AdminOrders";
 import "./App.css";
 
 function App() {
@@ -74,6 +75,7 @@ function App() {
         <Route path="/step6" element={<OrderStep6 />} />
         <Route path="/users" element={<AdminUserManagement />} />
         <Route path="/staff" element={<AdminStaffManagement />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
      
       </Routes>
     </BrowserRouter>
