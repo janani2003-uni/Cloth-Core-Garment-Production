@@ -1,6 +1,10 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { 
   Search, 
   Filter, 
@@ -17,70 +21,111 @@ import {
   Box,
   Person,
   Wallet2,
-  Calendar
+  Calendar,
+  XCircle
 } from "react-bootstrap-icons";
 import logo from "../assets/logo.png";
 
 function Orders() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [filterOpen, setFilterOpen] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+const [showModal, setShowModal] = useState(false);
 
-  // Mock data
-  const orders = [
-    {
-      id: "ORD-2026-001",
-      shop: "Saman Fashions",
-      item: "School Uniforms",
-      quantity: 500,
-      date: "2026-03-20",
-      status: "Critical",
-      statusType: "danger",
-      amount: "LKR 750,000",
-      icon: "📚"
-    },
-    {
-      id: "ORD-2026-004",
-      shop: "Saman Fashions",
-      item: "Sports T-Shirts",
-      quantity: 300,
-      date: "2026-03-10",
-      status: "In Stock",
-      statusType: "success",
-      amount: "LKR 450,000",
-      icon: "👕"
-    },
-    {
-      id: "ORD-2026-007",
-      shop: "Luxury Wear",
-      item: "Bespoke Suits",
-      quantity: 50,
-      date: "2026-03-15",
-      status: "Processing",
-      statusType: "warning",
-      amount: "LKR 1,250,000",
-      icon: "👔"
-    },
-    {
-      id: "ORD-2026-009",
-      shop: "Kids Collection",
-      item: "Baby Rompers",
-      quantity: 800,
-      date: "2026-03-18",
-      status: "Delivered",
-      statusType: "info",
-      amount: "LKR 320,000",
-      icon: "👶"
-    }
-  ];
+  
 
   const stats = [
-    { label: "Total Orders", value: "1,247", icon: Box, color: "#0b3aa0", bg: "rgba(11,58,160,0.1)" },
-    { label: "Pending Orders", value: "18", icon: Clock, color: "#f57c00", bg: "rgba(245,124,0,0.1)" },
-    { label: "Completed", value: "1,124", icon: CheckCircle, color: "#2e7d32", bg: "rgba(46,125,50,0.1)" },
-    { label: "Revenue", value: "LKR 2.8M", icon: Wallet2, color: "#0b3aa0", bg: "rgba(11,58,160,0.1)" }
-  ];
+  {
+    label: "Total Orders",
+    value: orders.length,
+    icon: Box,
+    color: "#0b3aa0",
+    bg: "rgba(11,58,160,0.1)",
+  },
+  {
+    label: "Pending Orders",
+    value: orders.filter(order => order.status === "Pending").length,
+    icon: Clock,
+    color: "#f57c00",
+    bg: "rgba(245,124,0,0.1)",
+  },
+  {
+    label: "Completed",
+    value: orders.filter(order => order.status === "Completed").length,
+    icon: CheckCircle,
+    color: "#2e7d32",
+    bg: "rgba(46,125,50,0.1)",
+  },
+  {
+    label: "Revenue",
+    value: `LKR ${orders
+  .filter(
+    order =>
+      order.paymentStatus === "Paid" &&
+      order.status === "Completed"
+  )
+  .reduce((sum, order) => sum + Number(order.amount || 0), 0)
+  .toLocaleString()}`,
+    icon: Wallet2,
+    color: "#0b3aa0",
+    bg: "rgba(11,58,160,0.1)",
+  },
+];
+  const fetchOrders = async () => {
+  try {
+    const response = await axios.get("http://localhost:5000/api/orders");
 
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    const myOrders = response.data.data.filter(
+      (order) => order.shopName === user.factoryName
+    );
+
+    console.table(
+  myOrders.map(order => ({
+    id: order._id,
+    status: order.status,
+    shop: order.shopName
+  }))
+);
+    setOrders(myOrders);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+  }
+};
+const downloadInvoice = (order) => {
+  const doc = new jsPDF();
+
+  // Title
+  doc.setFontSize(20);
+  doc.text("ClothCore Invoice", 70, 20);
+
+  doc.setFontSize(12);
+
+  autoTable(doc, {
+    startY: 35,
+    head: [["Field", "Value"]],
+    body: [
+      ["Shop Name", order.shopName],
+      ["Garment", order.garment],
+      ["Fabric", order.fabric],
+      ["Color", order.color],
+      ["Quantity", order.quantity],
+      ["Amount", `Rs. ${order.amount}`],
+      ["Payment Method", order.paymentMethod],
+      ["Payment Status", order.paymentStatus],
+      ["Order Status", order.status],
+    ],
+  });
+
+  doc.save(`Invoice_${order.shopName}.pdf`);
+};
+   useEffect(() => {
+  fetchOrders();
+}, []);
   const getStatusBadgeStyle = (type) => {
     const styles = {
       danger: { bg: "linear-gradient(135deg, #dc3545, #c62828)", icon: ExclamationCircle },
@@ -89,8 +134,20 @@ function Orders() {
       info: { bg: "linear-gradient(135deg, #17a2b8, #0d6efd)", icon: GraphUp }
     };
     return styles[type] || styles.info;
-  };
 
+  };
+    const filteredOrders = orders.filter((order) => {
+  const matchesSearch =
+    order.shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.garment.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order._id.toLowerCase().includes(searchTerm.toLowerCase());
+
+  const matchesFilter =
+    statusFilter === "All" || order.status === statusFilter;
+
+  return matchesSearch && matchesFilter;
+});
   return (
     <div className="d-flex" style={{ minHeight: "100vh", background: "#f5f7fb" }}>
       {/* Sidebar */}
@@ -176,7 +233,7 @@ function Orders() {
                   </div>
                   <div className="d-none d-md-block">
                     <div className="fw-bold" style={{ fontSize: "13px", color: "#1a1a2e" }}>
-                      Saman Fashions
+                      {JSON.parse(localStorage.getItem("user"))?.factoryName}
                     </div>
                     <div style={{ fontSize: "11px", color: "#6c757d" }}>
                       Shop Owner
@@ -326,30 +383,24 @@ function Orders() {
 
                 {/* Filter & Actions */}
                 <div className="d-flex gap-2">
-                  <button
-                    className="btn px-3 py-2"
-                    style={{
-                      borderRadius: "12px",
-                      border: "2px solid #e9ecef",
-                      background: "white",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      transition: "all 0.3s ease",
-                      fontSize: "14px",
-                      fontWeight: "500"
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = "#0b3aa0";
-                      e.currentTarget.style.background = "rgba(11,58,160,0.04)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = "#e9ecef";
-                      e.currentTarget.style.background = "white";
-                    }}
-                  >
-                    <Filter size={16} /> Filter
-                  </button>
+                  <select
+  className="form-select"
+  value={statusFilter}
+  onChange={(e) => setStatusFilter(e.target.value)}
+  style={{
+    width: "170px",
+    borderRadius: "12px",
+    border: "2px solid #e9ecef",
+    fontSize: "14px",
+    fontWeight: "500",
+    height: "44px",
+  }}
+>
+  <option value="All">All Orders</option>
+  <option value="Pending">Pending</option>
+  <option value="Cancelled">Cancelled</option>
+  <option value="Completed">Completed</option>
+</select>
                   <button
                     className="btn px-3 py-2"
                     style={{
@@ -405,8 +456,17 @@ function Orders() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orders.map((order, index) => {
-                      const statusStyle = getStatusBadgeStyle(order.statusType);
+                    {filteredOrders.map((order, index) => {
+                      const statusType =
+  order.status === "Cancelled"
+    ? "danger"
+    : order.status === "Completed"
+    ? "success"
+    : order.status === "Pending"
+    ? "warning"
+    : "info";
+
+const statusStyle = getStatusBadgeStyle(statusType);
                       const StatusIcon = statusStyle.icon;
                       
                       return (
@@ -422,7 +482,7 @@ function Orders() {
                         }}>
                           <td className="px-4 py-3">
                             <span className="fw-bold" style={{ color: "#0b3aa0", fontSize: "13px" }}>
-                              {order.id}
+                              {order._id.slice(-6).toUpperCase()}
                             </span>
                           </td>
                           <td className="px-4 py-3">
@@ -438,19 +498,19 @@ function Orders() {
                                 marginRight: "10px",
                                 fontSize: "16px"
                               }}>
-                                {order.icon}
+                                <Box size={18} color="#0b3aa0" />
                               </div>
-                              <span className="fw-medium">{order.shop}</span>
+                              <span className="fw-medium">{order.shopName}</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3">{order.item}</td>
+                          <td className="px-4 py-3">{order.garment}</td>
                           <td className="px-4 py-3 text-center">
                             <span className="fw-bold">{order.quantity}</span>
                           </td>
                           <td className="px-4 py-3">
                             <div className="d-flex align-items-center">
                               <Calendar size={14} className="text-muted me-2" />
-                              {order.date}
+                              {new Date(order.createdAt).toLocaleDateString()}
                             </div>
                           </td>
                           <td className="px-4 py-3">
@@ -470,48 +530,89 @@ function Orders() {
                           </td>
                           <td className="px-4 py-3 text-end">
                             <span className="fw-bold" style={{ color: "#1a1a2e" }}>
-                              {order.amount}
+                              Rs. {order.amount}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-center">
+                           <button
+  className="btn btn-sm"
+  style={{
+    background: "rgba(11,58,160,0.08)",
+    borderRadius: "8px",
+    padding: "6px 12px",
+    border: "none",
+    color: "#0b3aa0",
+    transition: "all 0.2s ease"
+  }}
+  onClick={() => navigate(`/order-details/${order._id}`)}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "rgba(11,58,160,0.15)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "rgba(11,58,160,0.08)";
+  }}
+>
+  <Eye size={16} />
+</button>
                             <button
-                              className="btn btn-sm"
-                              style={{
-                                background: "rgba(11,58,160,0.08)",
-                                borderRadius: "8px",
-                                padding: "6px 12px",
-                                border: "none",
-                                color: "#0b3aa0",
-                                transition: "all 0.2s ease"
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "rgba(11,58,160,0.15)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "rgba(11,58,160,0.08)";
-                              }}
-                            >
-                              <Eye size={16} />
-                            </button>
-                            <button
-                              className="btn btn-sm ms-1"
-                              style={{
-                                background: "rgba(108,117,125,0.08)",
-                                borderRadius: "8px",
-                                padding: "6px 12px",
-                                border: "none",
-                                color: "#6c757d",
-                                transition: "all 0.2s ease"
-                              }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "rgba(108,117,125,0.15)";
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "rgba(108,117,125,0.08)";
-                              }}
-                            >
-                              <ThreeDotsVertical size={16} />
-                            </button>
+  className="btn btn-sm ms-1"
+  style={{
+    background: "rgba(220,53,69,0.08)",
+    borderRadius: "8px",
+    padding: "6px 12px",
+    border: "none",
+    color: "#dc3545",
+    transition: "all 0.2s ease",
+  }}
+  onClick={async () => {
+  const confirmCancel = window.confirm(
+    "Are you sure you want to cancel this order?"
+  );
+
+  if (!confirmCancel) return;
+
+  try {
+    await axios.patch(
+      `http://localhost:5000/api/orders/${order._id}/cancel`
+    );
+
+    alert("Order cancelled successfully!");
+
+    fetchOrders();
+  } catch (error) {
+    console.error(error);
+    alert("Failed to cancel order.");
+  }
+}}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "rgba(220,53,69,0.15)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "rgba(220,53,69,0.08)";
+  }}
+>
+  <XCircle size={16} />
+</button>
+
+<button
+  className="btn btn-sm ms-1"
+  style={{
+    background: "rgba(108,117,125,0.08)",
+    borderRadius: "8px",
+    padding: "6px 12px",
+    border: "none",
+    color: "#6c757d",
+    transition: "all 0.2s ease",
+  }}
+  onMouseEnter={(e) => {
+    e.currentTarget.style.background = "rgba(108,117,125,0.15)";
+  }}
+  onMouseLeave={(e) => {
+    e.currentTarget.style.background = "rgba(108,117,125,0.08)";
+  }}
+>
+  <ThreeDotsVertical size={16} />
+</button>
                           </td>
                         </tr>
                       );
@@ -526,7 +627,7 @@ function Orders() {
               <div className="d-flex flex-wrap justify-content-between align-items-center">
                 <div>
                   <span className="text-muted" style={{ fontSize: "14px" }}>
-                    Showing <strong>{orders.length}</strong> of <strong>{orders.length}</strong> entries
+                    Showing <strong>{filteredOrders.length}</strong> of <strong>{filteredOrders.length}</strong> entries
                   </span>
                 </div>
                 <div className="d-flex gap-2">
@@ -619,6 +720,7 @@ function Orders() {
         </div>
       </div>
     </div>
+  
   );
 }
 

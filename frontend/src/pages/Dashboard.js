@@ -1,5 +1,6 @@
 // src/pages/Dashboard.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import {
@@ -40,19 +41,115 @@ function Dashboard() {
   const [activeTab, setActiveTab] = useState("profile");
   const [showSecurity, setShowSecurity] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [orders, setOrders] = useState([]);
+  const [totalOutstanding, setTotalOutstanding] = useState(0);
+const [totalAdvance, setTotalAdvance] = useState(0);
+  useEffect(() => {
+  fetchOrders();
+}, []);
+
+const fetchOrders = async () => {
+  try {
+    const response = await axios.get("http://localhost:5000/api/orders");
+
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    const myOrders = response.data.data.filter(
+      (order) => order.shopName === user.factoryName
+    );
+    const totalOutstanding = myOrders.reduce(
+  (total, order) => total + (order.balancePayment || 0),
+  0
+);
+
+const totalAdvance = myOrders.reduce(
+  (total, order) => total + (order.advancePaid || 0),
+  0
+);
+    setTotalOutstanding(totalOutstanding);
+setTotalAdvance(totalAdvance);
+    setOrders(myOrders);
+    const totalOrders = myOrders.length;
+
+const pendingOrders = myOrders.filter(
+  (order) => order.status === "Pending"
+).length;
+
+const completedOrders = myOrders.filter(
+  (order) => order.status === "Completed"
+).length;
+
+const totalRevenue = myOrders
+  .filter((order) => order.paymentStatus === "Paid")
+  .reduce((sum, order) => sum + Number(order.amount || 0), 0);
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+  }
+};
+const totalRevenue = orders.reduce(
+  (total, order) => total + Number(order.amount || 0),
+  0
+);
 
   // Mock data
   const stats = [
-    { label: "Total Orders", value: "2", icon: Box, color: "#0b3aa0", bg: "rgba(11,58,160,0.1)" },
-    { label: "Pending Approval", value: "0", icon: Clock, color: "#f57c00", bg: "rgba(245,124,0,0.1)" },
-    { label: "In Production", value: "1", icon: BoxSeam, color: "#1976d2", bg: "rgba(25,118,210,0.1)" },
-    { label: "Delivered", value: "1", icon: CheckCircle, color: "#2e7d32", bg: "rgba(46,125,50,0.1)" }
-  ];
+  {
+    label: "Total Orders",
+    value: orders.length,
+    icon: Box,
+    color: "#0b3aa0",
+    bg: "rgba(11,58,160,0.1)",
+  },
+  {
+    label: "Pending Approval",
+    value: orders.filter(order => order.status === "Pending").length,
+    icon: Clock,
+    color: "#f57c00",
+    bg: "rgba(245,124,0,0.1)",
+  },
+  {
+    label: "In Production",
+    value: orders.filter(order => order.status === "In Production").length,
+    icon: BoxSeam,
+    color: "#1976d2",
+    bg: "rgba(25,118,210,0.1)",
+  },
+  {
+    label: "Delivered",
+    value: orders.filter(order => order.status === "Delivered").length,
+    icon: CheckCircle,
+    color: "#2e7d32",
+    bg: "rgba(46,125,50,0.1)",
+  },
+];
 
-  const recentOrders = [
-    { id: "ORD-2026-001", item: "School Uniform", qty: 500, status: "Production", statusType: "warning", amount: "LKR 750,000" },
-    { id: "ORD-2026-004", item: "Sport T-Shirt", qty: 300, status: "Delivered", statusType: "success", amount: "LKR 450,000" }
-  ];
+  const recentOrders = orders.slice(0, 5).map((order) => ({
+  id: order._id.slice(-6).toUpperCase(),
+  item: order.garment,
+  qty: order.quantity,
+  status: order.status,
+  statusType:
+    order.status === "Delivered"
+      ? "success"
+      : order.status === "In Production"
+      ? "warning"
+      : "info",
+  amount: `Rs. ${Number(order.amount).toLocaleString()}`,
+}));
+const latestOrder =
+  orders.length > 0
+    ? [...orders].sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      )[0]
+    : null;
+    const outstandingAmount = latestOrder
+  ? latestOrder.balancePayment || 0
+  : 0;
+
+const advancePaid = latestOrder
+  ? latestOrder.advancePaid || 0
+  : 0;
 
   return (
     <div className="container-fluid p-0" style={{ minHeight: "100vh", background: "#f0f2f5" }}>
@@ -387,17 +484,25 @@ function Dashboard() {
                             borderRadius: "12px",
                             fontSize: "11px"
                           }}>
-                            In Progress
+                            {latestOrder?.status || "No Orders"}
                           </span>
-                          <h6 className="fw-bold mt-2 mb-0">ORD-2026-001</h6>
+                          <h6 className="fw-bold mt-2 mb-0">
+  {latestOrder ? latestOrder._id.slice(-6).toUpperCase() : "-"}
+</h6>
                           <p className="text-muted mb-0" style={{ fontSize: "13px" }}>
-                            School Uniform
+                            {latestOrder?.garment || "-"}
                           </p>
                         </div>
                         <div className="text-end">
-                          <div className="fw-bold" style={{ color: "#0b3aa0", fontSize: "18px" }}>
-                            65%
-                          </div>
+                          {
+  latestOrder?.status === "Pending"
+    ? "25%"
+    : latestOrder?.status === "In Production"
+    ? "60%"
+    : latestOrder?.status === "Delivered"
+    ? "100%"
+    : "0%"
+}
                         </div>
                       </div>
 
@@ -405,7 +510,14 @@ function Dashboard() {
                         <div
                           className="progress-bar"
                           style={{
-                            width: "65%",
+                            width:
+  latestOrder?.status === "Pending"
+    ? "25%"
+    : latestOrder?.status === "In Production"
+    ? "60%"
+    : latestOrder?.status === "Delivered"
+    ? "100%"
+    : "0%",
                             background: "linear-gradient(90deg, #0b3aa0, #1a6bff)",
                             borderRadius: "4px",
                             transition: "width 0.5s ease"
@@ -414,8 +526,17 @@ function Dashboard() {
                       </div>
 
                       <div className="d-flex justify-content-between mt-2">
-                        <small className="text-muted">Started</small>
-                        <small className="text-muted">Estimated: 15 Apr 2026</small>
+                        <small className="text-muted">
+  {latestOrder
+    ? new Date(latestOrder.createdAt).toLocaleDateString()
+    : "-"}
+</small>
+                        <small className="text-muted">
+  Estimated:{" "}
+  {latestOrder?.deliveryDate
+    ? new Date(latestOrder.deliveryDate).toLocaleDateString()
+    : "N/A"}
+</small>
                       </div>
                     </div>
 
@@ -434,7 +555,7 @@ function Dashboard() {
                     }}>
                       <span className="text-muted">Total Outstanding</span>
                       <span className="fw-bold text-danger" style={{ fontSize: "16px" }}>
-                        LKR 450,000
+                        Rs. {outstandingAmount.toLocaleString()}
                       </span>
                     </div>
 
@@ -445,7 +566,10 @@ function Dashboard() {
                     }}>
                       <span className="text-muted">Next Payment Due</span>
                       <span className="fw-bold" style={{ color: "#0b3aa0" }}>
-                        <Calendar3 size={14} className="me-1" /> 15 Apr 2026
+                        <Calendar3 size={14} className="me-1" />
+{latestOrder?.deliveryDate
+  ? new Date(latestOrder.deliveryDate).toLocaleDateString()
+  : "N/A"}
                       </span>
                     </div>
 

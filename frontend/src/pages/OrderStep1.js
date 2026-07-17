@@ -1,11 +1,13 @@
 // src/pages/OrderStep1.js
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import { OrderContext } from "../context/OrderContext";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import Sidebar from "../components/Sidebar"; // ✅ Correct import path
 
 function OrderStep1() {
   const navigate = useNavigate();
+  const { orderData, setOrderData } = useContext(OrderContext);
 
   const [selectedGarment, setSelectedGarment] = useState("School Uniform");
   const [selectedFabric, setSelectedFabric] = useState("Lycra");
@@ -41,14 +43,20 @@ function OrderStep1() {
 
   const handleNext = () => {
     setIsLoading(true);
-    const orderData = {
-      garment: selectedGarment,
-      fabric: selectedFabric,
-      color: selectedColor,
-      price: currentItem.price,
-      item: currentItem
-    };
-    localStorage.setItem('orderStep1Data', JSON.stringify(orderData));
+    setOrderData({
+  ...orderData,
+  garment: selectedGarment,
+  fabric: selectedFabric,
+  color: selectedColor,
+  amount: currentItem.price,
+});
+console.log("Step1 OrderData:", {
+  ...orderData,
+  garment: selectedGarment,
+  fabric: selectedFabric,
+  color: selectedColor,
+  amount: currentItem.price,
+});
     
     setTimeout(() => {
       setIsLoading(false);

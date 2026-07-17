@@ -1,19 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import { OrderContext } from "../context/OrderContext";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 
 function OrderDelivery() {
   const navigate = useNavigate();
+  const { orderData, setOrderData } = useContext(OrderContext);
 
   const [formData, setFormData] = useState({
     deliveryDate: "2024-06-25",
     address: "No. 123, Main Street, Colombo 05, Sri Lanka",
     deliveryMethod: "Factory Delivery",
     specialInstructions: "",
-    garmentType: "Bespoke Suit",
-    fabricType: "Premium Wool - Scabal",
+    garmentType: orderData.garment,
+    fabricType: orderData.fabric,
     complexity: "High",
-    quantity: 1
+    quantity: orderData.totalQuantity
   });
 
   // Mock data for estimates
@@ -387,7 +389,7 @@ function OrderDelivery() {
                 border: "none",
                 transition: "all 0.3s ease"
               }}
-              onClick={() => navigate("/ste4")}
+              onClick={() => navigate("/step4")}
               onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
               onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
             >
@@ -403,7 +405,21 @@ function OrderDelivery() {
                 boxShadow: "0 4px 25px rgba(11, 58, 160, 0.4)",
                 transition: "all 0.3s ease"
               }}
-              onClick={() => navigate("/step5")}
+              onClick={() => {
+
+  setOrderData({
+    ...orderData,
+
+    deliveryDate: formData.deliveryDate,
+    address: formData.address,
+    deliveryMethod: formData.deliveryMethod,
+    specialInstructions: formData.specialInstructions,
+
+  });
+
+  navigate("/step5");
+
+}}
               onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
               onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
             >

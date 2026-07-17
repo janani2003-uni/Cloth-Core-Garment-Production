@@ -1,11 +1,14 @@
 
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { OrderContext } from "../context/OrderContext";
 import { CreditCard, Building, Upload, CheckLg, Calendar, Lock }
 from "react-bootstrap-icons";
 
 function OrderStep5() {
   const navigate = useNavigate();
+  const { orderData } = useContext(OrderContext);
 
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -21,13 +24,16 @@ function OrderStep5() {
   });
 
   // Mock data - in real app this would come from previous steps
-  const orderData = {
-    grandTotal: 120000.00,
-    advancePercentage: 50
-  };
-
-  const advanceAmount = (orderData.grandTotal * orderData.advancePercentage) / 100;
-  const balanceAmount = orderData.grandTotal - advanceAmount;
+  
+  
+  
+  
+const grandTotal = orderData.grandTotal || orderData.amount || 0;
+console.log("Order Data:", orderData);
+console.log("Grand Total:", grandTotal);
+const advancePercentage = 50;
+  const advanceAmount = (grandTotal * advancePercentage) / 100;
+const balanceAmount = grandTotal - advanceAmount;
 
   const paymentMethods = [
     { id: "bank", name: "Bank Transfer", icon: "🏦", description: "Transfer the advance amount to our bank account." },
@@ -59,15 +65,49 @@ function OrderStep5() {
     if (formData.paymentMethod) {
       let methodName = formData.paymentMethod;
       alert(`Payment method selected: ${methodName}\nAdvance payment of Rs. ${advanceAmount.toFixed(2)} will be processed.`);
-      navigate("/step6");
+      
     } else {
       alert("Please select a payment method first.");
     }
   };
 
-  const handleConfirmPayment = () => {
+  const handleConfirmPayment = async () => {
+    console.log("OrderData in Step5:", JSON.stringify(orderData, null, 2));
     if (selectedPayment || formData.paymentMethod) {
       alert(`Payment method selected: ${formData.paymentMethod || selectedPayment}\nAdvance payment of Rs. ${advanceAmount.toFixed(2)} will be processed.`);
+      const order = {
+  shopName: JSON.parse(localStorage.getItem("user")).factoryName,
+  garment: orderData.garment,
+  fabric: orderData.fabric,
+  color: orderData.color,
+  quantity: orderData.totalQuantity,
+  amount: grandTotal,
+  advancePaid: advanceAmount,
+balancePayment: balanceAmount,
+  paymentMethod: formData.paymentMethod,
+  paymentStatus: "Paid",
+  status: "Pending",
+};
+console.log("Final Order:", order);
+console.log("Sending order to backend...", order);
+const response = await axios.post(
+  "http://localhost:5000/api/orders",
+  order
+);
+
+console.log("Backend Response:", response.data);
+localStorage.setItem(
+  "paymentSummary",
+  JSON.stringify({
+    orderId: "ORD-" + Date.now(),
+    orderDate: new Date().toLocaleString(),
+    status: "Pending Review",
+    advancePaid: advanceAmount,
+    balancePayment: balanceAmount,
+    expectedResponse: "Within 24 Hours",
+    estimatedDelivery: "15-20 Working Days",
+  })
+);
       navigate("/step6");
     } else {
       alert("Please select a payment method first.");
@@ -149,19 +189,19 @@ function OrderStep5() {
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted">Grand Total</span>
                     <span className="fw-bold" style={{ fontSize: "18px", color: "#0b3aa0" }}>
-                      Rs. {orderData.grandTotal.toFixed(2)}
+                      Rs. {(Number(grandTotal) || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted">Advance Payment (50%)</span>
                     <span className="fw-bold text-primary" style={{ fontSize: "18px" }}>
-                      Rs. {advanceAmount.toFixed(2)}
+                      Rs. {(Number(advanceAmount) || 0).toFixed(2)}
                     </span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2">
                     <span className="text-muted">Balance Payment (50%)</span>
                     <span className="fw-bold text-success" style={{ fontSize: "18px" }}>
-                      Rs. {balanceAmount.toFixed(2)}
+                      Rs. {(Number(balanceAmount) || 0).toFixed(2)}
                     </span>
                   </div>
                 </div>

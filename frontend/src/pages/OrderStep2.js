@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
+import { OrderContext } from "../context/OrderContext";
 import { useNavigate } from "react-router-dom";
 
 function OrderStep2() {
   const navigate = useNavigate();
+  const [previewImage, setPreviewImage] = useState(null);
+  const { orderData, setOrderData } = useContext(OrderContext);
 
   const [selectedTab, setSelectedTab] = useState("original");
   const [dragOver, setDragOver] = useState(false);
   const [fileName, setFileName] = useState("");
+
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -20,11 +24,19 @@ function OrderStep2() {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFileName(file.name);
+  const file = e.target.files[0];
+
+  if (file) {
+    setFileName(file.name);
+
+    // Show image preview
+    if (file.type.startsWith("image/")) {
+      setPreviewImage(URL.createObjectURL(file));
+    } else {
+      setPreviewImage(null);
     }
-  };
+  }
+};
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -283,17 +295,46 @@ function OrderStep2() {
                   justifyContent: "center",
                   alignItems: "center"
                 }}>
-                  {selectedTab === "original" ? (
-                    <>
-                      <div style={{ fontSize: "64px", marginBottom: "15px" }}>
-                        👕
-                      </div>
-                      <h6 className="text-muted">Original Design</h6>
-                      <p className="text-muted small">
-                        Upload your design or generate with AI
-                      </p>
-                    </>
-                  ) : (
+                  <>
+  {previewImage ? (
+    <>
+      <img
+        src={previewImage}
+        alt="Uploaded Design"
+        style={{
+          maxWidth: "100%",
+          maxHeight: "220px",
+          borderRadius: "12px",
+          objectFit: "contain",
+          marginBottom: "15px",
+          boxShadow: "0 4px 15px rgba(0,0,0,0.15)"
+        }}
+      />
+
+      <h6 className="text-success fw-bold">
+        ✅ Design Uploaded
+      </h6>
+
+      <p className="text-muted small">
+        {fileName}
+      </p>
+    </>
+  ) : (
+    <>
+      <div style={{ fontSize: "64px", marginBottom: "15px" }}>
+        👕
+      </div>
+
+      <h6 className="text-muted">
+        Original Design
+      </h6>
+
+      <p className="text-muted small">
+        Upload your design or generate with AI
+      </p>
+    </>
+  )}
+</>
                     <>
                       <div style={{ fontSize: "64px", marginBottom: "15px" }}>
                         🤖
@@ -360,7 +401,16 @@ function OrderStep2() {
               boxShadow: "0 4px 25px rgba(11, 58, 160, 0.4)",
               transition: "all 0.3s ease"
             }}
-            onClick={() => navigate("/step3")}
+            onClick={() => {
+  setOrderData({
+    ...orderData,
+    designFile: fileName,
+    designPreview: previewImage,
+    aiPrompt: aiPrompt,
+  });
+
+  navigate("/step3");
+}}
             onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
             onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
           >

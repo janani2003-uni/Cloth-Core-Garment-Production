@@ -79,7 +79,6 @@ return ( <div className="home">
       <div className="dashboard-card">
         <p>Active Orders : 284</p>
         <p>Materials In Stock : 100</p>
-        <p>Garments Tracked : 500</p>
         <p>Production Rate : 97%</p>
       </div>
 

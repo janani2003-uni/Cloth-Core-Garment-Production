@@ -1,13 +1,15 @@
-3 
 
 
 
-import React, { useState } from "react";
+
+import React, { useState, useContext } from "react";
+import { OrderContext } from "../context/OrderContext";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 
 function OrderStep3() {
   const navigate = useNavigate();
+  const { orderData, setOrderData } = useContext(OrderContext);
 
   const [quantities, setQuantities] = useState({
     S: 0,
@@ -384,10 +386,21 @@ return (
               cursor: isMinimumMet ? "pointer" : "not-allowed"
             }}
             onClick={() => {
-              if (isMinimumMet) {
-                navigate("/step4");
-              }
-            }}
+  if (isMinimumMet) {
+
+    setOrderData({
+      ...orderData,
+      quantities: quantities,
+      totalQuantity: totalQuantity,
+    });
+
+    navigate("/step4");
+  }
+}}
+              
+                
+              
+            
             disabled={!isMinimumMet}
             onMouseEnter={(e) => {
               if (isMinimumMet) {

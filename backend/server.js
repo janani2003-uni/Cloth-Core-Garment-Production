@@ -1,8 +1,27 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+
+
+
+
+
+
+
 require("dotenv").config();
+
+
+
+console.log(
+  "SUPERVISOR_SETUP_KEY loaded:",
+  Boolean(process.env.SUPERVISOR_SETUP_KEY)
+);
+
+
+
+
 const authRoutes = require("./routes/authRoutes");
+const orderRoutes = require("./routes/orderRoutes");
 const app = express();
 
 app.use(cors());
@@ -12,6 +31,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use("/api/auth", authRoutes);
+app.use("/api/orders", orderRoutes);
 console.log(process.env.MONGO_URI);
 console.log("MONGO_URI length:", process.env.MONGO_URI.length);
 

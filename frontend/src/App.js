@@ -7,7 +7,12 @@ import VerifyCode from "./pages/VerifyCode";
 import ResetPassword from "./pages/ResetPassword";
 import PasswordResetSuccess from "./pages/PasswordResetSuccess";
 import Dashboard from "./pages/Dashboard.js";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminProduction from "./pages/AdminProduction";
+import AdminOrders from "./pages/AdminOrders";
+import AdminOrderDetails from "./pages/AdminOrderDetails";
 import Orders from "./pages/Orders";
+import OrderDetails from "./pages/OrderDetails";
 import PlaceBulkOrder from "./pages/PlaceBulkOrder";
 import Quantities from "./pages/Quantities";
 import ReviewSubmit from "./pages/ReviewSubmit";
@@ -41,7 +46,12 @@ function App() {
         <Route path="/reset-password" element={<ResetPassword />}/>
         <Route path="/password-reset-success" element={<PasswordResetSuccess />}/>
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/production" element={<AdminProduction />} />
+<Route path="/admin/orders" element={<AdminOrders />} />
+<Route path="/admin/order-details" element={<AdminOrderDetails />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/order-details/:id" element={<OrderDetails />} />
         <Route path="/place-order" element={<PlaceBulkOrder />} />
         <Route path="/quantities" element={<Quantities />} />
         <Route path="/review-submit" element={<ReviewSubmit />} />

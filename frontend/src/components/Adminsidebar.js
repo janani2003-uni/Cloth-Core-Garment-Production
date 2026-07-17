@@ -1,33 +1,39 @@
-// src/components/Sidebar.js
+// src/components/Adminsidebar.js
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   House, 
+  People,
+  PersonGear,
   Box, 
   Clipboard, 
-  Gear, 
-  People,
-  BarChart,
   Truck,
-  Bell,
-  Person,
+  CreditCard,
+  BarChart,
+  Gear,
+  ClockHistory,
+  Headset,
   BoxArrowRight,
-  PersonGear
+  Bell
 } from 'react-bootstrap-icons';
 import logo from '../assets/logo.png';
 
-function Sidebar() {
+function Adminsidebar() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
-    { path: '/dashboard', icon: House, label: 'Dashboard' },
-    { path: '/orders', icon: Clipboard, label: 'Orders' },
-    { path: '/place-order', icon: Box, label: 'Place Order' },
+  { path: '/admin-dashboard', icon: House, label: 'Dashboard' },
+    { path: '/users', icon: People, label: 'User Management' },
+    { path: '/staff', icon: PersonGear, label: 'Staff Management' },  // ✅ NEW: Staff Management
+{ path: '/production', icon: Box, label: 'Production' },   
+{ path: '/admin/orders', icon: Clipboard, label: 'Orders' },
     { path: '/inventory', icon: Truck, label: 'Inventory' },
-    { path: '/analytics', icon: BarChart, label: 'Analytics' },
-    { path: '/customers', icon: People, label: 'Customers' },
-    { path: '/settings', icon: Gear, label: 'Settings' },
+    { path: '/payments', icon: CreditCard, label: 'Payments' },
+    { path: '/reports', icon: BarChart, label: 'Reports' },
+    { path: '/system-settings', icon: Gear, label: 'System Settings' },
+    { path: '/activity-logs', icon: ClockHistory, label: 'Activity Logs' },
+    { path: '/support-tickets', icon: Headset, label: 'Support Tickets' },
   ];
 
   const handleLogout = () => {
@@ -39,9 +45,16 @@ function Sidebar() {
     }
   };
 
-  // Handle My Account click - navigate to settings with profile tab
   const handleMyAccount = () => {
     navigate('/settings', { state: { activeTab: 'profile' } });
+  };
+
+  // Check if a path is active
+  const isPathActive = (path) => {
+    if (path === '/dashboard') {
+      return location.pathname === '/dashboard';
+    }
+    return location.pathname.startsWith(path);
   };
 
   return (
@@ -84,8 +97,7 @@ function Sidebar() {
       <div className="flex-grow-1">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path || 
-                          (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
+          const isActive = isPathActive(item.path);
           
           return (
             <div
@@ -168,7 +180,7 @@ function Sidebar() {
           </div>
         </div>
 
-        {/* My Account - Navigates to Settings Profile */}
+        {/* My Account */}
         <div
           onClick={handleMyAccount}
           style={{
@@ -208,12 +220,12 @@ function Sidebar() {
               marginRight: "12px"
             }}
           >
-            SF
+            A
           </div>
           <div>
-            <div style={{ fontSize: "12px", fontWeight: "600" }}>My Account</div>
+            <div style={{ fontSize: "12px", fontWeight: "600" }}>Admin User</div>
             <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)" }}>
-              {JSON.parse(localStorage.getItem("user"))?.factoryName}
+              Super Administrator
             </div>
           </div>
           {location.pathname === '/settings' && (
@@ -277,4 +289,4 @@ function Sidebar() {
   );
 }
 
-export default Sidebar;
+export default Adminsidebar;

@@ -14,28 +14,62 @@ import {
   Shield,
   Star
 } from "react-bootstrap-icons";
+import { useContext } from "react";
+import { OrderContext } from "../context/OrderContext";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 function OrderStep6() {
   const navigate = useNavigate();
+  const { orderData: contextOrderData } = useContext(OrderContext);
   const [showConfetti, setShowConfetti] = useState(false);
 
   // Mock data - in real app this would come from the backend
-  const orderData = {
-    orderId: "ORD-2026-000123",
-    orderDate: "02 May 2026, 10:30 AM",
-    status: "Pending Review",
-    advancePaid: 60000.00,
-    balancePayment: 60000.00,
-    expectedResponse: "Within 24 Hours",
-    estimatedDelivery: "15-20 Working Days",
-    orderItems: 3,
-    totalItems: 5
-  };
+  const orderData = JSON.parse(localStorage.getItem("paymentSummary")) || {
+  orderId: "N/A",
+  orderDate: "",
+  status: "Pending Review",
+  advancePaid: 0,
+  balancePayment: 0,
+  expectedResponse: "Within 24 Hours",
+  estimatedDelivery: "15-20 Working Days",
+};
 
   useEffect(() => {
     setShowConfetti(true);
     setTimeout(() => setShowConfetti(false), 3000);
   }, []);
+  const downloadReceipt = () => {
+  const doc = new jsPDF();
+
+  // Title
+  doc.setFontSize(22);
+  doc.setTextColor(11, 58, 160);
+  doc.text("ClothCore", 80, 20);
+
+  doc.setFontSize(16);
+  doc.setTextColor(0, 0, 0);
+  doc.text("Order Receipt", 75, 30);
+
+  autoTable(doc, {
+    startY: 40,
+    head: [["Field", "Value"]],
+    body: [
+      ["Order ID", orderData.orderId],
+      ["Order Date", orderData.orderDate],
+      ["Status", orderData.status],
+      ["Advance Paid", `Rs. ${orderData.advancePaid.toFixed(2)}`],
+      ["Balance Payment", `Rs. ${orderData.balancePayment.toFixed(2)}`],
+      ["Expected Response", orderData.expectedResponse],
+      ["Estimated Delivery", orderData.estimatedDelivery],
+    ],
+  });
+
+  doc.setFontSize(12);
+  doc.text("Thank you for choosing ClothCore!", 60, doc.lastAutoTable.finalY + 20);
+
+  doc.save(`Receipt_${orderData.orderId}.pdf`);
+};
 
   return (
     <div className="container-fluid p-0" style={{ 
@@ -274,26 +308,9 @@ function OrderStep6() {
                         gap: "8px"
                       }}
                       onClick={() => {
-                        const notification = document.createElement('div');
-                        notification.style.cssText = `
-                          position: fixed;
-                          top: 20px;
-                          right: 20px;
-                          background: #4CAF50;
-                          color: white;
-                          padding: 15px 25px;
-                          border-radius: 10px;
-                          box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-                          z-index: 9999;
-                          animation: slideInRight 0.5s ease;
-                        `;
-                        notification.textContent = '✅ Receipt downloaded successfully!';
-                        document.body.appendChild(notification);
-                        setTimeout(() => {
-                          notification.style.animation = 'slideOutRight 0.5s ease';
-                          setTimeout(() => document.body.removeChild(notification), 500);
-                        }, 3000);
-                      }}
+  downloadReceipt();
+  alert("✅ Receipt downloaded successfully!");
+}}
                       onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-3px) scale(1.02)"}
                       onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0) scale(1)"}
                     >
