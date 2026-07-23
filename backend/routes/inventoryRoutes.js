@@ -3,6 +3,11 @@ const mongoose = require("mongoose");
 
 const router = express.Router();
 const Inventory = require("../models/Inventory");
+const Notification = require("../models/Notification");
+const logActivity = require("../utils/logActivity");
+const { verifyToken, requireRole } = require("../middleware/authMiddleware");
+
+router.use(verifyToken, requireRole("admin"));
 
 // ==========================
 // GET all inventory items
@@ -17,7 +22,7 @@ router.get("/", async (req, res) => {
   } catch (error) {
     console.error("Get Inventory Error:", error);
 
-    return res.status(500).json({
+    return res.status(500).json({ success: false,
       message: error.message,
     });
   }
@@ -71,7 +76,7 @@ router.get("/stats", async (req, res) => {
       ),
     ].length;
 
-    return res.status(200).json({
+    return res.status(200).json({ success: true,
       totalItems,
       inStock,
       lowStock,
@@ -82,7 +87,7 @@ router.get("/stats", async (req, res) => {
   } catch (error) {
     console.error("Inventory Stats Error:", error);
 
-    return res.status(500).json({
+    return res.status(500).json({ success: false,
       message: error.message,
     });
   }
@@ -94,7 +99,7 @@ router.get("/stats", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: "Invalid inventory item ID",
       });
     }
@@ -104,7 +109,7 @@ router.get("/:id", async (req, res) => {
     );
 
     if (!item) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false,
         message: "Inventory item not found",
       });
     }
@@ -113,7 +118,7 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     console.error("Get Inventory Item Error:", error);
 
-    return res.status(500).json({
+    return res.status(500).json({ success: false,
       message: error.message,
     });
   }
@@ -145,7 +150,7 @@ router.post("/", async (req, res) => {
       !unit ||
       unitCost === undefined
     ) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message:
           "Please fill in all required inventory fields",
       });
@@ -156,7 +161,7 @@ router.post("/", async (req, res) => {
     });
 
     if (existingItem) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: "SKU already exists",
       });
     }
@@ -179,7 +184,25 @@ router.post("/", async (req, res) => {
 
     await item.save();
 
-    return res.status(201).json({
+    if (item.status === "Low Stock" || item.status === "Out of Stock") {
+      await Notification.create({
+        title: item.status === "Out of Stock" ? "Item Out of Stock" : "Low Stock Alert",
+        message: `${item.itemName} (${item.sku}) is ${item.status.toLowerCase()}.`,
+        type: "inventory",
+        relatedId: item._id,
+        relatedModel: "Inventory",
+      });
+    }
+
+    await logActivity({
+      actor: req.user,
+      action: "inventory.created",
+      message: `Added inventory item "${item.itemName}" (${item.sku})`,
+      targetType: "Inventory",
+      targetId: item._id,
+    });
+
+    return res.status(201).json({ success: true,
       message: "Inventory item added successfully",
       item,
     });
@@ -187,12 +210,12 @@ router.post("/", async (req, res) => {
     console.error("Create Inventory Error:", error);
 
     if (error.code === 11000) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: "SKU already exists",
       });
     }
 
-    return res.status(500).json({
+    return res.status(500).json({ success: false,
       message: error.message,
     });
   }
@@ -204,7 +227,7 @@ router.post("/", async (req, res) => {
 router.put("/:id", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: "Invalid inventory item ID",
       });
     }
@@ -214,7 +237,7 @@ router.put("/:id", async (req, res) => {
     );
 
     if (!item) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false,
         message: "Inventory item not found",
       });
     }
@@ -232,6 +255,8 @@ router.put("/:id", async (req, res) => {
       "imageUrl",
     ];
 
+    const previousStatus = item.status;
+
     allowedFields.forEach((field) => {
       if (req.body[field] !== undefined) {
         item[field] = req.body[field];
@@ -244,7 +269,30 @@ router.put("/:id", async (req, res) => {
 
     await item.save();
 
-    return res.status(200).json({
+    // Only alert when the item newly crosses into Low/Out of Stock, not on
+    // every unrelated edit.
+    if (
+      item.status !== previousStatus &&
+      (item.status === "Low Stock" || item.status === "Out of Stock")
+    ) {
+      await Notification.create({
+        title: item.status === "Out of Stock" ? "Item Out of Stock" : "Low Stock Alert",
+        message: `${item.itemName} (${item.sku}) is ${item.status.toLowerCase()}.`,
+        type: "inventory",
+        relatedId: item._id,
+        relatedModel: "Inventory",
+      });
+    }
+
+    await logActivity({
+      actor: req.user,
+      action: "inventory.updated",
+      message: `Updated inventory item "${item.itemName}" (${item.sku})`,
+      targetType: "Inventory",
+      targetId: item._id,
+    });
+
+    return res.status(200).json({ success: true,
       message: "Inventory item updated successfully",
       item,
     });
@@ -252,12 +300,12 @@ router.put("/:id", async (req, res) => {
     console.error("Update Inventory Error:", error);
 
     if (error.code === 11000) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: "SKU already exists",
       });
     }
 
-    return res.status(500).json({
+    return res.status(500).json({ success: false,
       message: error.message,
     });
   }
@@ -269,7 +317,7 @@ router.put("/:id", async (req, res) => {
 router.delete("/:id", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: "Invalid inventory item ID",
       });
     }
@@ -280,18 +328,26 @@ router.delete("/:id", async (req, res) => {
       );
 
     if (!deletedItem) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false,
         message: "Inventory item not found",
       });
     }
 
-    return res.status(200).json({
+    await logActivity({
+      actor: req.user,
+      action: "inventory.deleted",
+      message: `Deleted inventory item "${deletedItem.itemName}" (${deletedItem.sku})`,
+      targetType: "Inventory",
+      targetId: deletedItem._id,
+    });
+
+    return res.status(200).json({ success: true,
       message: "Inventory item deleted successfully",
     });
   } catch (error) {
     console.error("Delete Inventory Error:", error);
 
-    return res.status(500).json({
+    return res.status(500).json({ success: false,
       message: error.message,
     });
   }

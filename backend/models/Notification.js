@@ -23,6 +23,7 @@ const notificationSchema = new mongoose.Schema(
         "production",
         "order",
         "payment",
+        "ticket",
         "system",
       ],
       default: "system",
@@ -40,6 +41,15 @@ const notificationSchema = new mongoose.Schema(
 
     relatedModel: {
       type: String,
+      default: null,
+    },
+
+    // When set, this notification belongs to that specific user (e.g. a
+    // shop owner being told their payment was verified). When null, it's
+    // an Admin-facing broadcast (e.g. a new shop registration to review).
+    recipientId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
       default: null,
     },
   },

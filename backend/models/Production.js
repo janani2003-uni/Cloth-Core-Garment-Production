@@ -83,6 +83,39 @@ const productionSchema = new mongoose.Schema(
       type: Date,
       required: [true, "Due date is required"],
     },
+
+    // Optional Supervisor -> Staff work assignment. All fields default to
+    // "unassigned" so existing records keep working untouched; nothing here
+    // is ever set automatically.
+    supervisorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    assignedStaffIds: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    assignmentNotes: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    assignedAt: {
+      type: Date,
+      default: null,
+    },
+
+    assignedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
   },
   {
     timestamps: true,

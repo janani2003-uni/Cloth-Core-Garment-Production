@@ -28,17 +28,40 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    // Optional operational metadata, mainly relevant for Supervisor/Staff
+    // accounts (their "My Account" page) — deliberately plain strings rather
+    // than a link into the separate HR-only Staff collection, since Staff
+    // records have no login and aren't tied to a User today.
+    employeeId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    department: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    notificationPreferences: {
+      orderUpdates: { type: Boolean, default: true },
+      productionAlerts: { type: Boolean, default: true },
+      deliveryAlerts: { type: Boolean, default: true },
+      paymentAlerts: { type: Boolean, default: true },
+      reminders: { type: Boolean, default: true },
+    },
+
     role: {
       type: String,
-      enum: [
-        "User",
-        "Admin",
-        "Shop Owner",
-        "Production Supervisor",
-        "Inventory Clerk",
-        "Finance",
-      ],
-      default: "User",
+      enum: ["user", "admin", "shopOwner", "supervisor"],
+      default: "user",
     },
 
     status: {

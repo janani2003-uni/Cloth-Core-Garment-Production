@@ -1,10 +1,17 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
+import ShopOwnerLayout from "../components/ShopOwnerLayout";
+import { getBusinessRules } from "../utils/businessRules";
 
 function OrderStep3() {
   const navigate = useNavigate();
+
+  const [minimumOrderQuantity, setMinimumOrderQuantity] = useState(100);
+
+  useEffect(() => {
+    getBusinessRules().then((rules) => setMinimumOrderQuantity(rules.minimumOrderQuantity));
+  }, []);
 
   const [quantities, setQuantities] = useState({
     S: 0,
@@ -17,8 +24,6 @@ function OrderStep3() {
   const [sizeChart, setSizeChart] = useState({
     unit: "inches" // or "cm"
   });
-
-  const [showModal, setShowModal] = useState(false);
 
   const sizeData = [
     { size: "S", chest: 36, length: 26, shoulder: 16, sleeve: 7.5, available: 150 },
@@ -53,7 +58,7 @@ function OrderStep3() {
   };
 
   const totalQuantity = Object.values(quantities).reduce((sum, val) => sum + val, 0);
-  const isMinimumMet = totalQuantity >= 100;
+  const isMinimumMet = totalQuantity >= minimumOrderQuantity;
 
 
 
@@ -62,33 +67,12 @@ function OrderStep3() {
 
   
 return (
-  <div
-    className="d-flex"
-    style={{
-      minHeight: "100vh",
-      background: "#f5f7fb"
-    }}
-  >
-
-    <Sidebar />
-
-    <div
-      className="flex-grow-1"
-      style={{
-        padding: "20px"
-      }}
-    >
-
-      <div className="container py-4"></div>
-
-
-
-
+  <ShopOwnerLayout contentClassName="" contentStyle={{ padding: "20px" }}>
         {/* Header */}
         <div className="mb-4">
           <h1 className="fw-bold" style={{ fontSize: "2.2rem" }}>
             <span style={{ 
-              background: "linear-gradient(45deg, #f2a100, #ff6f00)",
+              background: "linear-gradient(45deg, #2b124c, #522b5b)",
               padding: "5px 20px",
               borderRadius: "10px",
               color: "white",
@@ -96,7 +80,7 @@ return (
             }}>
               Step 3
             </span>
-            <span style={{ color: "#0b3aa0" }}>
+            <span style={{ color: "#dfb6b2" }}>
               Quantities & Size Breakdown
             </span>
           </h1>
@@ -106,14 +90,14 @@ return (
         </div>
 
         {/* Size Chart Section */}
-        <div className="card border-0 mb-4" style={{ 
+        <div className="card admin-content-card border-0 mb-4" style={{ 
           borderRadius: "20px",
           boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
         }}>
           <div className="card-body p-4">
             <div className="d-flex align-items-center mb-4">
               <span className="badge me-3" style={{
-                background: "linear-gradient(135deg, #0b3aa0, #1a6bff)",
+                background: "linear-gradient(135deg, #522b5b, #854f6c)",
                 fontSize: "1.2rem",
                 padding: "8px 18px",
                 borderRadius: "12px",
@@ -121,7 +105,7 @@ return (
               }}>
                 1
               </span>
-              <h4 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>
+              <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                 Size Chart ({sizeChart.unit})
               </h4>
             </div>
@@ -131,7 +115,7 @@ return (
               <button
                 className="btn btn-sm px-4"
                 style={{
-                  background: sizeChart.unit === "cm" ? "#0b3aa0" : "#e9ecef",
+                  background: sizeChart.unit === "cm" ? "#522b5b" : "#e9ecef",
                   color: sizeChart.unit === "cm" ? "white" : "#333",
                   borderRadius: "8px",
                   fontWeight: "bold"
@@ -148,7 +132,7 @@ return (
               <button
                 className="btn btn-sm px-4"
                 style={{
-                  background: sizeChart.unit === "inches" ? "#0b3aa0" : "#e9ecef",
+                  background: sizeChart.unit === "inches" ? "#522b5b" : "#e9ecef",
                   color: sizeChart.unit === "inches" ? "white" : "#333",
                   borderRadius: "8px",
                   fontWeight: "bold"
@@ -164,13 +148,13 @@ return (
               </button>
             </div>
 
-            <h6 className="fw-bold mb-3" style={{ color: "#0b3aa0" }}>
+            <h6 className="fw-bold mb-3" style={{ color: "#dfb6b2" }}>
               T-Shirt Size Chart (Unisex)
             </h6>
 
             <div className="table-responsive">
-              <table className="table table-hover table-bordered" style={{ borderRadius: "12px", overflow: "hidden" }}>
-                <thead style={{ background: "linear-gradient(135deg, #0b3aa0, #1a6bff)", color: "white" }}>
+              <table className="table table-hover admin-table table-bordered" style={{ borderRadius: "12px", overflow: "hidden" }}>
+                <thead style={{ background: "linear-gradient(135deg, #522b5b, #854f6c)", color: "white" }}>
                   <tr>
                     <th style={{ padding: "12px 15px" }}>Size</th>
                     <th style={{ padding: "12px 15px" }}>Chest</th>
@@ -216,14 +200,14 @@ return (
         </div>
 
         {/* Quantities Section */}
-        <div className="card border-0 mb-4" style={{ 
+        <div className="card admin-content-card border-0 mb-4" style={{ 
           borderRadius: "20px",
           boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
         }}>
           <div className="card-body p-4">
             <div className="d-flex align-items-center mb-4">
               <span className="badge me-3" style={{
-                background: "linear-gradient(135deg, #0b3aa0, #1a6bff)",
+                background: "linear-gradient(135deg, #522b5b, #854f6c)",
                 fontSize: "1.2rem",
                 padding: "8px 18px",
                 borderRadius: "12px",
@@ -231,20 +215,20 @@ return (
               }}>
                 2
               </span>
-              <h4 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>
+              <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                 Enter Quantities by Size
               </h4>
             </div>
 
             <div className="alert alert-info py-2 px-3 mb-4" style={{ borderRadius: "10px", background: "#e3f2fd", border: "none" }}>
               <small className="text-primary fw-bold">
-                ⚠️ Minimum total quantity is 100 pcs
+                ⚠️ Minimum total quantity is {minimumOrderQuantity} pcs
               </small>
             </div>
 
             <div className="table-responsive">
-              <table className="table table-bordered" style={{ borderRadius: "12px", overflow: "hidden" }}>
-                <thead style={{ background: "linear-gradient(135deg, #f2a100, #ff6f00)", color: "white" }}>
+              <table className="table admin-table table-bordered" style={{ borderRadius: "12px", overflow: "hidden" }}>
+                <thead style={{ background: "linear-gradient(135deg, #2b124c, #522b5b)", color: "white" }}>
                   <tr>
                     <th style={{ padding: "12px 15px" }}>Size</th>
                     <th style={{ padding: "12px 15px" }}>Quantity (pcs)</th>
@@ -289,7 +273,7 @@ return (
                       </td>
                       <td style={{ padding: "10px 15px", verticalAlign: "middle" }}>
                         <span className="badge" style={{ 
-                          background: "#4CAF50",
+                          background: "#1a9c5f",
                           color: "white",
                           padding: "5px 12px"
                         }}>
@@ -306,21 +290,21 @@ return (
             <div className="mt-3 p-3" style={{
               borderRadius: "12px",
               background: isMinimumMet ? "linear-gradient(135deg, #e8f5e9, #c8e6c9)" : "linear-gradient(135deg, #fff3e0, #ffe0b2)",
-              border: isMinimumMet ? "2px solid #4CAF50" : "2px solid #FF9800"
+              border: isMinimumMet ? "2px solid #1a9c5f" : "2px solid #d98324"
             }}>
               <div className="d-flex justify-content-between align-items-center flex-wrap">
                 <div>
                   <h5 className="fw-bold mb-0">
                     Total Quantity
                   </h5>
-                  <span className="fw-bold" style={{ fontSize: "24px", color: isMinimumMet ? "#2e7d32" : "#e65100" }}>
+                  <span className="fw-bold" style={{ fontSize: "24px", color: isMinimumMet ? "#12633f" : "#a3600e" }}>
                     {totalQuantity} pcs
                   </span>
                 </div>
                 <div>
                   {isMinimumMet ? (
                     <span className="badge" style={{
-                      background: "#4CAF50",
+                      background: "#1a9c5f",
                       color: "white",
                       padding: "8px 20px",
                       fontSize: "14px"
@@ -329,12 +313,12 @@ return (
                     </span>
                   ) : (
                     <span className="badge" style={{
-                      background: "#FF9800",
+                      background: "#d98324",
                       color: "white",
                       padding: "8px 20px",
                       fontSize: "14px"
                     }}>
-                      ⚠️ Need {100 - totalQuantity} more pcs
+                      ⚠️ Need {minimumOrderQuantity - totalQuantity} more pcs
                     </span>
                   )}
                 </div>
@@ -371,7 +355,7 @@ return (
             className="btn px-5 py-2 fw-bold"
             style={{
               background: isMinimumMet 
-                ? "linear-gradient(45deg, #0b3aa0, #1a6bff)" 
+                ? "linear-gradient(45deg, #522b5b, #854f6c)" 
                 : "#ccc",
               color: isMinimumMet ? "white" : "#999",
               borderRadius: "30px",
@@ -382,6 +366,11 @@ return (
             }}
             onClick={() => {
               if (isMinimumMet) {
+                const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
+                localStorage.setItem(
+                  "clothCoreOrderDraft",
+                  JSON.stringify({ ...draft, sizes: quantities, totalQuantity })
+                );
                 navigate("/step4");
               }
             }}
@@ -400,8 +389,6 @@ return (
             Next: Review →
           </button>
         </div>
-
-      </div>
 
       {/* CSS Animations */}
       <style>
@@ -450,7 +437,7 @@ return (
           }
         `}
       </style>
-    </div>
+  </ShopOwnerLayout>
   );
 }
 

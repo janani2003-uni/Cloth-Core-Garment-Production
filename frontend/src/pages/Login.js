@@ -1,7 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { FiMail, FiLock, FiEye, FiEyeOff, FiShield } from "react-icons/fi";
 import axios from "axios";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo-new.png.jpeg";
+import { setSession } from "../utils/auth";
 
 const LOGIN_API_URL =
   "http://localhost:5000/api/auth/login";
@@ -13,9 +16,13 @@ function Login() {
     email: "",
     password: "",
     remember: false,
+    adminCode: "",
   });
 
+  const [loginAsAdmin, setLoginAsAdmin] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showAdminCode, setShowAdminCode] = useState(false);
 
   const handleChange = (event) => {
     const { name, value, checked, type } =
@@ -42,6 +49,11 @@ function Login() {
       return;
     }
 
+    if (loginAsAdmin && !loginData.adminCode.trim()) {
+      alert("Please enter the admin access code.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -50,6 +62,7 @@ function Login() {
         {
           email,
           password,
+          ...(loginAsAdmin ? { adminCode: loginData.adminCode.trim() } : {}),
         },
         {
           headers: {
@@ -65,20 +78,19 @@ function Login() {
       ) {
         const userData = response.data.user;
 
-        if (loginData.remember) {
-          localStorage.setItem(
-            "user",
-            JSON.stringify(userData)
-          );
-        } else {
-          sessionStorage.setItem(
-            "user",
-            JSON.stringify(userData)
-          );
-        }
+        setSession(
+          userData,
+          response.data.token,
+          loginData.remember
+        );
 
-        if (userData?.role === "Admin") {
+        // Each role lands on its own dashboard by default. Admin can then
+        // switch to any other dashboard via "View As" in the account dropdown
+        // — this only sets the initial landing page after login.
+        if (userData.role === "admin") {
           navigate("/admin-dashboard");
+        } else if (userData.role === "supervisor") {
+          navigate("/supervisor-dashboard");
         } else {
           navigate("/dashboard");
         }
@@ -116,8 +128,8 @@ function Login() {
   };
 
   return (
-    <div className="bg-light min-vh-100">
-      <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+    <div className="auth-page min-vh-100">
+      <nav className="navbar navbar-expand-lg navbar-light auth-navbar">
         <div className="container">
           <button
             type="button"
@@ -127,29 +139,15 @@ function Login() {
             <img
               src={logo}
               alt="ClothCore logo"
-              width="50"
-              height="50"
-              className="me-3"
+              className="me-3 auth-navbar-logo"
             />
 
             <div className="text-start">
-              <div
-                className="fw-bold"
-                style={{
-                  fontSize: "30px",
-                  color: "#0b3aa0",
-                }}
-              >
+              <div className="fw-bold auth-brand-title">
                 ClothCore
               </div>
 
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6c757d",
-                  lineHeight: "1.2",
-                }}
-              >
+              <div className="auth-brand-subtitle">
                 Garment Productions
               </div>
             </div>
@@ -216,7 +214,7 @@ function Login() {
             <div>
               <button
                 type="button"
-                className="btn btn-outline-primary me-2 px-4"
+                className="explore-btn me-2"
                 onClick={() => navigate("/login")}
               >
                 Login
@@ -224,7 +222,7 @@ function Login() {
 
               <button
                 type="button"
-                className="btn btn-primary px-4"
+                className="login-register-btn"
                 onClick={() =>
                   navigate("/register")
                 }
@@ -242,20 +240,23 @@ function Login() {
           style={{ minHeight: "85vh" }}
         >
           <div className="col-lg-5 col-md-7">
-            <div
-              className="card border-0 shadow-lg"
-              style={{ borderRadius: "25px" }}
+            <motion.div
+              className="auth-card-wrap"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
+            <div className="card auth-card border-0">
               <div className="card-body p-5">
-                <h1 className="text-center fw-bold mb-2">
+                <h1 className="text-center fw-bold mb-2 auth-title">
                   Sign In
                 </h1>
 
-                <p className="text-center text-secondary mb-4">
+                <p className="text-center mb-4 auth-subtitle">
                   Don't have an account?{" "}
                   <button
                     type="button"
-                    className="btn btn-link p-0 text-decoration-none fw-semibold"
+                    className="btn btn-link p-0 text-decoration-none fw-semibold auth-link"
                     onClick={() =>
                       navigate("/register")
                     }
@@ -273,17 +274,20 @@ function Login() {
                       Email Address
                     </label>
 
-                    <input
-                      id="loginEmail"
-                      type="email"
-                      className="form-control form-control-lg"
-                      placeholder="Enter Email Address"
-                      name="email"
-                      value={loginData.email}
-                      onChange={handleChange}
-                      autoComplete="email"
-                      required
-                    />
+                    <div className="auth-input-group">
+                      <FiMail className="auth-input-icon" aria-hidden="true" />
+                      <input
+                        id="loginEmail"
+                        type="email"
+                        className="form-control form-control-lg auth-input"
+                        placeholder="Enter Email Address"
+                        name="email"
+                        value={loginData.email}
+                        onChange={handleChange}
+                        autoComplete="email"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="mb-3">
@@ -294,17 +298,28 @@ function Login() {
                       Password
                     </label>
 
-                    <input
-                      id="loginPassword"
-                      type="password"
-                      className="form-control form-control-lg"
-                      placeholder="Enter Password"
-                      name="password"
-                      value={loginData.password}
-                      onChange={handleChange}
-                      autoComplete="current-password"
-                      required
-                    />
+                    <div className="auth-input-group has-toggle">
+                      <FiLock className="auth-input-icon" aria-hidden="true" />
+                      <input
+                        id="loginPassword"
+                        type={showPassword ? "text" : "password"}
+                        className="form-control form-control-lg auth-input"
+                        placeholder="Enter Password"
+                        name="password"
+                        value={loginData.password}
+                        onChange={handleChange}
+                        autoComplete="current-password"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="auth-password-toggle"
+                        onClick={() => setShowPassword((current) => !current)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <FiEyeOff /> : <FiEye />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="d-flex justify-content-between align-items-center mb-4">
@@ -330,7 +345,7 @@ function Login() {
 
                     <button
                       type="button"
-                      className="btn btn-link text-decoration-none p-0"
+                      className="btn btn-link text-decoration-none p-0 auth-link"
                       onClick={() =>
                         navigate(
                           "/forgotpassword"
@@ -341,9 +356,57 @@ function Login() {
                     </button>
                   </div>
 
+                  <div className="mb-3">
+                    <button
+                      type="button"
+                      className="admin-register-link"
+                      onClick={() => setLoginAsAdmin((current) => !current)}
+                      aria-pressed={loginAsAdmin}
+                    >
+                      <FiShield aria-hidden="true" />
+                      <span>{loginAsAdmin ? "Cancel admin login" : "Login as Admin"}</span>
+                    </button>
+                  </div>
+
+                  {loginAsAdmin && (
+                    <div className="mb-4">
+                      <label
+                        htmlFor="loginAdminCode"
+                        className="form-label fw-semibold"
+                      >
+                        Admin Access Code
+                      </label>
+
+                      <div className="auth-input-group has-toggle">
+                        <FiShield className="auth-input-icon" aria-hidden="true" />
+                        <input
+                          id="loginAdminCode"
+                          type={showAdminCode ? "text" : "password"}
+                          className="form-control form-control-lg auth-input"
+                          placeholder="Enter the admin access code"
+                          name="adminCode"
+                          value={loginData.adminCode}
+                          onChange={handleChange}
+                          required={loginAsAdmin}
+                        />
+                        <button
+                          type="button"
+                          className="auth-password-toggle"
+                          onClick={() => setShowAdminCode((current) => !current)}
+                          aria-label={showAdminCode ? "Hide admin code" : "Show admin code"}
+                        >
+                          {showAdminCode ? <FiEyeOff /> : <FiEye />}
+                        </button>
+                      </div>
+                      <small className="d-block mt-2" style={{ color: "var(--clothcore-text-muted)" }}>
+                        Ask an existing administrator for this code. It's only needed to log in with Admin access.
+                      </small>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    className="btn btn-primary w-100 py-3 fw-bold rounded-3"
+                    className="auth-submit-btn"
                     disabled={loading}
                   >
                     {loading
@@ -353,6 +416,7 @@ function Login() {
                 </form>
               </div>
             </div>
+            </motion.div>
           </div>
         </div>
       </div>

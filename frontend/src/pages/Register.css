@@ -1,0 +1,16 @@
+.register-heading {
+  font-family: serif;
+  letter-spacing: 3px;
+}
+
+.password-requirements {
+  font-size: 12px;
+  line-height: 1.5;
+  display: block;
+  margin-top: 8px;
+  color: var(--clothcore-text-soft);
+}
+
+.auth-submit-lg {
+  font-size: 18px;
+}

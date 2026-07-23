@@ -1,100 +1,27 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
-import axios from "axios";
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import logo from "../assets/logo-new.png.jpeg";
+import RegisterForm from "../components/RegisterForm";
+import "./Register.css";
 
 function Register() {
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    factoryName: "",
-    password: "",
-    confirmPassword: "",
-    agree: false,
-  });
-
-  const [passwordError, setPasswordError] = useState("");
-
-  const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
-
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
-
-    if (name === "password" || name === "confirmPassword") {
-      setPasswordError("");
-    }
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    // Password validation
-const passwordRegex =
-  /^(?=(.*[!@#$%^&*(),.?":{}|<>]){2,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
-
-if (!passwordRegex.test(formData.password)) {
-  setPasswordError(
-    "Password must be 8–20 characters and include at least 2 special characters, 1 uppercase letter, 1 lowercase letter and 1 number."
-  );
-  return;
-}
-
-if (formData.password !== formData.confirmPassword) {
-  setPasswordError("Passwords do not match!");
-  return;
-}
-
-    try {
-      const res = await axios.post(
-        "http://localhost:5000/api/auth/register",
-        {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          factoryName: formData.factoryName,
-          password: formData.password,
-        }
-      );
-
-      alert(res.data.message);
-      navigate("/");
-    } catch (err) {
-      alert(err.response?.data?.message || err.message);
-    }
-  };
-
   return (
-    <div className="bg-light min-vh-100">
+    <div className="auth-page min-vh-100">
       {/* Navbar */}
-      <nav className="navbar navbar-expand-lg bg-white shadow-sm">
+      <nav className="navbar navbar-expand-lg navbar-light auth-navbar">
         <div className="container">
           <a className="navbar-brand d-flex align-items-center" href="/">
-            <img src={logo} alt="ClothCore logo" width="55" />
+            <img src={logo} alt="ClothCore logo" className="auth-navbar-logo" />
 
             <div className="ms-3">
-              <div
-                className="fw-bold"
-                style={{
-                  fontSize: "30px",
-                  color: "#0b3aa0",
-                }}
-              >
+              <div className="fw-bold auth-brand-title">
                 ClothCore
               </div>
 
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6c757d",
-                  lineHeight: "1.2",
-                }}
-              >
+              <div className="auth-brand-subtitle">
                 Garment Productions
               </div>
             </div>
@@ -138,15 +65,15 @@ if (formData.password !== formData.confirmPassword) {
 
             <button
               type="button"
-              className="btn btn-primary me-2 px-4"
-              onClick={() => navigate("/")}
+              className="explore-btn me-2"
+              onClick={() => navigate("/login")}
             >
               Login
             </button>
 
             <button
               type="button"
-              className="btn btn-primary px-4"
+              className="login-register-btn"
             >
               Register
             </button>
@@ -156,207 +83,22 @@ if (formData.password !== formData.confirmPassword) {
 
       {/* Register Form */}
       <div className="container py-5">
-        <p
-          className="fw-bold mb-2"
-          style={{
-            color: "#f2a100",
-            letterSpacing: "3px",
-          }}
-        >
-          GET STARTED
-        </p>
-
-        <h1
-          className="fw-bold"
-          style={{
-            fontFamily: "serif",
-            letterSpacing: "3px",
-          }}
-        >
-          Create Account
-        </h1>
-
-        <p className="mb-5">
-          Already registered?
-          <Link
-            to="/"
-            className="ms-2 fw-bold text-decoration-none"
-            style={{ color: "#f2a100" }}
-          >
-            Sign in here
-          </Link>
-        </p>
-
-        <form onSubmit={handleSubmit}>
-          <div className="row">
-            <div className="col-md-6 mb-4">
-              <label className="form-label fw-semibold">
-                First Name
-              </label>
-
-              <input
-                type="text"
-                className="form-control form-control-lg"
-                name="firstName"
-                placeholder="Enter First Name"
-                value={formData.firstName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="col-md-6 mb-4">
-              <label className="form-label fw-semibold">
-                Last Name
-              </label>
-
-              <input
-                type="text"
-                className="form-control form-control-lg"
-                name="lastName"
-                placeholder="Enter Last Name"
-                value={formData.lastName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="col-12 mb-4">
-              <label className="form-label fw-semibold">
-                Email Address
-              </label>
-
-              <input
-                type="email"
-                className="form-control form-control-lg"
-                name="email"
-                placeholder="Enter Email Address"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="col-12 mb-4">
-              <label className="form-label fw-semibold">
-                Factory Name
-              </label>
-
-              <input
-                type="text"
-                className="form-control form-control-lg"
-                name="factoryName"
-                placeholder="Enter Factory Name"
-                value={formData.factoryName}
-                onChange={handleChange}
-                required
-              />
-            </div>
-
-            <div className="col-md-6 mb-4">
-              <label className="form-label fw-semibold">
-                Password
-              </label>
-
-              <input
-                type="password"
-                className="form-control form-control-lg"
-                name="password"
-                placeholder="Enter Password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-
-              <small
-  className="text-muted"
-  style={{
-    fontSize: "12px",
-    lineHeight: "1.5",
-    display: "block",
-    marginTop: "8px",
-  }}
->
-  <strong>Password Requirements</strong>
-  <br />
-  ✓ 8–20 characters
-  <br />
-  ✓ At least 1 uppercase letter
-  <br />
-  ✓ At least 1 lowercase letter
-  <br />
-  ✓ At least 1 number
-  <br />
-  ✓ At least 2 special characters
-</small>
-            </div>
-
-            <div className="col-md-6 mb-4">
-              <label className="form-label fw-semibold">
-                Confirm Password
-              </label>
-
-              <input
-                type="password"
-                className={`form-control form-control-lg ${
-                  passwordError ? "is-invalid" : ""
-                }`}
-                name="confirmPassword"
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                required
-              />
-
-              {passwordError && (
-                <div className="invalid-feedback">
-                  {passwordError}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="col-12 mb-4">
-            <div className="form-check">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                name="agree"
-                id="agree"
-                checked={formData.agree}
-                onChange={handleChange}
-                required
-              />
-
-              <label
-                className="form-check-label"
-                htmlFor="agree"
-              >
-                I agree to the
-                <span className="text-primary fw-bold">
-                  {" "}Terms & Conditions{" "}
-                </span>
-                and
-                <span className="text-primary fw-bold">
-                  {" "}Privacy Policy
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div className="col-12">
-            <button
-              type="submit"
-              className="btn btn-primary w-100 py-3 fw-bold"
-              style={{
-                borderRadius: "10px",
-                fontSize: "18px",
-              }}
+        <div className="row justify-content-center">
+          <div className="col-lg-9 col-xl-8">
+            <motion.div
+              className="auth-card-wrap"
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
-              CREATE MY ACCOUNT
-            </button>
+              <div className="card auth-card border-0">
+                <div className="card-body p-5">
+                  <RegisterForm />
+                </div>
+              </div>
+            </motion.div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

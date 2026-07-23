@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-import Adminsidebar from "../../components/Adminsidebar";
-import Admintopbar from "../../components/Admintopbar";
+import AdminLayout from "../../components/AdminLayout";
 
 import {
   People,
@@ -22,7 +21,6 @@ import {
   PersonPlus,
   ArrowUp,
   ArrowDown,
-  Calendar,
 } from "react-bootstrap-icons";
 
 const API_URL = "http://localhost:5000/api/staff";
@@ -37,6 +35,10 @@ function AdminStaffManagement() {
   const [actionStaffId, setActionStaffId] = useState(null);
   const [selectedStaff, setSelectedStaff] = useState(null);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -107,6 +109,8 @@ function AdminStaffManagement() {
     )}% of total staff`;
   };
 
+  // Literal hex (not CSS vars) because `color` gets an alpha suffix appended
+  // below (e.g. `${stat.color}15`) to build the translucent icon background.
   const stats = [
     {
       label: "Total Staff",
@@ -114,7 +118,7 @@ function AdminStaffManagement() {
       change: `${totalStaff} staff records`,
       trend: "up",
       icon: "👥",
-      color: "#6366f1",
+      color: "#522b5b",
     },
     {
       label: "Present Today",
@@ -122,7 +126,7 @@ function AdminStaffManagement() {
       change: getPercentage(presentToday),
       trend: "up",
       icon: "✅",
-      color: "#10b981",
+      color: "#1a9c5f",
     },
     {
       label: "Absent Today",
@@ -130,7 +134,7 @@ function AdminStaffManagement() {
       change: getPercentage(absentToday),
       trend: "down",
       icon: "❌",
-      color: "#ef4444",
+      color: "#d1495b",
     },
     {
       label: "On Leave",
@@ -138,7 +142,7 @@ function AdminStaffManagement() {
       change: getPercentage(onLeave),
       trend: "down",
       icon: "🏖️",
-      color: "#f59e0b",
+      color: "#d98324",
     },
     {
       label: "Departments",
@@ -146,7 +150,7 @@ function AdminStaffManagement() {
       change: "Active departments",
       trend: "up",
       icon: "🏢",
-      color: "#8b5cf6",
+      color: "#854f6c",
     },
   ];
 
@@ -236,20 +240,20 @@ function AdminStaffManagement() {
   const getAttendanceStyle = (attendance) => {
     const styles = {
       Present: {
-        background: "rgba(16,185,129,0.15)",
-        color: "#10b981",
+        background: "var(--clothcore-success-bg)",
+        color: "var(--clothcore-success)",
         icon: <CheckCircle size={12} />,
       },
 
       Absent: {
-        background: "rgba(239,68,68,0.15)",
-        color: "#ef4444",
+        background: "var(--clothcore-danger-bg)",
+        color: "var(--clothcore-danger)",
         icon: <XCircle size={12} />,
       },
 
       "On Leave": {
-        background: "rgba(245,158,11,0.15)",
-        color: "#f59e0b",
+        background: "var(--clothcore-warning-bg)",
+        color: "var(--clothcore-warning)",
         icon: <Clock size={12} />,
       },
     };
@@ -265,16 +269,16 @@ function AdminStaffManagement() {
     if (status === "Inactive") {
       return {
         background:
-          "rgba(239,68,68,0.15)",
-        color: "#ef4444",
+          "var(--clothcore-danger-bg)",
+        color: "var(--clothcore-danger)",
         icon: <XCircle size={12} />,
       };
     }
 
     return {
       background:
-        "rgba(16,185,129,0.15)",
-      color: "#10b981",
+        "var(--clothcore-success-bg)",
+      color: "var(--clothcore-success)",
       icon: <CheckCircle size={12} />,
     };
   };
@@ -296,7 +300,44 @@ function AdminStaffManagement() {
 
   // 2. Edit Staff
   const handleEditStaff = (member) => {
-    navigate(`/staff/edit/${member._id}`);
+    setEditError("");
+    setEditForm({
+      _id: member._id,
+      staffId: member.staffId,
+      name: member.name || "",
+      department: member.department || "",
+      position: member.position || "",
+      phone: member.phone || "",
+      status: member.status || "Active",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editForm.name.trim() || !editForm.department || !editForm.position || !editForm.phone.trim()) {
+      setEditError("Name, department, position and phone are required.");
+      return;
+    }
+
+    try {
+      setSavingEdit(true);
+      setEditError("");
+      await axios.put(`${API_URL}/${editForm._id}`, {
+        name: editForm.name.trim(),
+        department: editForm.department,
+        position: editForm.position,
+        phone: editForm.phone.trim(),
+        status: editForm.status,
+      });
+      setShowEditModal(false);
+      setEditForm(null);
+      await fetchStaff();
+    } catch (err) {
+      console.error("Edit Staff Error:", err);
+      setEditError(err.response?.data?.message || "Could not update staff member.");
+    } finally {
+      setSavingEdit(false);
+    }
   };
 
   // 3. Mark as On Leave
@@ -435,20 +476,7 @@ function AdminStaffManagement() {
   };
 
   return (
-    <div
-      className="d-flex"
-      style={{
-        minHeight: "100vh",
-        background: "#f0f0f5",
-      }}
-    >
-      <Adminsidebar />
-
-      <div className="flex-grow-1">
-        <Admintopbar />
-
-        <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0">
+    <AdminLayout>
             {/* Breadcrumb */}
             <div
               style={{
@@ -457,7 +485,7 @@ function AdminStaffManagement() {
             >
               <span
                 style={{
-                  color: "#6c757d",
+                  color: "var(--clothcore-text-soft)",
                   fontSize: "14px",
                 }}
               >
@@ -466,7 +494,7 @@ function AdminStaffManagement() {
 
               <span
                 style={{
-                  color: "#6c757d",
+                  color: "var(--clothcore-text-soft)",
                   margin: "0 8px",
                 }}
               >
@@ -475,7 +503,7 @@ function AdminStaffManagement() {
 
               <span
                 style={{
-                  color: "#0b3aa0",
+                  color: "var(--clothcore-blush)",
                   fontWeight: "600",
                   fontSize: "14px",
                 }}
@@ -490,7 +518,7 @@ function AdminStaffManagement() {
                 <h2
                   className="fw-bold mb-0"
                   style={{
-                    color: "#1a1a2e",
+                    color: "var(--clothcore-text)",
                     fontSize: "28px",
                   }}
                 >
@@ -513,7 +541,7 @@ function AdminStaffManagement() {
                 className="btn px-4 py-2"
                 style={{
                   background:
-                    "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                    "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
                   color: "white",
                   borderRadius: "10px",
                   border: "none",
@@ -540,11 +568,11 @@ function AdminStaffManagement() {
                   className="col-xl col-lg-4 col-md-6 col-sm-12"
                 >
                   <div
-                    className="card border-0 h-100"
+                    className="card admin-stat-card h-100"
                     style={{
                       borderRadius: "14px",
                       boxShadow:
-                        "0 2px 12px rgba(0,0,0,0.06)",
+                        "var(--clothcore-shadow)",
                     }}
                   >
                     <div className="card-body p-3 p-xl-4">
@@ -553,7 +581,7 @@ function AdminStaffManagement() {
                           <div
                             style={{
                               fontSize: "13px",
-                              color: "#6c757d",
+                              color: "var(--clothcore-text-soft)",
                               fontWeight: "500",
                             }}
                           >
@@ -564,7 +592,7 @@ function AdminStaffManagement() {
                             className="fw-bold"
                             style={{
                               fontSize: "24px",
-                              color: "#1a1a2e",
+                              color: "var(--clothcore-text)",
                               marginTop: "4px",
                             }}
                           >
@@ -594,12 +622,12 @@ function AdminStaffManagement() {
                         {stat.trend === "up" ? (
                           <ArrowUp
                             size={14}
-                            color="#10b981"
+                            color="var(--clothcore-success)"
                           />
                         ) : (
                           <ArrowDown
                             size={14}
-                            color="#ef4444"
+                            color="var(--clothcore-danger)"
                           />
                         )}
 
@@ -609,8 +637,8 @@ function AdminStaffManagement() {
                             color:
                               stat.trend ===
                               "up"
-                                ? "#10b981"
-                                : "#ef4444",
+                                ? "var(--clothcore-success)"
+                                : "var(--clothcore-danger)",
                             fontWeight: "600",
                             marginLeft: "4px",
                           }}
@@ -626,11 +654,11 @@ function AdminStaffManagement() {
 
             {/* Filters */}
             <div
-              className="card border-0 mb-4"
+              className="card admin-content-card mb-4"
               style={{
                 borderRadius: "16px",
                 boxShadow:
-                  "0 2px 12px rgba(0,0,0,0.06)",
+                  "var(--clothcore-shadow)",
               }}
             >
               <div className="card-body p-4">
@@ -646,7 +674,7 @@ function AdminStaffManagement() {
                           top: "50%",
                           transform:
                             "translateY(-50%)",
-                          color: "#94a3b8",
+                          color: "var(--clothcore-text-soft)",
                         }}
                       />
 
@@ -665,7 +693,7 @@ function AdminStaffManagement() {
                           paddingLeft: "40px",
                           borderRadius: "10px",
                           border:
-                            "2px solid #e9ecef",
+                            "1.5px solid var(--clothcore-border)",
                           fontSize: "14px",
                           height: "42px",
                         }}
@@ -688,7 +716,7 @@ function AdminStaffManagement() {
                       style={{
                         borderRadius: "10px",
                         border:
-                          "2px solid #e9ecef",
+                          "1.5px solid var(--clothcore-border)",
                         fontSize: "14px",
                         height: "42px",
                       }}
@@ -719,7 +747,7 @@ function AdminStaffManagement() {
                       style={{
                         borderRadius: "10px",
                         border:
-                          "2px solid #e9ecef",
+                          "1.5px solid var(--clothcore-border)",
                         fontSize: "14px",
                         height: "42px",
                       }}
@@ -746,7 +774,7 @@ function AdminStaffManagement() {
                         style={{
                           borderRadius: "10px",
                           border:
-                            "2px solid #e9ecef",
+                            "1.5px solid var(--clothcore-border)",
                           fontSize: "14px",
                           height: "42px",
                           display: "flex",
@@ -754,8 +782,8 @@ function AdminStaffManagement() {
                           justifyContent:
                             "center",
                           gap: "6px",
-                          background: "white",
-                          color: "#1a1a2e",
+                          background: "rgba(255,255,255,0.055)",
+                          color: "var(--clothcore-text)",
                           flex: 1,
                         }}
                       >
@@ -770,11 +798,11 @@ function AdminStaffManagement() {
                         style={{
                           borderRadius: "10px",
                           border:
-                            "2px solid #e9ecef",
+                            "1.5px solid var(--clothcore-border)",
                           fontSize: "14px",
                           height: "42px",
-                          background: "white",
-                          color: "#1a1a2e",
+                          background: "rgba(255,255,255,0.055)",
+                          color: "var(--clothcore-text)",
                           padding: "0 16px",
                         }}
                       >
@@ -794,21 +822,17 @@ function AdminStaffManagement() {
 
             {/* Table */}
             <div
-              className="card border-0"
+              className="card admin-content-card"
               style={{
                 borderRadius: "16px",
                 boxShadow:
-                  "0 2px 12px rgba(0,0,0,0.06)",
+                  "var(--clothcore-shadow)",
               }}
             >
               <div className="card-body p-0">
                 <div className="table-responsive">
-                  <table className="table table-hover mb-0">
-                    <thead
-                      style={{
-                        background: "#f8f9fa",
-                      }}
-                    >
+                  <table className="table table-hover admin-table mb-0">
+                    <thead>
                       <tr>
                         <th className="px-4 py-3">
                           #
@@ -1004,7 +1028,31 @@ function AdminStaffManagement() {
                                       <li>
                                         <hr className="dropdown-divider" />
                                       </li>
-                 
+
+                                      <li>
+                                        <button
+                                          type="button"
+                                          className="dropdown-item d-flex align-items-center gap-2"
+                                          onClick={() => handleMarkOnLeave(member)}
+                                          disabled={isActionLoading}
+                                        >
+                                          <Clock size={14} />
+                                          Mark On Leave
+                                        </button>
+                                      </li>
+
+                                      <li>
+                                        <button
+                                          type="button"
+                                          className="dropdown-item d-flex align-items-center gap-2"
+                                          onClick={() => handleMarkInactive(member)}
+                                          disabled={isActionLoading}
+                                        >
+                                          <XCircle size={14} />
+                                          Mark Inactive
+                                        </button>
+                                      </li>
+
                                       <li>
                                         <hr className="dropdown-divider" />
                                       </li>
@@ -1110,9 +1158,6 @@ function AdminStaffManagement() {
                   </div>
                 )}
             </div>
-          </div>
-        </div>
-      </div>
 
       {/* View Staff Modal */}
       {showViewModal && selectedStaff && (
@@ -1131,7 +1176,7 @@ function AdminStaffManagement() {
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                <h5 className="modal-title fw-bold" style={{ color: "#1a1a2e" }}>
+                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-text)" }}>
                   Staff Details
                 </h5>
                 <button 
@@ -1143,49 +1188,49 @@ function AdminStaffManagement() {
               <div className="modal-body" style={{ padding: "24px" }}>
                 <div className="row g-3">
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Staff ID</small>
                       <h6 className="mb-0 text-primary">{selectedStaff.staffId}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Full Name</small>
                       <h6 className="mb-0">{selectedStaff.name}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Email</small>
                       <h6 className="mb-0">{selectedStaff.email || "N/A"}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Phone</small>
                       <h6 className="mb-0">{selectedStaff.phone}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Department</small>
                       <h6 className="mb-0">{selectedStaff.department}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Position</small>
                       <h6 className="mb-0">{selectedStaff.position}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Joining Date</small>
                       <h6 className="mb-0">{selectedStaff.joiningDate || "N/A"}</h6>
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Attendance</small>
                       <h6 className="mb-0">
                         <span className="badge" style={{
@@ -1200,7 +1245,7 @@ function AdminStaffManagement() {
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Status</small>
                       <h6 className="mb-0">
                         <span className="badge" style={{
@@ -1215,20 +1260,20 @@ function AdminStaffManagement() {
                     </div>
                   </div>
                   <div className="col-md-6">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Emergency Contact</small>
                       <h6 className="mb-0">{selectedStaff.emergencyContact || "N/A"}</h6>
                     </div>
                   </div>
                   <div className="col-12">
-                    <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                       <small className="text-muted">Address</small>
                       <p className="mb-0">{selectedStaff.address || "N/A"}</p>
                     </div>
                   </div>
                   {selectedStaff.notes && (
                     <div className="col-12">
-                      <div className="p-3" style={{ background: "#f8f9fa", borderRadius: "10px" }}>
+                      <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
                         <small className="text-muted">Notes</small>
                         <p className="mb-0">{selectedStaff.notes}</p>
                       </div>
@@ -1243,8 +1288,8 @@ function AdminStaffManagement() {
                   onClick={() => setShowViewModal(false)}
                   style={{
                     borderRadius: "10px",
-                    background: "#f8f9fa",
-                    color: "#495057"
+                    background: "var(--clothcore-bg)",
+                    color: "var(--clothcore-text-soft)"
                   }}
                 >
                   Close
@@ -1254,7 +1299,102 @@ function AdminStaffManagement() {
           </div>
         </div>
       )}
-    </div>
+
+      {showEditModal && editForm && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1050 }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content" style={{ borderRadius: "16px" }}>
+              <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
+                <div>
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>Edit Staff Member</h5>
+                  <p className="mb-0 text-muted" style={{ fontSize: "13px" }}>{editForm.staffId}</p>
+                </div>
+                <button type="button" className="btn-close" onClick={() => !savingEdit && setShowEditModal(false)} />
+              </div>
+              <div className="modal-body" style={{ padding: "20px 24px" }}>
+                <div className="row g-3">
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>Full Name</label>
+                    <input
+                      className="form-control admin-select"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>Phone</label>
+                    <input
+                      className="form-control admin-select"
+                      value={editForm.phone}
+                      onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                    />
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>Department</label>
+                    <select
+                      className="form-select admin-select"
+                      value={editForm.department}
+                      onChange={(e) => setEditForm((f) => ({ ...f, department: e.target.value }))}
+                    >
+                      {["Cutting", "Sewing", "Quality Control", "Finishing", "Maintenance", "Packing", "Stores", "Delivery", "Administration", "HR"].map((d) => (
+                        <option key={d} value={d}>{d}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>Position</label>
+                    <select
+                      className="form-select admin-select"
+                      value={editForm.position}
+                      onChange={(e) => setEditForm((f) => ({ ...f, position: e.target.value }))}
+                    >
+                      {["Cutter", "Sewing Operator", "QC Inspector", "Finishing Operator", "Technician", "Packing Operator", "Store Keeper", "Driver", "Supervisor", "Manager", "Assistant"].map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>Status</label>
+                    <select
+                      className="form-select admin-select"
+                      value={editForm.status}
+                      onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+                {editError && (
+                  <div className="mt-3" style={{ color: "var(--clothcore-danger)", fontSize: "13px" }}>{editError}</div>
+                )}
+              </div>
+              <div className="modal-footer border-0" style={{ padding: "0 24px 24px" }}>
+                <button
+                  type="button"
+                  className="admin-btn-secondary"
+                  onClick={() => setShowEditModal(false)}
+                  disabled={savingEdit}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn-primary"
+                  onClick={handleSaveEdit}
+                  disabled={savingEdit}
+                >
+                  {savingEdit ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AdminLayout>
   );
 }
 

@@ -1,20 +1,20 @@
 // src/components/Sidebar.js
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  House, 
-  Box, 
-  Clipboard, 
-  Gear, 
-  People,
-  BarChart,
-  Truck,
+import {
+  House,
+  Box,
+  Clipboard,
+  Gear,
   Bell,
-  Person,
   BoxArrowRight,
-  PersonGear
+  Shop,
+  CreditCard,
+  Truck,
+  ChatDots
 } from 'react-bootstrap-icons';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo-new.png.jpeg';
+import { clearSession } from '../utils/auth';
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -23,18 +23,18 @@ function Sidebar() {
   const menuItems = [
     { path: '/dashboard', icon: House, label: 'Dashboard' },
     { path: '/orders', icon: Clipboard, label: 'Orders' },
-    { path: '/place-order', icon: Box, label: 'Place Order' },
-    { path: '/inventory', icon: Truck, label: 'Inventory' },
-    { path: '/analytics', icon: BarChart, label: 'Analytics' },
-    { path: '/customers', icon: People, label: 'Customers' },
+    { path: '/step1', icon: Box, label: 'Place Order' },
+    { path: '/shop-profile', icon: Shop, label: 'Shop Profile' },
+    { path: '/payments', icon: CreditCard, label: 'Payments' },
+    { path: '/deliveries', icon: Truck, label: 'Deliveries' },
+    { path: '/notifications', icon: Bell, label: 'Notifications' },
+    { path: '/support', icon: ChatDots, label: 'Support' },
     { path: '/settings', icon: Gear, label: 'Settings' },
   ];
 
   const handleLogout = () => {
     if (window.confirm('Are you sure you want to log out?')) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('userData');
-      sessionStorage.clear();
+      clearSession();
       navigate('/login');
     }
   };
@@ -45,33 +45,33 @@ function Sidebar() {
   };
 
   return (
-    <div
-      style={{
-        width: "250px",
-        minHeight: "100vh",
-        background: "linear-gradient(180deg, #0b1a3a 0%, #0b3aa0 100%)",
-        color: "white",
-        padding: "20px 0",
-        position: "sticky",
-        top: 0,
-        height: "100vh",
-        overflowY: "auto",
-        display: "flex",
-        flexDirection: "column"
-      }}
-    >
+    <div className="admin-sidebar">
       {/* Logo Section */}
       <div className="text-center mb-4 px-3">
-        <img
-          src={logo}
-          alt="ClothCore"
+        <div
           style={{
-            width: "60px",
-            height: "60px",
-            objectFit: "contain",
-            marginBottom: "8px"
+            width: "68px",
+            height: "68px",
+            margin: "0 auto 10px",
+            borderRadius: "20px",
+            background: "rgba(255,255,255,0.94)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.28)",
+            overflow: "hidden",
           }}
-        />
+        >
+          <img
+            src={logo}
+            alt="ClothCore"
+            style={{
+              width: "48px",
+              height: "48px",
+              objectFit: "contain",
+            }}
+          />
+        </div>
         <h5 className="fw-bold mb-0" style={{ color: "white", fontSize: "18px" }}>
           ClothCore
         </h5>
@@ -91,29 +91,7 @@ function Sidebar() {
             <div
               key={item.path}
               onClick={() => navigate(item.path)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "12px 24px",
-                margin: "4px 12px",
-                borderRadius: "12px",
-                cursor: "pointer",
-                background: isActive ? "rgba(255,255,255,0.15)" : "transparent",
-                borderLeft: isActive ? "4px solid #ffc107" : "4px solid transparent",
-                transition: "all 0.3s ease",
-                color: isActive ? "white" : "rgba(255,255,255,0.7)",
-                fontWeight: isActive ? "600" : "400"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(255,255,255,0.1)";
-                e.currentTarget.style.color = "white";
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  e.currentTarget.style.background = "transparent";
-                  e.currentTarget.style.color = "rgba(255,255,255,0.7)";
-                }
-              }}
+              className={`admin-sidebar-link${isActive ? " is-active" : ""}`}
             >
               <Icon size={20} style={{ marginRight: "12px" }} />
               <span style={{ fontSize: "14px" }}>{item.label}</span>
@@ -124,7 +102,7 @@ function Sidebar() {
                     width: "8px",
                     height: "8px",
                     borderRadius: "50%",
-                    background: "#ffc107"
+                    background: "var(--clothcore-blush)"
                   }}
                 />
               )}
@@ -135,38 +113,6 @@ function Sidebar() {
 
       {/* Bottom Section */}
       <div className="px-3 mt-auto">
-        {/* Notifications */}
-        <div
-          style={{
-            padding: "15px",
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: "12px",
-            marginBottom: "10px"
-          }}
-        >
-          <div className="d-flex align-items-center">
-            <div
-              style={{
-                width: "40px",
-                height: "40px",
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.15)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginRight: "12px"
-              }}
-            >
-              <Bell size={18} />
-            </div>
-            <div>
-              <div style={{ fontSize: "12px", fontWeight: "600" }}>Notifications</div>
-              <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)" }}>
-                3 new updates
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* My Account - Navigates to Settings Profile */}
         <div
@@ -180,11 +126,11 @@ function Sidebar() {
             cursor: "pointer",
             background: location.pathname === '/settings' ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)",
             transition: "all 0.3s ease",
-            border: location.pathname === '/settings' ? "1px solid rgba(255,193,7,0.3)" : "1px solid transparent"
+            border: location.pathname === '/settings' ? "1px solid rgba(223,182,178,0.35)" : "1px solid transparent"
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = "rgba(255,255,255,0.15)";
-            e.currentTarget.style.borderColor = "rgba(255,193,7,0.3)";
+            e.currentTarget.style.borderColor = "rgba(223,182,178,0.35)";
           }}
           onMouseLeave={(e) => {
             if (location.pathname !== '/settings') {
@@ -198,7 +144,7 @@ function Sidebar() {
               width: "36px",
               height: "36px",
               borderRadius: "50%",
-              background: "linear-gradient(135deg, #ffc107, #ff6f00)",
+              background: "linear-gradient(135deg, var(--clothcore-blush), var(--clothcore-mauve))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -223,7 +169,7 @@ function Sidebar() {
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                background: "#ffc107"
+                background: "var(--clothcore-blush)"
               }}
             />
           )}

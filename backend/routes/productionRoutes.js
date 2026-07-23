@@ -1,9 +1,49 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const router = express.Router();
 const Production = require("../models/Production");
+const Order = require("../models/Order");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
+const logActivity = require("../utils/logActivity");
+const { verifyToken, requireRole } = require("../middleware/authMiddleware");
+
+// Maps a directly-chosen stage to the progress value that reproduces it
+// under Production's own pre("save") derivation (see models/Production.js),
+// so setting a stage explicitly stays consistent with the existing
+// progress-driven stage logic instead of bypassing it.
+const STAGE_PROGRESS_MAP = {
+  "Not Started": 0,
+  Cutting: 25,
+  Sewing: 50,
+  "Quality Assurance": 75,
+  Packing: 99,
+  Completed: 100,
+};
+
+router.use(verifyToken);
+
+// Admin and Supervisor can both view production data; only Admin can
+// create/edit/delete full records, and only Admin + Supervisor can move an
+// order's stage forward.
+const canView = requireRole("admin", "supervisor");
+const canManage = requireRole("admin");
+const canUpdateStage = requireRole("admin", "supervisor");
+const canAssign = requireRole("admin", "supervisor");
+
+// NOTE: the "staff" role has been removed from the system (see User.js) —
+// assignedStaffIds/assign endpoints below are dormant as a result (there is
+// no longer a role that can ever populate them) but are left in place
+// rather than torn out; ask before repurposing or removing this subsystem.
+function buildScopeFilter(req) {
+  if (req.user.role === "staff") {
+    return { assignedStaffIds: req.user.id };
+  }
+  return {};
+}
 
 // GET /api/production - Get all production orders with pagination and search
-router.get("/", async (req, res) => {
+router.get("/", canView, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
@@ -21,18 +61,20 @@ router.get("/", async (req, res) => {
         }
       : {};
 
+    const query = { ...searchQuery, ...buildScopeFilter(req) };
+
     // Get total count for pagination
-    const totalItems = await Production.countDocuments(searchQuery);
+    const totalItems = await Production.countDocuments(query);
 
     // Get paginated results
-    const items = await Production.find(searchQuery)
+    const items = await Production.find(query)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
 
     const totalPages = Math.ceil(totalItems / limit);
 
-    res.status(200).json({
+    res.status(200).json({ success: true,
       items,
       totalItems,
       currentPage: page,
@@ -40,30 +82,41 @@ router.get("/", async (req, res) => {
     });
   } catch (error) {
     console.error("GET /api/production error:", error);
-    res.status(500).json({
+    res.status(500).json({ success: false,
       message: error.message || "Failed to fetch production orders",
     });
   }
 });
 
 // GET /api/production/stats - Get production statistics
-router.get("/stats", async (req, res) => {
+router.get("/stats", canView, async (req, res) => {
   try {
-    const totalOrders = await Production.countDocuments();
+    const scope = buildScopeFilter(req);
+
+    const totalOrders = await Production.countDocuments(scope);
 
     const inProduction = await Production.countDocuments({
+      ...scope,
       status: "In Production",
     });
 
     const completed = await Production.countDocuments({
+      ...scope,
       status: "Completed",
     });
 
     const onHold = await Production.countDocuments({
+      ...scope,
       status: "On Hold",
     });
 
+    const cancelled = await Production.countDocuments({
+      ...scope,
+      status: "Cancelled",
+    });
+
     const result = await Production.aggregate([
+      { $match: scope },
       {
         $group: {
           _id: null,
@@ -74,39 +127,103 @@ router.get("/stats", async (req, res) => {
 
     const averageProgress = result.length > 0 ? Math.round(result[0].averageProgress) : 0;
 
-    res.status(200).json({
+    // Progress buckets, matching the stage thresholds used elsewhere
+    // (Not Started / Cutting / Sewing / Quality Assurance / Packing / Completed)
+    const progressBuckets = await Production.aggregate([
+      { $match: scope },
+      {
+        $bucket: {
+          groupBy: "$progress",
+          boundaries: [0, 1, 26, 51, 76, 100, 101],
+          default: "other",
+          output: { count: { $sum: 1 } },
+        },
+      },
+    ]);
+
+    const bucketMap = {};
+    progressBuckets.forEach((b) => {
+      bucketMap[b._id] = b.count;
+    });
+
+    const progressDistribution = [
+      { label: "Not Started (0%)", progress: 0, count: bucketMap[0] || 0 },
+      { label: "Cutting (1-25%)", progress: 25, count: bucketMap[1] || 0 },
+      { label: "Sewing (26-50%)", progress: 50, count: bucketMap[26] || 0 },
+      { label: "Quality Assurance (51-75%)", progress: 75, count: bucketMap[51] || 0 },
+      { label: "Packing (76-99%)", progress: 99, count: bucketMap[76] || 0 },
+      { label: "Completed (100%)", progress: 100, count: bucketMap[100] || 0 },
+    ];
+
+    // Real recent activity derived from production records themselves
+    const recentActivity = await Production.find(scope)
+      .sort({ updatedAt: -1 })
+      .limit(5)
+      .select("orderId stage status updatedAt")
+      .lean();
+
+    res.status(200).json({ success: true,
       totalOrders,
       inProduction,
       completed,
       onHold,
+      cancelled,
       averageProgress,
+      progressDistribution,
+      recentActivity,
     });
   } catch (error) {
     console.error("GET /api/production/stats error:", error);
-    res.status(500).json({
+    res.status(500).json({ success: false,
       message: error.message || "Failed to fetch production statistics",
     });
   }
 });
 
+// GET /api/production/assignable-staff - User accounts with role "staff",
+// for Supervisor/Admin to pick from when assigning work. Only the minimal
+// fields needed to display a name are returned.
+router.get("/assignable-staff", canAssign, async (req, res) => {
+  try {
+    const staff = await User.find({ role: "staff" })
+      .select("firstName lastName email")
+      .sort({ firstName: 1 });
+
+    res.status(200).json({ success: true, data: staff });
+  } catch (error) {
+    console.error("GET /api/production/assignable-staff error:", error);
+    res.status(500).json({ success: false,
+      message: error.message || "Failed to fetch assignable staff",
+    });
+  }
+});
+
 // GET /api/production/:id - Get a single production order
-router.get("/:id", async (req, res) => {
+router.get("/:id", canView, async (req, res) => {
   try {
     const order = await Production.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ message: "Production order not found" });
+      return res.status(404).json({ success: false, message: "Production order not found" });
     }
+
+    if (
+      req.user.role === "staff" &&
+      !(order.assignedStaffIds || []).some((staffId) => String(staffId) === String(req.user.id))
+    ) {
+      return res.status(403).json({ success: false, message: "This production order is not assigned to you" });
+    }
+
     res.status(200).json(order);
   } catch (error) {
     console.error("GET /api/production/:id error:", error);
-    res.status(500).json({
+    res.status(500).json({ success: false,
       message: error.message || "Failed to fetch production order",
     });
   }
 });
 
 // POST /api/production - Create a new production order
-router.post("/", async (req, res) => {
+router.post("/", canManage, async (req, res) => {
   try {
     const {
       orderId,
@@ -125,7 +242,7 @@ router.post("/", async (req, res) => {
     const missingFields = requiredFields.filter((field) => !req.body[field]);
 
     if (missingFields.length > 0) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: `Missing required fields: ${missingFields.join(", ")}`,
       });
     }
@@ -133,7 +250,7 @@ router.post("/", async (req, res) => {
     // Check for duplicate orderId
     const existingOrder = await Production.findOne({ orderId: orderId.toUpperCase() });
     if (existingOrder) {
-      return res.status(400).json({
+      return res.status(400).json({ success: false,
         message: `Order ID "${orderId}" already exists`,
       });
     }
@@ -153,20 +270,20 @@ router.post("/", async (req, res) => {
 
     await newOrder.save();
 
-    res.status(201).json({
+    res.status(201).json({ success: true,
       message: "Production order created successfully",
       order: newOrder,
     });
   } catch (error) {
     console.error("POST /api/production error:", error);
-    res.status(400).json({
+    res.status(400).json({ success: false,
       message: error.message || "Failed to create production order",
     });
   }
 });
 
 // PUT /api/production/:id - Update a production order
-router.put("/:id", async (req, res) => {
+router.put("/:id", canManage, async (req, res) => {
   try {
     const {
       orderId,
@@ -182,7 +299,7 @@ router.put("/:id", async (req, res) => {
 
     const order = await Production.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ message: "Production order not found" });
+      return res.status(404).json({ success: false, message: "Production order not found" });
     }
 
     // Check for duplicate orderId if it's being changed
@@ -192,7 +309,7 @@ router.put("/:id", async (req, res) => {
         _id: { $ne: req.params.id },
       });
       if (existingOrder) {
-        return res.status(400).json({
+        return res.status(400).json({ success: false,
           message: `Order ID "${orderId}" already exists`,
         });
       }
@@ -218,44 +335,211 @@ router.put("/:id", async (req, res) => {
     // Validate dates
     if (updateData.startDate && updateData.dueDate) {
       if (new Date(updateData.startDate) > new Date(updateData.dueDate)) {
-        return res.status(400).json({
+        return res.status(400).json({ success: false,
           message: "Start date cannot be after due date",
         });
       }
     }
 
+    const previousStage = order.stage;
+
     // Apply updates
     Object.assign(order, updateData);
     await order.save();
 
-    res.status(200).json({
+    // Let the shop owner know when their order's production stage actually
+    // moves forward (Cutting -> Sewing -> ... -> Completed).
+    if (order.stage !== previousStage) {
+      const relatedOrder = await Order.findOne({ orderId: order.orderId });
+
+      if (relatedOrder?.userId) {
+        await Notification.create({
+          title: "Production Update",
+          message: `Order ${order.orderId} has moved to "${order.stage}".`,
+          type: "production",
+          relatedId: order._id,
+          relatedModel: "Production",
+          recipientId: relatedOrder.userId,
+        });
+      }
+
+      await logActivity({
+        actor: req.user,
+        action: "production.stage_changed",
+        message: `Moved production for order ${order.orderId} from "${previousStage}" to "${order.stage}"`,
+        targetType: "Production",
+        targetId: order._id,
+      });
+    }
+
+    res.status(200).json({ success: true,
       message: "Production order updated successfully",
       order,
     });
   } catch (error) {
     console.error("PUT /api/production/:id error:", error);
-    res.status(400).json({
+    res.status(400).json({ success: false,
       message: error.message || "Failed to update production order",
     });
   }
 });
 
+// PATCH /api/production/:id/stage - Move an order to a specific production
+// stage (Cutting/Sewing/Quality Assurance/Packing/Completed) without giving
+// Supervisors full edit access to product/sku/quantity/dates.
+router.patch("/:id/stage", canUpdateStage, async (req, res) => {
+  try {
+    const { stage } = req.body;
+
+    if (!stage || !Object.prototype.hasOwnProperty.call(STAGE_PROGRESS_MAP, stage)) {
+      return res.status(400).json({ success: false,
+        message: "A valid stage is required",
+      });
+    }
+
+    const order = await Production.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Production order not found" });
+    }
+
+    if (order.status === "On Hold" || order.status === "Cancelled") {
+      return res.status(400).json({ success: false,
+        message: `Cannot update stage while status is "${order.status}"`,
+      });
+    }
+
+    const previousStage = order.stage;
+
+    order.progress = STAGE_PROGRESS_MAP[stage];
+    await order.save();
+
+    if (order.stage !== previousStage) {
+      const relatedOrder = await Order.findOne({ orderId: order.orderId });
+
+      if (relatedOrder?.userId) {
+        await Notification.create({
+          title: "Production Update",
+          message: `Order ${order.orderId} has moved to "${order.stage}".`,
+          type: "production",
+          relatedId: order._id,
+          relatedModel: "Production",
+          recipientId: relatedOrder.userId,
+        });
+      }
+
+      await logActivity({
+        actor: req.user,
+        action: "production.stage_changed",
+        message: `Moved production for order ${order.orderId} from "${previousStage}" to "${order.stage}"`,
+        targetType: "Production",
+        targetId: order._id,
+      });
+    }
+
+    res.status(200).json({ success: true,
+      message: "Stage updated successfully",
+      order,
+    });
+  } catch (error) {
+    console.error("PATCH /api/production/:id/stage error:", error);
+    res.status(400).json({ success: false,
+      message: error.message || "Failed to update stage",
+    });
+  }
+});
+
+// PATCH /api/production/:id/assign - Assign (or reassign) Staff to a
+// production order. Optional and backward-compatible: existing records with
+// no assignment keep working exactly as before, and this route never
+// touches product/sku/quantity/dates/progress/status.
+router.patch("/:id/assign", canAssign, async (req, res) => {
+  try {
+    const { assignedStaffIds, assignmentNotes } = req.body;
+
+    if (!Array.isArray(assignedStaffIds)) {
+      return res.status(400).json({ success: false, message: "assignedStaffIds must be an array" });
+    }
+
+    const invalidId = assignedStaffIds.find((id) => !mongoose.Types.ObjectId.isValid(id));
+    if (invalidId) {
+      return res.status(400).json({ success: false, message: "One or more staff IDs are invalid" });
+    }
+
+    if (assignedStaffIds.length > 0) {
+      const validStaffCount = await User.countDocuments({
+        _id: { $in: assignedStaffIds },
+        role: "staff",
+      });
+      if (validStaffCount !== assignedStaffIds.length) {
+        return res.status(400).json({ success: false, message: "One or more selected users are not Staff accounts" });
+      }
+    }
+
+    const order = await Production.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Production order not found" });
+    }
+
+    const previouslyAssignedIds = (order.assignedStaffIds || []).map((id) => String(id));
+
+    order.assignedStaffIds = assignedStaffIds;
+    order.assignmentNotes = assignmentNotes?.trim() || "";
+    order.assignedAt = new Date();
+    order.assignedBy = req.user.id;
+    if (req.user.role === "supervisor") {
+      order.supervisorId = req.user.id;
+    }
+
+    await order.save();
+
+    const newlyAssignedIds = assignedStaffIds.filter((id) => !previouslyAssignedIds.includes(String(id)));
+
+    await Promise.all(
+      newlyAssignedIds.map((staffId) =>
+        Notification.create({
+          title: "New Work Assigned",
+          message: `You were assigned to production order ${order.orderId} (${order.product}).`,
+          type: "production",
+          relatedId: order._id,
+          relatedModel: "Production",
+          recipientId: staffId,
+        })
+      )
+    );
+
+    await logActivity({
+      actor: req.user,
+      action: "production.assigned",
+      message: `Assigned ${assignedStaffIds.length} staff member(s) to production order ${order.orderId}`,
+      targetType: "Production",
+      targetId: order._id,
+    });
+
+    res.status(200).json({ success: true, message: "Assignment updated", order });
+  } catch (error) {
+    console.error("PATCH /api/production/:id/assign error:", error);
+    res.status(500).json({ success: false,
+      message: error.message || "Failed to update assignment",
+    });
+  }
+});
+
 // DELETE /api/production/:id - Delete a production order
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", canManage, async (req, res) => {
   try {
     const order = await Production.findById(req.params.id);
     if (!order) {
-      return res.status(404).json({ message: "Production order not found" });
+      return res.status(404).json({ success: false, message: "Production order not found" });
     }
 
     await Production.findByIdAndDelete(req.params.id);
 
-    res.status(200).json({
+    res.status(200).json({ success: true,
       message: "Production order deleted successfully",
     });
   } catch (error) {
     console.error("DELETE /api/production/:id error:", error);
-    res.status(500).json({
+    res.status(500).json({ success: false,
       message: error.message || "Failed to delete production order",
     });
   }

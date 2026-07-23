@@ -1,10 +1,10 @@
 // src/pages/Admin/AdminUserManagement.js
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
-import Adminsidebar from "../../components/Adminsidebar";
-import Admintopbar from "../../components/Admintopbar";
+import AdminLayout from "../../components/AdminLayout";
+import { formatRoleLabel } from "../../utils/roles";
 
 import {
   People,
@@ -27,6 +27,43 @@ import {
 const API_URL = "http://localhost:5000/api/auth/users";
 const USERS_PER_PAGE = 8;
 
+// ==========================
+// Convert backend user data
+// ==========================
+const formatUser = (user) => {
+  const firstName = user.firstName || "";
+  const lastName = user.lastName || "";
+
+  return {
+    id: user._id,
+    firstName,
+    lastName,
+    factoryName: user.factoryName || "",
+
+    initials: `${firstName.charAt(0)}${lastName.charAt(
+      0
+    )}`.toUpperCase(),
+
+    name:
+      `${firstName} ${lastName}`.trim() ||
+      "Unknown User",
+
+    email: user.email || "No email",
+    role: user.role || "user",
+    status: user.status || "Active",
+
+    joinedDate: user.createdAt
+      ? new Date(user.createdAt).toLocaleDateString()
+      : "N/A",
+
+    lastLogin: user.lastLogin
+      ? new Date(user.lastLogin).toLocaleString()
+      : "Not available",
+
+    createdAt: user.createdAt || null,
+  };
+};
+
 function AdminUserManagement() {
   const [users, setUsers] = useState([]);
 
@@ -44,46 +81,9 @@ function AdminUserManagement() {
     useState(null);
 
   // ==========================
-  // Convert backend user data
-  // ==========================
-  const formatUser = (user) => {
-    const firstName = user.firstName || "";
-    const lastName = user.lastName || "";
-
-    return {
-      id: user._id,
-      firstName,
-      lastName,
-      factoryName: user.factoryName || "",
-
-      initials: `${firstName.charAt(0)}${lastName.charAt(
-        0
-      )}`.toUpperCase(),
-
-      name:
-        `${firstName} ${lastName}`.trim() ||
-        "Unknown User",
-
-      email: user.email || "No email",
-      role: user.role || "User",
-      status: user.status || "Active",
-
-      joinedDate: user.createdAt
-        ? new Date(user.createdAt).toLocaleDateString()
-        : "N/A",
-
-      lastLogin: user.lastLogin
-        ? new Date(user.lastLogin).toLocaleString()
-        : "Not available",
-
-      createdAt: user.createdAt || null,
-    };
-  };
-
-  // ==========================
   // Load users from backend
   // ==========================
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -105,11 +105,11 @@ function AdminUserManagement() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   // ==========================
   // Create user
@@ -150,8 +150,8 @@ function AdminUserManagement() {
     }
 
     const role = window.prompt(
-      "Enter role: Admin, Staff, Viewer or User",
-      "User"
+      "Enter role: admin, shopOwner, supervisor or user",
+      "user"
     );
 
     if (role === null) {
@@ -185,7 +185,7 @@ function AdminUserManagement() {
         email: email.trim().toLowerCase(),
         factoryName: factoryName.trim(),
         password: password.trim(),
-        role: role.trim() || "User",
+        role: role.trim() || "user",
         status: status.trim() || "Active",
       });
 
@@ -233,7 +233,7 @@ function AdminUserManagement() {
           `Factory: ${
             selectedUser.factoryName || "N/A"
           }\n` +
-          `Role: ${selectedUser.role || "User"}\n` +
+          `Role: ${formatRoleLabel(selectedUser.role)}\n` +
           `Status: ${
             selectedUser.status || "Active"
           }\n` +
@@ -296,7 +296,7 @@ function AdminUserManagement() {
     }
 
     const role = window.prompt(
-      "Enter role: Admin, Staff, Viewer or User",
+      "Enter role: admin, shopOwner, supervisor or user",
       user.role
     );
 
@@ -332,7 +332,7 @@ function AdminUserManagement() {
           lastName: lastName.trim(),
           email: email.trim().toLowerCase(),
           factoryName: factoryName.trim(),
-          role: role.trim() || "User",
+          role: role.trim() || "user",
           status: status.trim() || "Active",
         }
       );
@@ -409,7 +409,7 @@ function AdminUserManagement() {
   ).length;
 
   const adminUsersCount = users.filter(
-    (user) => user.role === "Admin"
+    (user) => user.role === "admin"
   ).length;
 
   const newUsersThisMonthCount = users.filter(
@@ -436,87 +436,90 @@ function AdminUserManagement() {
       value: users.length,
       change: `${users.length} records`,
       trend: "up",
-      color: "#6366f1",
+      color: "var(--clothcore-blush)",
     },
     {
       label: "Active Users",
       value: activeUsersCount,
       change: `${activeUsersCount} active`,
       trend: "up",
-      color: "#10b981",
+      color: "var(--clothcore-success)",
     },
     {
       label: "Inactive Users",
       value: inactiveUsersCount,
       change: `${inactiveUsersCount} inactive`,
       trend: "down",
-      color: "#ef4444",
+      color: "var(--clothcore-danger)",
     },
     {
       label: "Admins",
       value: adminUsersCount,
       change: `${adminUsersCount} administrators`,
       trend: "up",
-      color: "#8b5cf6",
+      color: "var(--clothcore-blush)",
     },
     {
       label: "New This Month",
       value: newUsersThisMonthCount,
       change: `${newUsersThisMonthCount} new users`,
       trend: "up",
-      color: "#f59e0b",
+      color: "var(--clothcore-mauve)",
     },
   ];
 
   // ==========================
   // Date-period filter
   // ==========================
-  const matchesSelectedPeriod = (user) => {
-    if (!user.createdAt) {
-      return true;
-    }
+  const matchesSelectedPeriod = useCallback(
+    (user) => {
+      if (!user.createdAt) {
+        return true;
+      }
 
-    const joinedDate = new Date(user.createdAt);
-    const currentDate = new Date();
+      const joinedDate = new Date(user.createdAt);
+      const currentDate = new Date();
 
-    if (selectedPeriod === "Today") {
-      return (
-        joinedDate.toDateString() ===
-        currentDate.toDateString()
-      );
-    }
+      if (selectedPeriod === "Today") {
+        return (
+          joinedDate.toDateString() ===
+          currentDate.toDateString()
+        );
+      }
 
-    if (selectedPeriod === "This Week") {
-      const firstDayOfWeek = new Date(currentDate);
+      if (selectedPeriod === "This Week") {
+        const firstDayOfWeek = new Date(currentDate);
 
-      firstDayOfWeek.setDate(
-        currentDate.getDate() -
-          currentDate.getDay()
-      );
+        firstDayOfWeek.setDate(
+          currentDate.getDate() -
+            currentDate.getDay()
+        );
 
-      firstDayOfWeek.setHours(0, 0, 0, 0);
+        firstDayOfWeek.setHours(0, 0, 0, 0);
 
-      return joinedDate >= firstDayOfWeek;
-    }
+        return joinedDate >= firstDayOfWeek;
+      }
 
-    if (selectedPeriod === "This Month") {
-      return (
-        joinedDate.getMonth() ===
-          currentDate.getMonth() &&
-        joinedDate.getFullYear() ===
+      if (selectedPeriod === "This Month") {
+        return (
+          joinedDate.getMonth() ===
+            currentDate.getMonth() &&
+          joinedDate.getFullYear() ===
+            currentDate.getFullYear()
+        );
+      }
+
+      if (selectedPeriod === "This Year") {
+        return (
+          joinedDate.getFullYear() ===
           currentDate.getFullYear()
-      );
-    }
+        );
+      }
 
-    if (selectedPeriod === "This Year") {
-      return (
-        joinedDate.getFullYear() ===
-        currentDate.getFullYear()
-      );
-    }
-
-    return true;
-  };
+      return true;
+    },
+    [selectedPeriod]
+  );
 
   // ==========================
   // Search and filters
@@ -560,7 +563,7 @@ function AdminUserManagement() {
     searchTerm,
     selectedRole,
     selectedStatus,
-    selectedPeriod,
+    matchesSelectedPeriod,
   ]);
 
   // ==========================
@@ -619,28 +622,28 @@ function AdminUserManagement() {
 
   const getRoleBadgeStyle = (role) => {
     const colors = {
-      Admin: {
-        bg: "rgba(139,92,246,0.15)",
-        color: "#8b5cf6",
+      admin: {
+        bg: "rgba(43,18,76,0.12)",
+        color: "var(--clothcore-blush)",
       },
-      Staff: {
-        bg: "rgba(6,182,212,0.15)",
-        color: "#06b6d4",
+      supervisor: {
+        bg: "rgba(217,131,36,0.14)",
+        color: "var(--clothcore-warning)",
       },
-      Viewer: {
-        bg: "rgba(148,163,184,0.15)",
-        color: "#64748b",
+      shopOwner: {
+        bg: "rgba(26,156,95,0.12)",
+        color: "var(--clothcore-success)",
       },
-      User: {
-        bg: "rgba(99,102,241,0.15)",
-        color: "#6366f1",
+      user: {
+        bg: "rgba(82,43,91,0.12)",
+        color: "var(--clothcore-blush)",
       },
     };
 
     return (
       colors[role] || {
-        bg: "rgba(100,116,139,0.15)",
-        color: "#64748b",
+        bg: "rgba(107,91,115,0.12)",
+        color: "var(--clothcore-text-soft)",
       }
     );
   };
@@ -712,20 +715,7 @@ function AdminUserManagement() {
   };
 
   return (
-    <div
-      className="d-flex"
-      style={{
-        minHeight: "100vh",
-        background: "#f0f0f5",
-      }}
-    >
-      <Adminsidebar />
-
-      <div className="flex-grow-1">
-        <Admintopbar />
-
-        <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0">
+    <AdminLayout>
             {/* Page Header */}
             <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
               <div>
@@ -733,19 +723,19 @@ function AdminUserManagement() {
                   <h2
                     className="fw-bold mb-0"
                     style={{
-                      color: "#1a1a2e",
+                      color: "var(--clothcore-text)",
                       fontSize: "28px",
                     }}
                   >
-                    User Management
+                    Shop Owner Management
                   </h2>
 
                   <span
                     className="badge"
                     style={{
                       background:
-                        "rgba(99,102,241,0.1)",
-                      color: "#6366f1",
+                        "rgba(82,43,91,0.1)",
+                      color: "var(--clothcore-blush)",
                       padding: "4px 12px",
                       borderRadius: "20px",
                       fontSize: "13px",
@@ -760,11 +750,30 @@ function AdminUserManagement() {
                   className="text-muted mb-0"
                   style={{ fontSize: "14px" }}
                 >
-                  Manage users, roles and permissions
+                  Manage shop owner accounts (and other account roles) and permissions
                 </p>
               </div>
 
-              
+              <button
+                type="button"
+                className="btn px-4 py-2"
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
+                  color: "white",
+                  borderRadius: "10px",
+                  border: "none",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                }}
+                onClick={handleAddUser}
+              >
+                <PersonPlus size={18} />
+                Add User
+              </button>
             </div>
 
             {/* Statistics Cards */}
@@ -775,11 +784,11 @@ function AdminUserManagement() {
                   className="col-xl col-lg-4 col-md-6 col-sm-12"
                 >
                   <div
-                    className="card border-0 h-100"
+                    className="card admin-stat-card h-100"
                     style={{
                       borderRadius: "14px",
                       boxShadow:
-                        "0 2px 12px rgba(0,0,0,0.06)",
+                        "var(--clothcore-shadow)",
                     }}
                   >
                     <div className="card-body p-3 p-xl-4">
@@ -788,7 +797,7 @@ function AdminUserManagement() {
                           <div
                             style={{
                               fontSize: "13px",
-                              color: "#6c757d",
+                              color: "var(--clothcore-text-soft)",
                               fontWeight: "500",
                             }}
                           >
@@ -799,7 +808,7 @@ function AdminUserManagement() {
                             className="fw-bold"
                             style={{
                               fontSize: "24px",
-                              color: "#1a1a2e",
+                              color: "var(--clothcore-text)",
                               marginTop: "4px",
                             }}
                           >
@@ -833,12 +842,12 @@ function AdminUserManagement() {
                         {stat.trend === "up" ? (
                           <ArrowUp
                             size={14}
-                            color="#10b981"
+                            color="var(--clothcore-success)"
                           />
                         ) : (
                           <ArrowDown
                             size={14}
-                            color="#ef4444"
+                            color="var(--clothcore-danger)"
                           />
                         )}
 
@@ -847,8 +856,8 @@ function AdminUserManagement() {
                             fontSize: "12px",
                             color:
                               stat.trend === "up"
-                                ? "#10b981"
-                                : "#ef4444",
+                                ? "var(--clothcore-success)"
+                                : "var(--clothcore-danger)",
                             fontWeight: "600",
                             marginLeft: "4px",
                           }}
@@ -864,11 +873,11 @@ function AdminUserManagement() {
 
             {/* Search and Filters */}
             <div
-              className="card border-0 mb-4"
+              className="card admin-content-card mb-4"
               style={{
                 borderRadius: "16px",
                 boxShadow:
-                  "0 2px 12px rgba(0,0,0,0.06)",
+                  "var(--clothcore-shadow)",
               }}
             >
               <div className="card-body p-4">
@@ -883,7 +892,7 @@ function AdminUserManagement() {
                           top: "50%",
                           transform:
                             "translateY(-50%)",
-                          color: "#94a3b8",
+                          color: "var(--clothcore-text-soft)",
                         }}
                       />
 
@@ -902,7 +911,7 @@ function AdminUserManagement() {
                           paddingLeft: "40px",
                           borderRadius: "10px",
                           border:
-                            "2px solid #e9ecef",
+                            "1.5px solid var(--clothcore-border)",
                           fontSize: "14px",
                           height: "42px",
                         }}
@@ -919,7 +928,7 @@ function AdminUserManagement() {
                       }}
                       style={{
                         borderRadius: "10px",
-                        border: "2px solid #e9ecef",
+                        border: "1.5px solid var(--clothcore-border)",
                         fontSize: "14px",
                         height: "42px",
                       }}
@@ -942,7 +951,7 @@ function AdminUserManagement() {
                       }}
                       style={{
                         borderRadius: "10px",
-                        border: "2px solid #e9ecef",
+                        border: "1.5px solid var(--clothcore-border)",
                         fontSize: "14px",
                         height: "42px",
                       }}
@@ -965,7 +974,7 @@ function AdminUserManagement() {
                       }}
                       style={{
                         borderRadius: "10px",
-                        border: "2px solid #e9ecef",
+                        border: "1.5px solid var(--clothcore-border)",
                         fontSize: "14px",
                         height: "42px",
                       }}
@@ -984,15 +993,15 @@ function AdminUserManagement() {
                       onClick={fetchUsers}
                       style={{
                         borderRadius: "10px",
-                        border: "2px solid #e9ecef",
+                        border: "1.5px solid var(--clothcore-border)",
                         fontSize: "14px",
                         height: "42px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: "6px",
-                        background: "white",
-                        color: "#1a1a2e",
+                        background: "rgba(255,255,255,0.055)",
+                        color: "var(--clothcore-text)",
                       }}
                     >
                       <Filter size={16} />
@@ -1023,16 +1032,16 @@ function AdminUserManagement() {
 
             {/* Users Table */}
             <div
-              className="card border-0"
+              className="card admin-content-card"
               style={{
                 borderRadius: "16px",
-                boxShadow: "0 2px 12px rgba(0,0,0,0.06)",
+                boxShadow: "var(--clothcore-shadow)",
               }}
             >
               <div className="card-body p-0">
                 <div className="table-responsive">
-                  <table className="table table-hover mb-0">
-                    <thead style={{ background: "#f8f9fa" }}>
+                  <table className="table table-hover admin-table mb-0">
+                    <thead style={{ background: "var(--clothcore-peach)" }}>
                       <tr>
                         <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
                           #
@@ -1099,7 +1108,7 @@ function AdminUserManagement() {
                               <td
                                 className="px-4 py-3 fw-bold"
                                 style={{
-                                  color: "#94a3b8",
+                                  color: "var(--clothcore-text-soft)",
                                   fontSize: "13px",
                                 }}
                               >
@@ -1114,7 +1123,7 @@ function AdminUserManagement() {
                                       height: "36px",
                                       borderRadius: "50%",
                                       background:
-                                        "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                                        "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
                                       color: "white",
                                       display: "flex",
                                       alignItems: "center",
@@ -1131,7 +1140,7 @@ function AdminUserManagement() {
                                     className="fw-medium"
                                     style={{
                                       fontSize: "14px",
-                                      color: "#1a1a2e",
+                                      color: "var(--clothcore-text)",
                                     }}
                                   >
                                     {user.name}
@@ -1143,7 +1152,7 @@ function AdminUserManagement() {
                                 className="px-4 py-3"
                                 style={{
                                   fontSize: "13px",
-                                  color: "#64748b",
+                                  color: "var(--clothcore-text-soft)",
                                 }}
                               >
                                 {user.email}
@@ -1161,7 +1170,7 @@ function AdminUserManagement() {
                                     fontWeight: "500",
                                   }}
                                 >
-                                  {user.role}
+                                  {formatRoleLabel(user.role)}
                                 </span>
                               </td>
 
@@ -1171,12 +1180,12 @@ function AdminUserManagement() {
                                   style={{
                                     background:
                                       user.status === "Active"
-                                        ? "rgba(16,185,129,0.15)"
-                                        : "rgba(239,68,68,0.15)",
+                                        ? "var(--clothcore-success-bg)"
+                                        : "var(--clothcore-danger-bg)",
                                     color:
                                       user.status === "Active"
-                                        ? "#10b981"
-                                        : "#ef4444",
+                                        ? "var(--clothcore-success)"
+                                        : "var(--clothcore-danger)",
                                     padding: "5px 12px",
                                     borderRadius: "20px",
                                     fontSize: "12px",
@@ -1200,7 +1209,7 @@ function AdminUserManagement() {
   className="px-4 py-3"
   style={{
     fontSize: "13px",
-    color: "#64748b",
+    color: "var(--clothcore-text-soft)",
   }}
 >
   {user.joinedDate
@@ -1212,7 +1221,7 @@ function AdminUserManagement() {
   className="px-4 py-3"
   style={{
     fontSize: "13px",
-    color: "#64748b",
+    color: "var(--clothcore-text-soft)",
   }}
 >
   {user.lastLogin
@@ -1232,7 +1241,7 @@ function AdminUserManagement() {
                                       border: "none",
                                       padding: "4px 8px",
                                       borderRadius: "8px",
-                                      color: "#64748b",
+                                      color: "var(--clothcore-text-soft)",
                                     }}
                                   >
                                     <ThreeDotsVertical size={18} />
@@ -1343,7 +1352,7 @@ function AdminUserManagement() {
                   <div
                     style={{
                       fontSize: "14px",
-                      color: "#64748b",
+                      color: "var(--clothcore-text-soft)",
                     }}
                   >
                     Showing {indexOfFirstUser + 1} to{" "}
@@ -1372,8 +1381,8 @@ function AdminUserManagement() {
                           disabled={currentPage === 1}
                           style={{
                             borderRadius: "8px",
-                            border: "1px solid #e9ecef",
-                            color: "#1a1a2e",
+                            border: "1px solid var(--clothcore-border)",
+                            color: "var(--clothcore-text)",
                             padding: "6px 12px",
                           }}
                         >
@@ -1404,15 +1413,15 @@ function AdminUserManagement() {
                               border:
                                 currentPage === pageNumber
                                   ? "none"
-                                  : "1px solid #e9ecef",
+                                  : "1px solid var(--clothcore-border)",
                               background:
                                 currentPage === pageNumber
-                                  ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
+                                  ? "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))"
                                   : "transparent",
                               color:
                                 currentPage === pageNumber
                                   ? "white"
-                                  : "#1a1a2e",
+                                  : "var(--clothcore-text)",
                               padding: "6px 12px",
                               minWidth: "36px",
                               textAlign: "center",
@@ -1441,8 +1450,8 @@ function AdminUserManagement() {
                           }
                           style={{
                             borderRadius: "8px",
-                            border: "1px solid #e9ecef",
-                            color: "#1a1a2e",
+                            border: "1px solid var(--clothcore-border)",
+                            color: "var(--clothcore-text)",
                             padding: "6px 12px",
                           }}
                         >
@@ -1458,9 +1467,9 @@ function AdminUserManagement() {
                     onClick={handleExport}
                     style={{
                       borderRadius: "8px",
-                      border: "1px solid #e9ecef",
+                      border: "1px solid var(--clothcore-border)",
                       fontSize: "13px",
-                      color: "#64748b",
+                      color: "var(--clothcore-text-soft)",
                       display: "flex",
                       alignItems: "center",
                       gap: "6px",
@@ -1472,10 +1481,7 @@ function AdminUserManagement() {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    </AdminLayout>
   );
 }
 

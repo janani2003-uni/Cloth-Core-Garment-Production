@@ -1,75 +1,70 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
-
-
+import ShopOwnerLayout from "../components/ShopOwnerLayout";
 
 function OrderStep4() {
   const navigate = useNavigate();
 
-  // Mock data - in real app this would come from previous steps
-  const orderData = {
-    garmentType: "T-Shirt",
-    fabric: "100% Cotton",
-    color: "Navy Blue",
-    unitPrice: 1200.00,
-    totalQuantity: 100,
-    estimatedPrice: 120000.00,
-    sizes: {
-      S: 20,
-      M: 30,
-      L: 30,
-      XL: 10,
-      XXL: 10
-    },
-    discount: 0,
-    tax: 0
-  };
+  const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
 
-  const totalQuantity = orderData.totalQuantity;
-  const subTotal = orderData.estimatedPrice;
-  const discountAmount = (subTotal * orderData.discount) / 100;
-  const taxAmount = (subTotal * orderData.tax) / 100;
-  const grandTotal = subTotal - discountAmount + taxAmount;
+  const hasRequiredFields =
+    draft.garment &&
+    draft.fabric &&
+    draft.color &&
+    typeof draft.unitPrice === "number" &&
+    draft.sizes &&
+    typeof draft.totalQuantity === "number" &&
+    draft.totalQuantity > 0;
 
+  if (!hasRequiredFields) {
+    return (
+      <ShopOwnerLayout contentClassName="container py-4" contentStyle={{ paddingLeft: "20px", paddingRight: "20px" }}>
+            <div
+              className="card admin-content-card border-0 text-center p-5"
+              style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(0,0,0,0.08)" }}
+            >
+              <h4 className="fw-bold mb-3" style={{ color: "#dfb6b2" }}>
+                Please complete the previous steps first
+              </h4>
+              <p className="text-muted mb-4">
+                We couldn't find a complete order draft. Start again from Step 1 to
+                select your garment, fabric, color, and quantities.
+              </p>
+              <button
+                className="btn px-5 py-2 fw-bold mx-auto"
+                style={{
+                  background: "linear-gradient(45deg, #522b5b, #854f6c)",
+                  color: "white",
+                  borderRadius: "30px",
+                  border: "none",
+                  maxWidth: "220px"
+                }}
+                onClick={() => navigate("/step1")}
+              >
+                Go to Step 1
+              </button>
+            </div>
+      </ShopOwnerLayout>
+    );
+  }
 
-
-
-
-
-
+  const totalQuantity = draft.totalQuantity;
+  const subTotal = draft.unitPrice * draft.totalQuantity;
+  const discount = 0;
+  const tax = 0;
+  const grandTotal = subTotal - discount + tax;
 
   return (
-  <div
-    className="d-flex"
-    style={{
-      minHeight: "100vh",
-      background: "#f5f7fb"
-    }}
-  >
+  <ShopOwnerLayout contentClassName="" contentStyle={{ padding: "20px" }}>
 
-    <Sidebar />
-
-    <div
-      className="flex-grow-1"
-      style={{
-        padding: "20px"
-      }}
-    >
-
-      <div className="container py-4"></div>
-
-
-
-
-        
+      <div className="container py-4">
 
         {/* Header */}
         <div className="mb-4">
           <h1 className="fw-bold" style={{ fontSize: "2.2rem" }}>
-            <span style={{ 
-              background: "linear-gradient(45deg, #f2a100, #ff6f00)",
+            <span style={{
+              background: "linear-gradient(45deg, #2b124c, #522b5b)",
               padding: "5px 20px",
               borderRadius: "10px",
               color: "white",
@@ -77,7 +72,7 @@ function OrderStep4() {
             }}>
               Step 4
             </span>
-            <span style={{ color: "#0b3aa0" }}>
+            <span style={{ color: "#dfb6b2" }}>
               Review Your Order
             </span>
           </h1>
@@ -89,14 +84,14 @@ function OrderStep4() {
           <div className="col-lg-7">
 
             {/* Order Summary Card */}
-            <div className="card border-0 mb-4" style={{ 
+            <div className="card admin-content-card border-0 mb-4" style={{
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
             }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center mb-4">
                   <span className="badge me-3" style={{
-                    background: "linear-gradient(135deg, #0b3aa0, #1a6bff)",
+                    background: "linear-gradient(135deg, #522b5b, #854f6c)",
                     fontSize: "1.2rem",
                     padding: "8px 18px",
                     borderRadius: "12px",
@@ -104,7 +99,7 @@ function OrderStep4() {
                   }}>
                     1
                   </span>
-                  <h4 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>
+                  <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                     Order Summary
                   </h4>
                 </div>
@@ -112,60 +107,51 @@ function OrderStep4() {
                 <div className="row">
                   <div className="col-md-6 mb-3">
                     <label className="text-muted small">Garment Type</label>
-                    <p className="fw-bold mb-0">{orderData.garmentType}</p>
+                    <p className="fw-bold mb-0">{draft.garment}</p>
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="text-muted small">Fabric / Material</label>
-                    <p className="fw-bold mb-0">{orderData.fabric}</p>
+                    <p className="fw-bold mb-0">{draft.fabric}</p>
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="text-muted small">Color</label>
-                    <div className="d-flex align-items-center">
-                      <div style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: "#1a237e",
-                        marginRight: "10px"
-                      }} />
-                      <p className="fw-bold mb-0">{orderData.color}</p>
-                    </div>
+                    <p className="fw-bold mb-0">{draft.color}</p>
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="text-muted small">Unit Price</label>
-                    <p className="fw-bold text-primary mb-0">
-                      Rs. {orderData.unitPrice.toFixed(2)}
+                    <p className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
+                      Rs. {draft.unitPrice.toFixed(2)}
                     </p>
                   </div>
                   <div className="col-md-6 mb-3">
                     <label className="text-muted small">Total Quantity</label>
-                    <p className="fw-bold mb-0">{orderData.totalQuantity} pcs</p>
+                    <p className="fw-bold mb-0">{totalQuantity} pcs</p>
                   </div>
                   <div className="col-md-6 mb-3">
-                    <label className="text-muted small">Estimated Price</label>
+                    <label className="text-muted small">Sub Total</label>
                     <p className="fw-bold text-success mb-0">
-                      Rs. {orderData.estimatedPrice.toFixed(2)}
+                      Rs. {subTotal.toFixed(2)}
                     </p>
                   </div>
-                  <div className="col-12">
-                    <label className="text-muted small">You Save</label>
-                    <p className="fw-bold text-danger mb-0">
-                      Rs. {orderData.discount.toFixed(2)}
-                    </p>
-                  </div>
+                  {draft.designNotes && (
+                    <div className="col-12">
+                      <label className="text-muted small">Design Notes</label>
+                      <p className="mb-0">{draft.designNotes}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Design Preview Card */}
-            <div className="card border-0 mb-4" style={{ 
+            <div className="card admin-content-card border-0 mb-4" style={{
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
             }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center mb-4">
                   <span className="badge me-3" style={{
-                    background: "linear-gradient(135deg, #0b3aa0, #1a6bff)",
+                    background: "linear-gradient(135deg, #522b5b, #854f6c)",
                     fontSize: "1.2rem",
                     padding: "8px 18px",
                     borderRadius: "12px",
@@ -173,7 +159,7 @@ function OrderStep4() {
                   }}>
                     2
                   </span>
-                  <h4 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>
+                  <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                     Design Preview
                   </h4>
                 </div>
@@ -190,7 +176,7 @@ function OrderStep4() {
                   <div style={{ fontSize: "80px", marginBottom: "15px" }}>
                     👕
                   </div>
-                  <p className="text-muted mb-0">T-Shirt Design</p>
+                  <p className="text-muted mb-0">{draft.garment} Design</p>
                   <small className="text-muted">Design preview will appear here</small>
                 </div>
               </div>
@@ -201,14 +187,14 @@ function OrderStep4() {
           <div className="col-lg-5">
 
             {/* Size Breakdown Card */}
-            <div className="card border-0 mb-4" style={{ 
+            <div className="card admin-content-card border-0 mb-4" style={{
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
             }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center mb-4">
                   <span className="badge me-3" style={{
-                    background: "linear-gradient(135deg, #0b3aa0, #1a6bff)",
+                    background: "linear-gradient(135deg, #522b5b, #854f6c)",
                     fontSize: "1.2rem",
                     padding: "8px 18px",
                     borderRadius: "12px",
@@ -216,17 +202,17 @@ function OrderStep4() {
                   }}>
                     3
                   </span>
-                  <h4 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>
+                  <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                     Size Breakdown
                   </h4>
                 </div>
 
                 <div className="table-responsive">
-                  <table className="table table-bordered text-center" style={{ borderRadius: "12px", overflow: "hidden" }}>
-                    <thead style={{ background: "linear-gradient(135deg, #f2a100, #ff6f00)", color: "white" }}>
+                  <table className="table admin-table table-bordered text-center" style={{ borderRadius: "12px", overflow: "hidden" }}>
+                    <thead style={{ background: "linear-gradient(135deg, #2b124c, #522b5b)", color: "white" }}>
                       <tr>
                         <th style={{ padding: "10px 8px" }}>Size</th>
-                        {Object.keys(orderData.sizes).map((size) => (
+                        {Object.keys(draft.sizes).map((size) => (
                           <th key={size} style={{ padding: "10px 8px" }}>{size}</th>
                         ))}
                         <th style={{ padding: "10px 8px" }}>Total</th>
@@ -235,12 +221,12 @@ function OrderStep4() {
                     <tbody>
                       <tr>
                         <td className="fw-bold">Quantity (pcs)</td>
-                        {Object.values(orderData.sizes).map((qty, index) => (
+                        {Object.values(draft.sizes).map((qty, index) => (
                           <td key={index} style={{ padding: "10px 8px" }}>{qty}</td>
                         ))}
-                        <td className="fw-bold" style={{ 
-                          background: "linear-gradient(135deg, #e3f2fd, #bbdefb)",
-                          color: "#0b3aa0"
+                        <td className="fw-bold" style={{
+                          background: "rgba(82,43,91,0.12)",
+                          color: "#dfb6b2"
                         }}>
                           {totalQuantity}
                         </td>
@@ -252,14 +238,14 @@ function OrderStep4() {
             </div>
 
             {/* Price Calculation Card */}
-            <div className="card border-0" style={{ 
+            <div className="card admin-content-card border-0" style={{
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.12)"
             }}>
               <div className="card-body p-4">
                 <div className="d-flex align-items-center mb-4">
                   <span className="badge me-3" style={{
-                    background: "linear-gradient(135deg, #0b3aa0, #1a6bff)",
+                    background: "linear-gradient(135deg, #522b5b, #854f6c)",
                     fontSize: "1.2rem",
                     padding: "8px 18px",
                     borderRadius: "12px",
@@ -267,7 +253,7 @@ function OrderStep4() {
                   }}>
                     4
                   </span>
-                  <h4 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>
+                  <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                     Price Calculation
                   </h4>
                 </div>
@@ -279,27 +265,27 @@ function OrderStep4() {
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted">Unit Price</span>
-                    <span className="fw-bold">Rs. {orderData.unitPrice.toFixed(2)}</span>
+                    <span className="fw-bold">Rs. {draft.unitPrice.toFixed(2)}</span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
                     <span className="text-muted">Sub Total</span>
                     <span className="fw-bold">Rs. {subTotal.toFixed(2)}</span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <span className="text-muted">Discount ({orderData.discount}%)</span>
-                    <span className="fw-bold text-danger">Rs. {discountAmount.toFixed(2)}</span>
+                    <span className="text-muted">Discount</span>
+                    <span className="fw-bold">Rs. {discount.toFixed(2)}</span>
                   </div>
                   <div className="d-flex justify-content-between align-items-center py-2">
-                    <span className="text-muted">Tax ({orderData.tax}%)</span>
-                    <span className="fw-bold">Rs. {taxAmount.toFixed(2)}</span>
+                    <span className="text-muted">Tax</span>
+                    <span className="fw-bold">Rs. {tax.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <hr style={{ borderColor: "#f2a100", borderWidth: "2px" }} />
+                <hr style={{ borderColor: "#854f6c", borderWidth: "2px" }} />
 
                 <div className="d-flex justify-content-between align-items-center">
-                  <h5 className="fw-bold mb-0" style={{ color: "#0b3aa0" }}>Grand Total</h5>
-                  <h4 className="fw-bold text-primary mb-0">
+                  <h5 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>Grand Total</h5>
+                  <h4 className="fw-bold mb-0" style={{ color: "#dfb6b2" }}>
                     Rs. {grandTotal.toFixed(2)}
                   </h4>
                 </div>
@@ -329,11 +315,11 @@ function OrderStep4() {
           <button
             className="btn px-5 py-2 fw-bold"
             style={{
-              background: "linear-gradient(45deg, #0b3aa0, #1a6bff)",
+              background: "linear-gradient(45deg, #522b5b, #854f6c)",
               color: "white",
               borderRadius: "30px",
               border: "none",
-              boxShadow: "0 4px 25px rgba(11, 58, 160, 0.4)",
+              boxShadow: "0 4px 25px rgba(82, 43, 91, 0.4)",
               transition: "all 0.3s ease"
             }}
             onClick={() => navigate("/order-delivery")}
@@ -378,7 +364,7 @@ function OrderStep4() {
           }
         `}
       </style>
-    </div>
+  </ShopOwnerLayout>
   );
 }
 

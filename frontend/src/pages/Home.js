@@ -1,33 +1,96 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, MotionConfig } from "framer-motion";
 import {
   FiArrowRight,
   FiUser,
-  FiBell,
   FiGrid,
   FiShoppingBag,
   FiBox,
   FiCreditCard,
-  FiBarChart2,
-  FiSettings,
   FiActivity,
-  FiShield,
-  FiCheckCircle,
   FiUsers,
   FiSmile,
-  FiAlertTriangle,
-  FiChevronDown,
   FiPackage,
   FiHome,
+  FiBarChart2,
+  FiCheckCircle,
+  FiTarget,
+  FiEye,
+  FiHeart,
+  FiMail,
+  FiPhone,
+  FiMapPin,
+  FiClock,
+  FiTrendingUp,
+  FiFileText,
 } from "react-icons/fi";
-import { GiHanger, GiSewingMachine } from "react-icons/gi";
+import {
+  GiSewingMachine,
+  GiCottonFlower,
+  GiRolledCloth,
+  GiTrousers,
+  GiLeafSwirl,
+} from "react-icons/gi";
+import { HiSparkles } from "react-icons/hi";
 import "./Home.css";
-import factory from "../assets/factory.jpg";
+import logo from "../assets/logo-new.png.jpeg";
+import heroGallery1 from "../assets/hero-gallery-1.jpg.png";
+import heroGallery2 from "../assets/hero-gallery-2.jpg.png";
+import heroGallery3 from "../assets/hero-gallery-3.jpg.png";
+import heroGallery4 from "../assets/hero-gallery-4.jpg.png";
+import cottonImage from "../assets/material-cotton.jpg.png";
+import silkImage from "../assets/material-silk.jpg.png";
+import denimImage from "../assets/material-denim.jpg.png";
+import linenImage from "../assets/material-linen.jpg.png";
+
+const materials = [
+  {
+    name: "Cotton",
+    stock: 120,
+    unit: "rolls",
+    image: cottonImage,
+    alt: "Cotton processing material",
+    icon: GiCottonFlower,
+    className: "cotton",
+  },
+  {
+    name: "Silk",
+    stock: 34,
+    unit: "rolls",
+    image: silkImage,
+    alt: "Silk fabric production",
+    icon: GiRolledCloth,
+    className: "silk",
+  },
+  {
+    name: "Denim",
+    stock: 76,
+    unit: "rolls",
+    image: denimImage,
+    alt: "Denim garment production",
+    icon: GiTrousers,
+    className: "denim",
+  },
+  {
+    name: "Linen",
+    stock: 52,
+    unit: "rolls",
+    image: linenImage,
+    alt: "Linen garment production",
+    icon: GiLeafSwirl,
+    className: "linen",
+  },
+];
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
+  hidden: { opacity: 0, y: 50, scale: 0.94 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] },
+  },
 };
 
 const stagger = {
@@ -68,16 +131,6 @@ function AnimatedCounter({ value, suffix = "", duration = 1.6 }) {
   );
 }
 
-function buildConicGradient(slices) {
-  let cumulative = 0;
-  const stops = slices.map((slice) => {
-    const start = cumulative;
-    cumulative += slice.value;
-    return `${slice.color} ${start}% ${cumulative}%`;
-  });
-  return `conic-gradient(${stops.join(", ")})`;
-}
-
 function Home() {
   const navigate = useNavigate();
 
@@ -85,49 +138,51 @@ function Home() {
     { label: "Home", href: "#home" },
     { label: "Features", href: "#features" },
     { label: "About Us", href: "#about" },
-    { label: "How It Works", href: "#products" },
-    { label: "Pricing", href: "#pricing" },
+    { label: "How It Works", href: "#how-it-works" },
     { label: "Contact", href: "#contact" },
   ];
 
-  const heroHighlights = [
-    { icon: <FiPackage />, label: "Bulk Order Management" },
-    { icon: <FiActivity />, label: "Real-time Production Tracking" },
-    { icon: <FiShield />, label: "Secure & Transparent Payments" },
-    { icon: <FiBox />, label: "Inventory Control" },
+  const [activeSection, setActiveSection] = useState("home");
+
+  useEffect(() => {
+    const sectionIds = navLinks.map((link) => link.href.slice(1));
+    const sections = sectionIds
+      .map((id) => document.getElementById(id))
+      .filter(Boolean);
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id);
+          }
+        });
+      },
+      { rootMargin: "-40% 0px -50% 0px", threshold: 0 }
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const heroGalleryImages = [
+    { src: heroGallery1, position: "center 20%" },
+    { src: heroGallery2, position: "center" },
+    { src: heroGallery3, position: "center" },
+    { src: heroGallery4, position: "center" },
   ];
 
-  const sidebarNav = [
-    { icon: <FiGrid />, label: "Dashboard", active: true },
-    { icon: <FiShoppingBag />, label: "Orders" },
-    { icon: <GiSewingMachine />, label: "Production" },
-    { icon: <FiBox />, label: "Inventory" },
-    { icon: <FiCreditCard />, label: "Payments" },
-    { icon: <FiBarChart2 />, label: "Reports" },
-    { icon: <FiBell />, label: "Notifications" },
-    { icon: <FiSettings />, label: "Settings" },
-  ];
+  const [galleryParallax, setGalleryParallax] = useState({ x: 0, y: 0 });
 
-  const dashboardStats = [
-    { label: "Total Orders", value: "128", change: "+12% from last month", icon: <FiShoppingBag />, tone: "purple" },
-    { label: "In Production", value: "64", change: "+8% from last month", icon: <FiActivity />, tone: "pink" },
-    { label: "Completed Orders", value: "32", change: "+15% from last month", icon: <FiCheckCircle />, tone: "green" },
-    { label: "Pending Payments", value: "12", change: "+5% from last month", icon: <FiCreditCard />, tone: "peach" },
-  ];
+  const handleGalleryMouseMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const relX = (event.clientX - rect.left) / rect.width - 0.5;
+    const relY = (event.clientY - rect.top) / rect.height - 0.5;
+    setGalleryParallax({ x: relX * 14, y: relY * 14 });
+  };
 
-  const productionSlices = [
-    { label: "Cutting", value: 20, color: "#6d3aa8" },
-    { label: "Sewing", value: 40, color: "#e14f8a" },
-    { label: "Quality Check", value: 20, color: "#f5a25a" },
-    { label: "Packing", value: 20, color: "#f6cf6b" },
-  ];
-
-  const recentOrders = [
-    { id: "ORD-2024-125", client: "Zara Fashions", status: "In Production" },
-    { id: "ORD-2024-124", client: "Style Hub", status: "Pending" },
-    { id: "ORD-2024-123", client: "Trend Wear", status: "Completed" },
-    { id: "ORD-2024-122", client: "Fashion Point", status: "Pending" },
-  ];
+  const handleGalleryMouseLeave = () => setGalleryParallax({ x: 0, y: 0 });
 
   const featureCards = [
     {
@@ -159,7 +214,88 @@ function Home() {
     { icon: <FiSmile />, value: 98, suffix: "%", label: "Customer Satisfaction" },
   ];
 
+  const processSteps = [
+    { icon: <FiShoppingBag />, title: "Order Submitted", desc: "A shop places a bulk order request through the platform." },
+    { icon: <FiCheckCircle />, title: "Admin Review", desc: "An administrator reviews the order details before approving it." },
+    { icon: <FiBox />, title: "Material Check", desc: "Raw material availability is checked against current stock." },
+    { icon: <GiSewingMachine />, title: "Production Starts", desc: "Once approved, the order enters the production queue." },
+    { icon: <FiActivity />, title: "Progress Updates", desc: "Production status is updated as the order moves through each stage." },
+    { icon: <FiTrendingUp />, title: "Order Tracking", desc: "The shop can track the order's status until it's complete." },
+  ];
+
+  const whyChooseCards = [
+    {
+      icon: <FiShoppingBag />,
+      title: "Centralized Bulk Order Management",
+      desc: "Submit and manage bulk orders from one platform instead of scattered spreadsheets and calls.",
+    },
+    {
+      icon: <FiActivity />,
+      title: "Real-time Production Tracking",
+      desc: "Follow a production job through cutting, sewing, quality check and packing as it happens.",
+    },
+    {
+      icon: <FiBox />,
+      title: "Raw Material Availability Checking",
+      desc: "Check raw material stock before approving an order, reducing mid-production shortages.",
+    },
+    {
+      icon: <FiEye />,
+      title: "Improved Order Visibility",
+      desc: "Shops and admins see the same order status, cutting down on status-check back-and-forth.",
+    },
+    {
+      icon: <FiUsers />,
+      title: "Better Department Coordination",
+      desc: "Keep production, inventory and order teams working from the same up-to-date information.",
+    },
+    {
+      icon: <FiFileText />,
+      title: "Accurate Digital Records",
+      desc: "Replace paper logs with structured digital records for orders, stock and production stages.",
+    },
+  ];
+
+  const [inquiry, setInquiry] = useState({ name: "", email: "", subject: "", message: "" });
+  const [inquiryErrors, setInquiryErrors] = useState({});
+  const [inquiryStatus, setInquiryStatus] = useState(null);
+
+  const handleInquiryChange = (event) => {
+    const { name, value } = event.target;
+    setInquiry((current) => ({ ...current, [name]: value }));
+    setInquiryErrors((current) => ({ ...current, [name]: undefined }));
+    setInquiryStatus(null);
+  };
+
+  const handleInquirySubmit = (event) => {
+    event.preventDefault();
+
+    const errors = {};
+    if (!inquiry.name.trim()) errors.name = "Please enter your name.";
+    if (!inquiry.email.trim()) {
+      errors.email = "Please enter your email.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inquiry.email)) {
+      errors.email = "Please enter a valid email address.";
+    }
+    if (!inquiry.subject.trim()) errors.subject = "Please enter a subject.";
+    if (!inquiry.message.trim()) errors.message = "Please enter a message.";
+
+    if (Object.keys(errors).length > 0) {
+      setInquiryErrors(errors);
+      setInquiryStatus("error");
+      return;
+    }
+
+    const body = `Name: ${inquiry.name}\nEmail: ${inquiry.email}\n\n${inquiry.message}`;
+    const mailtoUrl = `mailto:clothcore@gmail.com?subject=${encodeURIComponent(
+      inquiry.subject
+    )}&body=${encodeURIComponent(body)}`;
+    window.location.href = mailtoUrl;
+    setInquiryStatus("success");
+  };
+
   return (
+    <MotionConfig reducedMotion="user">
     <div className="home">
       {/* Navbar */}
       <motion.nav
@@ -169,11 +305,11 @@ function Home() {
         transition={{ duration: 0.5 }}
       >
         <div className="logo-section">
-          <div className="logo-mark">
-            <GiHanger />
+          <div className="logo-mark logo-mark-image">
+            <img src={logo} alt="ClothCore logo" />
           </div>
           <div>
-            <h2>CLOTHCORE</h2>
+            <span className="logo-title">CLOTHCORE</span>
             <p>Garment Order &amp; Production Management System</p>
           </div>
         </div>
@@ -181,16 +317,35 @@ function Home() {
         <ul className="nav-links">
           {navLinks.map((link) => (
             <li key={link.label}>
-              <a href={link.href}>{link.label}</a>
+              <a
+                href={link.href}
+                className={activeSection === link.href.slice(1) ? "active" : undefined}
+              >
+                {link.label}
+              </a>
             </li>
           ))}
         </ul>
 
         <div className="nav-buttons">
-          <button className="login-register-btn" onClick={() => navigate("/login")}>
-            <FiUser />
-            Login / Register
-          </button>
+          <div className="nav-auth-btn">
+            <FiUser className="nav-auth-btn-icon" />
+            <button
+              type="button"
+              className="nav-auth-btn-segment"
+              onClick={() => navigate("/login")}
+            >
+              Login
+            </button>
+            <span className="nav-auth-btn-divider" aria-hidden="true">/</span>
+            <button
+              type="button"
+              className="nav-auth-btn-segment"
+              onClick={() => navigate("/register")}
+            >
+              Register
+            </button>
+          </div>
         </div>
       </motion.nav>
 
@@ -235,146 +390,56 @@ function Home() {
               <FiGrid /> Explore Features
             </button>
           </motion.div>
-
-          <motion.div className="hero-highlights" variants={fadeUp}>
-            {heroHighlights.map((item) => (
-              <div className="hero-highlight-item" key={item.label}>
-                <span className="hero-highlight-icon">{item.icon}</span>
-                <span>{item.label}</span>
-              </div>
-            ))}
-          </motion.div>
         </motion.div>
 
-        <motion.div
-          className="hero-right"
-          initial={{ opacity: 0, y: 40, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+        <div
+          className="hero-gallery-wrap"
+          onMouseMove={handleGalleryMouseMove}
+          onMouseLeave={handleGalleryMouseLeave}
         >
+          <div className="hero-gallery-glow" />
+          <span className="hero-gallery-deco hero-gallery-deco-1" />
+          <span className="hero-gallery-deco hero-gallery-deco-2" />
+          <div className="hero-gallery-glass" />
+
           <motion.div
-            className="dashboard-mock"
-            animate={{ y: [0, -10, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+            className="hero-gallery"
+            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
           >
-            <div className="mock-sidebar">
-              <div className="mock-logo">
-                <GiHanger />
-                <span>CLOTHCORE</span>
-              </div>
-
-              <ul className="mock-nav">
-                {sidebarNav.map((item) => (
-                  <li key={item.label} className={item.active ? "active" : ""}>
-                    <span className="mock-nav-icon">{item.icon}</span>
-                    {item.label}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="mock-user">
-                <div className="mock-avatar">A</div>
-                <div className="mock-user-info">
-                  <strong>Admin User</strong>
-                  <span>Super Admin</span>
-                </div>
-                <FiChevronDown />
-              </div>
-            </div>
-
-            <div className="mock-main">
-              <div className="mock-topbar">
-                <div>
-                  <h4>Dashboard</h4>
-                  <p>Welcome back, Admin!</p>
-                </div>
-                <div className="mock-topbar-icons">
-                  <span className="mock-bell">
-                    <FiBell />
-                    <i className="mock-bell-dot" />
-                  </span>
-                  <span className="mock-avatar small">A</span>
-                </div>
-              </div>
-
-              <div className="mock-stats">
-                {dashboardStats.map((stat) => (
-                  <div className={`mock-stat-card tone-${stat.tone}`} key={stat.label}>
-                    <div className="mock-stat-top">
-                      <span>{stat.label}</span>
-                      <span className="mock-stat-icon">{stat.icon}</span>
-                    </div>
-                    <h5>{stat.value}</h5>
-                    <p>{stat.change}</p>
+            <div
+              className="hero-gallery-parallax"
+              style={{
+                transform: `translate3d(${galleryParallax.x}px, ${galleryParallax.y}px, 0)`,
+              }}
+            >
+              <div className="hero-gallery-track">
+                {[...heroGalleryImages, ...heroGalleryImages].map((item, index) => (
+                  <div className="hero-gallery-item" key={index}>
+                    <img
+                      src={item.src}
+                      alt="ClothCore garment showcase"
+                      style={{ objectPosition: item.position }}
+                    />
                   </div>
                 ))}
-              </div>
-
-              <div className="mock-panels">
-                <div className="mock-panel">
-                  <h6>Production Overview</h6>
-                  <div className="mock-donut-wrap">
-                    <motion.div
-                      className="mock-donut"
-                      style={{ background: buildConicGradient(productionSlices) }}
-                      initial={{ scale: 0, rotate: -80 }}
-                      whileInView={{ scale: 1, rotate: 0 }}
-                      viewport={{ once: true, amount: 0.6 }}
-                      transition={{ duration: 0.8, ease: "easeOut" }}
-                    >
-                      <div className="mock-donut-hole">
-                        <strong>64</strong>
-                        <span>Total</span>
-                      </div>
-                    </motion.div>
-
-                    <ul className="mock-legend">
-                      {productionSlices.map((slice) => (
-                        <li key={slice.label}>
-                          <i style={{ background: slice.color }} />
-                          {slice.label}
-                          <span>{slice.value}%</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-
-                <div className="mock-panel">
-                  <div className="mock-panel-header">
-                    <h6>Recent Orders</h6>
-                    <span className="mock-view-all">View All</span>
-                  </div>
-                  <ul className="mock-orders">
-                    {recentOrders.map((order) => (
-                      <li key={order.id}>
-                        <div>
-                          <strong>{order.id}</strong>
-                          <span>{order.client}</span>
-                        </div>
-                        <span className={`mock-status status-${order.status.replace(/\s/g, "").toLowerCase()}`}>
-                          {order.status}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              <div className="mock-alert">
-                <span className="mock-alert-icon">
-                  <FiAlertTriangle />
-                </span>
-                <span>Low Stock Alerts — 8 items are running low on stock</span>
-                <span className="mock-view-all">View Inventory</span>
               </div>
             </div>
           </motion.div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Feature Cards Section */}
       <section className="features-strip" id="features">
+        <div className="features-strip-blob features-strip-blob-1" />
+        <div className="features-strip-blob features-strip-blob-2" />
+        <div className="fx-particles">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span className="fx-particle" key={i} />
+          ))}
+        </div>
+
         <motion.div
           className="feature-strip-grid"
           variants={stagger}
@@ -383,8 +448,15 @@ function Home() {
           viewport={{ once: true, amount: 0.2 }}
         >
           {featureCards.map((feature) => (
-            <motion.div className="feature-strip-card" key={feature.title} variants={fadeUp}>
-              <div className="feature-strip-icon">{feature.icon}</div>
+            <motion.div
+              className="feature-strip-card cc-card"
+              key={feature.title}
+              variants={fadeUp}
+              whileHover={{ y: -16, scale: 1.04 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="feature-strip-icon cc-icon-badge">{feature.icon}</div>
               <h3>{feature.title}</h3>
               <p>{feature.desc}</p>
             </motion.div>
@@ -394,6 +466,7 @@ function Home() {
 
       {/* Stats Bar */}
       <section className="stats-bar">
+        <p className="stats-bar-note">Sample metrics shown for demonstration purposes</p>
         <motion.div
           className="stats-bar-grid"
           variants={stagger}
@@ -411,6 +484,12 @@ function Home() {
             </motion.div>
           ))}
         </motion.div>
+
+        <div className="section-divider">
+          <span className="section-divider-line" />
+          <span className="section-divider-dot" />
+          <span className="section-divider-line" />
+        </div>
       </section>
 
       {/* Core Capabilities */}
@@ -421,6 +500,14 @@ function Home() {
         viewport={{ once: true, amount: 0.15 }}
         transition={{ duration: 0.6 }}
       >
+        <div className="features-section-blob features-section-blob-1" />
+        <div className="features-section-blob features-section-blob-2" />
+        <div className="fx-particles">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <span className="fx-particle" key={i} />
+          ))}
+        </div>
+
         <p className="section-subtitle">CORE CAPABILITIES</p>
         <h2>Everything Your Factory Needs</h2>
 
@@ -432,16 +519,48 @@ function Home() {
           viewport={{ once: true, amount: 0.15 }}
         >
           {[
-            "Inventory Control",
-            "Production Scheduling",
-            "Materials Management",
-            "Analytics & Reports",
-            "Quality Control",
-            "Supplier Network",
+            {
+              icon: <FiBox />,
+              title: "Inventory Control",
+              desc: "Track raw material and finished goods stock levels, with low-stock alerts so nothing runs out mid-order.",
+            },
+            {
+              icon: <FiActivity />,
+              title: "Production Scheduling",
+              desc: "Move an order through cutting, sewing, quality check and packing, with each stage's progress visible in real time.",
+            },
+            {
+              icon: <FiPackage />,
+              title: "Materials Management",
+              desc: "Keep a record of fabric and material categories on hand, organized by type for quick lookup.",
+            },
+            {
+              icon: <FiBarChart2 />,
+              title: "Analytics & Reports",
+              desc: "See order volume and production status at a glance from a single dashboard view.",
+            },
+            {
+              icon: <FiCheckCircle />,
+              title: "Quality Control",
+              desc: "Flag an order's quality-check stage so issues are caught before packing and delivery.",
+            },
+            {
+              icon: <FiUsers />,
+              title: "Supplier Network",
+              desc: "Maintain a directory of shops and suppliers connected to your factory's orders.",
+            },
           ].map((feature) => (
-            <motion.div className="feature-card" key={feature} variants={fadeUp}>
-              <h3>{feature}</h3>
-              <p>Manage and monitor garment factory operations efficiently using ClothCore.</p>
+            <motion.div
+              className="feature-card cc-card"
+              key={feature.title}
+              variants={fadeUp}
+              whileHover={{ y: -16, scale: 1.04 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="feature-card-icon cc-icon-badge">{feature.icon}</div>
+              <h3>{feature.title}</h3>
+              <p>{feature.desc}</p>
             </motion.div>
           ))}
         </motion.div>
@@ -458,22 +577,24 @@ function Home() {
         >
           <p className="section-subtitle">WHO WE ARE</p>
 
-          <h2>Built by Industry Experts, for the Garment Trade</h2>
+          <h2>Designed to Simplify Garment Order &amp; Production Coordination</h2>
 
           <p>
-            ClothCore was founded to simplify garment production management
-            through modern digital solutions.
+            ClothCore is a project built to explore how garment manufacturers
+            and shops could manage bulk orders, inventory and production
+            tracking in one connected system.
           </p>
 
           <p>
-            Our platform helps manufacturers manage orders, inventory,
-            production schedules, suppliers and quality control in one
-            place.
+            The platform focuses on three core workflows: placing and
+            tracking bulk orders, monitoring inventory levels, and following
+            a production job from cutting through to completion.
           </p>
 
           <div className="quote-box">
-            "We didn't build another generic ERP. We built a system that
-            speaks the language of the factory floor."
+            "A focused tool for the parts of garment coordination that
+            spreadsheets make difficult — orders, stock and production
+            status, in one place."
           </div>
         </motion.div>
 
@@ -484,81 +605,105 @@ function Home() {
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
         >
-          <motion.div className="info-card" variants={fadeUp}>
+          <motion.div
+            className="info-card"
+            variants={fadeUp}
+            whileHover={{ y: -14, scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <div className="info-card-icon"><FiTarget /></div>
             <h3>Our Mission</h3>
             <p>To help garment manufacturers improve productivity through smart digital tools.</p>
           </motion.div>
 
-          <motion.div className="info-card" variants={fadeUp}>
+          <motion.div
+            className="info-card"
+            variants={fadeUp}
+            whileHover={{ y: -14, scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <div className="info-card-icon"><FiEye /></div>
             <h3>Our Vision</h3>
             <p>A fully connected garment industry where every process is tracked and optimized.</p>
           </motion.div>
 
-          <motion.div className="info-card" variants={fadeUp}>
+          <motion.div
+            className="info-card"
+            variants={fadeUp}
+            whileHover={{ y: -14, scale: 1.03 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <div className="info-card-icon"><FiHeart /></div>
             <h3>Our Values</h3>
             <p>Innovation, transparency, reliability and customer success.</p>
           </motion.div>
         </motion.div>
       </section>
 
-      {/* Factory Image Section */}
-      <section className="factory-section">
-        <motion.img
-          src={factory}
-          alt="Factory"
-          className="factory-image"
-          initial={{ opacity: 0, scale: 0.95 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.7 }}
-        />
-      </section>
-
-      {/* Leadership Team Section */}
-      <section className="team-section">
-        <p className="section-subtitle">LEADERSHIP TEAM</p>
-        <h2>The People Behind ClothCore</h2>
+      {/* How ClothCore Works */}
+      <section className="workflow-section" id="how-it-works">
+        <p className="section-subtitle">HOW IT WORKS</p>
+        <h2>How ClothCore Works</h2>
+        <p className="workflow-intro">
+          From order submission to delivery tracking — here's how a bulk order moves through ClothCore.
+        </p>
 
         <motion.div
-          className="team-grid"
+          className="workflow-timeline"
           variants={stagger}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
+          viewport={{ once: true, amount: 0.15 }}
         >
-          <motion.div className="team-card" variants={fadeUp}>
-            <div className="team-avatar ceo">AR</div>
-            <h3>Chief Executive Officer</h3>
-            <p>
-              15 years in garment operations. Former production director at
-              one of Sri Lanka's largest apparel groups.
-            </p>
-          </motion.div>
+          {processSteps.map((step, index) => (
+            <motion.div className="workflow-step" key={step.title} variants={fadeUp}>
+              <span className="workflow-step-number">STEP {index + 1}</span>
+              <div className="workflow-step-icon cc-icon-badge">{step.icon}</div>
+              <h3>{step.title}</h3>
+              <p>{step.desc}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
 
-          <motion.div className="team-card" variants={fadeUp}>
-            <div className="team-avatar cto">NP</div>
-            <h3>Chief Technology Officer</h3>
-            <p>
-              Full-stack engineer with a decade in enterprise software.
-              Passionate about simplifying industrial workflows.
-            </p>
-          </motion.div>
+      {/* Why Choose ClothCore Section */}
+      <section className="why-choose-section">
+        <p className="section-subtitle">WHY CHOOSE CLOTHCORE</p>
+        <h2>Built Around What Garment Factories Actually Need</h2>
 
-          <motion.div className="team-card" variants={fadeUp}>
-            <div className="team-avatar ops">DW</div>
-            <h3>Head of Operations</h3>
-            <p>
-              Specialist in lean manufacturing and quality systems. Holds
-              certifications in Six Sigma and ISO 9001 implementation.
-            </p>
-          </motion.div>
+        <motion.div
+          className="why-choose-grid"
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, amount: 0.15 }}
+        >
+          {whyChooseCards.map((card) => (
+            <motion.div
+              className="why-choose-card cc-card"
+              key={card.title}
+              variants={fadeUp}
+              whileHover={{ y: -16, scale: 1.04 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="why-choose-icon cc-icon-badge">{card.icon}</div>
+              <h3>{card.title}</h3>
+              <p>{card.desc}</p>
+            </motion.div>
+          ))}
         </motion.div>
       </section>
 
       {/* Products Section */}
       <section className="products-section" id="products">
-        <p className="section-subtitle">OUR PRODUCTS &amp; MATERIALS</p>
-        <h2>Garment Management, End to End</h2>
+        <p className="section-subtitle">MODULES &amp; MATERIALS</p>
+        <h2>What ClothCore Manages</h2>
+
+        <h3 className="products-subheading">ClothCore Modules</h3>
 
         <motion.div
           className="product-grid"
@@ -567,7 +712,13 @@ function Home() {
           whileInView="show"
           viewport={{ once: true, amount: 0.2 }}
         >
-          <motion.div className="product-card" variants={fadeUp}>
+          <motion.div
+            className="product-card"
+            variants={fadeUp}
+            whileHover={{ y: -16, scale: 1.04 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
             <div className="product-top">
               <span className="product-icon">
                 <FiShoppingBag />
@@ -579,7 +730,13 @@ function Home() {
             </div>
           </motion.div>
 
-          <motion.div className="product-card" variants={fadeUp}>
+          <motion.div
+            className="product-card"
+            variants={fadeUp}
+            whileHover={{ y: -16, scale: 1.04 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
             <div className="product-top">
               <span className="product-icon">
                 <FiBox />
@@ -591,7 +748,13 @@ function Home() {
             </div>
           </motion.div>
 
-          <motion.div className="product-card" variants={fadeUp}>
+          <motion.div
+            className="product-card"
+            variants={fadeUp}
+            whileHover={{ y: -16, scale: 1.04 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
             <div className="product-top">
               <span className="product-icon">
                 <GiSewingMachine />
@@ -604,37 +767,62 @@ function Home() {
           </motion.div>
         </motion.div>
 
-        <motion.div
-          className="material-grid"
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          <motion.div className="material-card" variants={fadeUp}>
-            <div className="material-circle cotton"></div>
-            <h3>Cotton</h3>
-            <p>120 rolls in stock</p>
-          </motion.div>
+        <div className="materials-showcase">
+          <div className="materials-blob materials-blob-1" />
+          <div className="materials-blob materials-blob-2" />
 
-          <motion.div className="material-card" variants={fadeUp}>
-            <div className="material-circle silk"></div>
-            <h3>Silk</h3>
-            <p>34 rolls in stock</p>
-          </motion.div>
+          <div className="materials-header">
+            <p className="materials-eyebrow">OUR MATERIALS</p>
+            <h3 className="products-subheading materials-heading">Supported Material Categories</h3>
+            <p className="materials-subtitle">
+              Premium materials selected for quality garment production.
+            </p>
+            <span className="materials-badge-pill">
+              <HiSparkles aria-hidden="true" />
+              Example stock figures for demonstration only
+            </span>
+          </div>
 
-          <motion.div className="material-card" variants={fadeUp}>
-            <div className="material-circle denim"></div>
-            <h3>Denim</h3>
-            <p>76 rolls in stock</p>
-          </motion.div>
+          <motion.div
+            className="material-grid"
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.2 }}
+          >
+            {materials.map((material) => {
+              const CategoryIcon = material.icon;
+              return (
+                <motion.div
+                  key={material.name}
+                  className={`material-card cc-card material-card-${material.className}`}
+                  variants={fadeUp}
+                  whileHover={{ y: -8 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                >
+                  <span className="material-category-icon" aria-hidden="true">
+                    <CategoryIcon />
+                  </span>
 
-          <motion.div className="material-card" variants={fadeUp}>
-            <div className="material-circle linen"></div>
-            <h3>Linen</h3>
-            <p>52 rolls in stock</p>
+                  <div className={`material-image-frame material-image-frame-${material.className}`}>
+                    <span className="material-frame-dot material-frame-dot-1" aria-hidden="true" />
+                    <span className="material-frame-dot material-frame-dot-2" aria-hidden="true" />
+                    <span className="material-frame-dot material-frame-dot-3" aria-hidden="true" />
+                    <img src={material.image} alt={material.alt} loading="lazy" />
+                  </div>
+
+                  <h3>{material.name}</h3>
+
+                  <span className="material-stock-pill">
+                    <FiPackage aria-hidden="true" />
+                    Sample stock: <strong>{material.stock}</strong> {material.unit}
+                  </span>
+                </motion.div>
+              );
+            })}
           </motion.div>
-        </motion.div>
+        </div>
       </section>
 
       {/* Contact Section */}
@@ -647,54 +835,195 @@ function Home() {
           is here to help you find the right fit for your factory.
         </p>
 
-        <motion.div
-          className="contact-card"
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.3 }}
-          transition={{ duration: 0.6 }}
-        >
-          <div className="contact-item">
-            <span>📧</span>
-            <div>
-              <h4>Email</h4>
-              <p>clothcore@gmail.com</p>
+        <div className="contact-layout">
+          <motion.div
+            className="contact-card cc-card"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+            whileHover={{ y: -10, scale: 1.015 }}
+          >
+            <div className="contact-item">
+              <span className="contact-icon cc-icon-badge"><FiMail /></span>
+              <div>
+                <h4>Email</h4>
+                <p>clothcore@gmail.com</p>
+              </div>
             </div>
-          </div>
 
-          <div className="contact-item">
-            <span>📞</span>
-            <div>
-              <h4>Phone</h4>
-              <p>0741862226</p>
+            <div className="contact-item">
+              <span className="contact-icon cc-icon-badge"><FiPhone /></span>
+              <div>
+                <h4>Phone</h4>
+                <p>0741862226</p>
+              </div>
             </div>
-          </div>
 
-          <div className="contact-item">
-            <span>📍</span>
-            <div>
-              <h4>Office</h4>
-              <p>12 Kanuwa, Seeduwa, Sri Lanka</p>
+            <div className="contact-item">
+              <span className="contact-icon cc-icon-badge"><FiMapPin /></span>
+              <div>
+                <h4>Office</h4>
+                <p>12 Kanuwa, Seeduwa, Sri Lanka</p>
+              </div>
             </div>
-          </div>
 
-          <div className="contact-item">
-            <span>⏰</span>
-            <div>
-              <h4>Working Hours</h4>
-              <p>Mon - Fri, 8.30 AM - 5.30 PM</p>
+            <div className="contact-item">
+              <span className="contact-icon cc-icon-badge"><FiClock /></span>
+              <div>
+                <h4>Working Hours</h4>
+                <p>Mon - Fri, 8.30 AM - 5.30 PM</p>
+              </div>
             </div>
-          </div>
-        </motion.div>
+          </motion.div>
+
+          <motion.form
+            className="inquiry-card cc-card"
+            onSubmit={handleInquirySubmit}
+            noValidate
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6 }}
+          >
+            <h3 className="inquiry-title">Send a Quick Inquiry</h3>
+            <p className="inquiry-subtitle">
+              This opens your email app with the message pre-filled — ClothCore
+              doesn't have a live inbox connected to this form yet.
+            </p>
+
+            <div className="inquiry-field">
+              <label htmlFor="inquiryName">Full Name</label>
+              <input
+                id="inquiryName"
+                name="name"
+                type="text"
+                className="form-control auth-input"
+                value={inquiry.name}
+                onChange={handleInquiryChange}
+                aria-invalid={!!inquiryErrors.name}
+                aria-describedby={inquiryErrors.name ? "inquiryName-error" : undefined}
+              />
+              {inquiryErrors.name && (
+                <span className="inquiry-error" id="inquiryName-error">{inquiryErrors.name}</span>
+              )}
+            </div>
+
+            <div className="inquiry-field">
+              <label htmlFor="inquiryEmail">Email</label>
+              <input
+                id="inquiryEmail"
+                name="email"
+                type="email"
+                className="form-control auth-input"
+                value={inquiry.email}
+                onChange={handleInquiryChange}
+                aria-invalid={!!inquiryErrors.email}
+                aria-describedby={inquiryErrors.email ? "inquiryEmail-error" : undefined}
+              />
+              {inquiryErrors.email && (
+                <span className="inquiry-error" id="inquiryEmail-error">{inquiryErrors.email}</span>
+              )}
+            </div>
+
+            <div className="inquiry-field">
+              <label htmlFor="inquirySubject">Subject</label>
+              <input
+                id="inquirySubject"
+                name="subject"
+                type="text"
+                className="form-control auth-input"
+                value={inquiry.subject}
+                onChange={handleInquiryChange}
+                aria-invalid={!!inquiryErrors.subject}
+                aria-describedby={inquiryErrors.subject ? "inquirySubject-error" : undefined}
+              />
+              {inquiryErrors.subject && (
+                <span className="inquiry-error" id="inquirySubject-error">{inquiryErrors.subject}</span>
+              )}
+            </div>
+
+            <div className="inquiry-field">
+              <label htmlFor="inquiryMessage">Message</label>
+              <textarea
+                id="inquiryMessage"
+                name="message"
+                rows="4"
+                className="form-control auth-input"
+                value={inquiry.message}
+                onChange={handleInquiryChange}
+                aria-invalid={!!inquiryErrors.message}
+                aria-describedby={inquiryErrors.message ? "inquiryMessage-error" : undefined}
+              />
+              {inquiryErrors.message && (
+                <span className="inquiry-error" id="inquiryMessage-error">{inquiryErrors.message}</span>
+              )}
+            </div>
+
+            <button type="submit" className="get-started-btn inquiry-submit">
+              Send Message <FiArrowRight />
+            </button>
+
+            {inquiryStatus === "success" && (
+              <p className="inquiry-feedback inquiry-feedback-success" role="status">
+                Your email app should now be open with this message ready to send.
+              </p>
+            )}
+            {inquiryStatus === "error" && (
+              <p className="inquiry-feedback inquiry-feedback-error" role="alert">
+                Please fix the highlighted fields above.
+              </p>
+            )}
+          </motion.form>
+        </div>
       </section>
 
       {/* Footer */}
       <footer className="footer">
-        <h3>ClothCore</h3>
-        <p>Smart Garment Production Management System</p>
-        <p>© 2026 ClothCore. All Rights Reserved.</p>
+        <div className="footer-top">
+          <div className="footer-brand">
+            <div className="footer-logo">
+              <span className="footer-logo-mark footer-logo-mark-image">
+                <img src={logo} alt="ClothCore logo" />
+              </span>
+              <span className="footer-brand-name">ClothCore</span>
+            </div>
+            <p className="footer-tagline">
+              A centralized platform for garment order, inventory and
+              production coordination.
+            </p>
+          </div>
+
+          <nav className="footer-col" aria-label="Footer navigation">
+            <h4>Quick Links</h4>
+            <ul>
+              <li><a href="#home">Home</a></li>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#about">About Us</a></li>
+              <li><a href="#how-it-works">How It Works</a></li>
+              <li><a href="#contact">Contact</a></li>
+            </ul>
+          </nav>
+
+          <div className="footer-col">
+            <h4>Contact</h4>
+            <ul>
+              <li><a href="mailto:clothcore@gmail.com">clothcore@gmail.com</a></li>
+              <li><a href="tel:+94741862226">074 186 2226</a></li>
+              <li>Seeduwa, Sri Lanka</li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="footer-bottom">
+          <p>© 2026 ClothCore. All Rights Reserved.</p>
+          <p className="footer-note">
+            Built to simplify garment order and production management.
+          </p>
+        </div>
       </footer>
     </div>
+    </MotionConfig>
   );
 }
 

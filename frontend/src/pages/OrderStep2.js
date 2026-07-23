@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import ShopTopbar from "../components/ShopTopbar";
 
 function OrderStep2() {
   const navigate = useNavigate();
@@ -9,6 +10,10 @@ function OrderStep2() {
   const [fileName, setFileName] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [designNotes, setDesignNotes] = useState(() => {
+    const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
+    return draft.designNotes || "";
+  });
 
   const handleFileDrop = (e) => {
     e.preventDefault();
@@ -47,12 +52,12 @@ function OrderStep2() {
   };
 
   return (
-    <div className="container-fluid p-0" style={{ 
-      background: "linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)",
+    <div className="container-fluid p-0" style={{
+      background: "var(--clothcore-bg, #fdf8f7)",
       minHeight: "100vh"
     }}>
+      <ShopTopbar />
       <div className="container py-4">
-
         {/* Header */}
         <div className="mb-4">
           <h1 className="fw-bold" style={{ fontSize: "2.2rem" }}>
@@ -80,7 +85,7 @@ function OrderStep2() {
           <div className="col-lg-7">
 
             {/* Upload Design Card */}
-            <div className="card border-0 mb-4" style={{ 
+            <div className="card admin-content-card border-0 mb-4" style={{ 
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
             }}>
@@ -154,7 +159,7 @@ function OrderStep2() {
             </div>
 
             {/* AI Generation Card */}
-            <div className="card border-0" style={{ 
+            <div className="card admin-content-card border-0" style={{ 
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
             }}>
@@ -217,11 +222,31 @@ function OrderStep2() {
                 </button>
               </div>
             </div>
+
+            {/* Design Notes Card */}
+            <div className="card admin-content-card border-0 mt-4" style={{
+              borderRadius: "20px",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.08)"
+            }}>
+              <div className="card-body p-4">
+                <h4 className="fw-bold mb-3" style={{ color: "#0b3aa0", fontSize: "1.1rem" }}>
+                  Design Notes / Special Instructions
+                </h4>
+                <textarea
+                  className="form-control"
+                  rows="3"
+                  placeholder="Any specific instructions for your design (optional)"
+                  style={{ borderRadius: "12px", resize: "none" }}
+                  value={designNotes}
+                  onChange={(e) => setDesignNotes(e.target.value)}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Right Column - Design Preview */}
           <div className="col-lg-5">
-            <div className="card border-0" style={{ 
+            <div className="card admin-content-card border-0" style={{ 
               borderRadius: "20px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.12)",
               overflow: "hidden"
@@ -360,7 +385,14 @@ function OrderStep2() {
               boxShadow: "0 4px 25px rgba(11, 58, 160, 0.4)",
               transition: "all 0.3s ease"
             }}
-            onClick={() => navigate("/step3")}
+            onClick={() => {
+              const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
+              localStorage.setItem(
+                "clothCoreOrderDraft",
+                JSON.stringify({ ...draft, designNotes })
+              );
+              navigate("/step3");
+            }}
             onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
             onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
           >

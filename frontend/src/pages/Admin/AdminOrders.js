@@ -1,26 +1,26 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
-import Adminsidebar from "../../components/Adminsidebar";
-import Admintopbar from "../../components/Admintopbar";
-import { 
+import AdminLayout from "../../components/AdminLayout";
+import {
   Search,
   ChevronLeft,
   ChevronRight,
   ThreeDotsVertical,
-  ArrowUp,
-  ArrowDown,
-  Box,
-  Clock,
-  CheckCircle,
-  XCircle,
   Eye,
   Check,
   Send,
   CreditCard,
   Printer,
   Trash,
-  Filter
+  Filter,
+  Clipboard,
+  HourglassSplit,
+  Truck,
+  CheckCircle,
+  XCircle,
+  Image,
+  TruckFront
 } from 'react-bootstrap-icons';
 
 function AdminOrders() {
@@ -29,12 +29,19 @@ function AdminOrders() {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [selectedPayment, setSelectedPayment] = useState('All Payment');
-  const [selectedPeriod, setSelectedPeriod] = useState('This Month');
   const [openDropdown, setOpenDropdown] = useState(null);
   const dropdownRef = useRef(null);
   const ordersPerPage = 6;
   const [orders, setOrders] = useState([]);
-const [stats, setStats] = useState([]);
+  const [orderStats, setOrderStats] = useState({
+    totalOrders: 0,
+    pending: 0,
+    approved: 0,
+    inProduction: 0,
+    delivered: 0,
+    cancelled: 0,
+    totalRevenue: 0,
+  });
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -47,83 +54,90 @@ const [stats, setStats] = useState([]);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Stats Data
-const statsData = [
+  useEffect(() => {
+    loadOrders();
+    loadStats();
+  }, []);
 
-    { 
-      label: 'Total Orders', 
-      value: '145', 
-      change: '+18.4%', 
-      trend: 'up',
-      icon: <Box size={22} color="#6366f1" />,
-      bg: '#eef2ff'
-    },
-    { 
-      label: 'Pending Approval', 
-      value: '18', 
-      change: '+5.4%', 
-      trend: 'up',
-      icon: <Clock size={22} color="#f59e0b" />,
-      bg: '#fffbeb'
-    },
-    { 
-      label: 'In Production', 
-      value: '42', 
-      change: '+12.2%', 
-      trend: 'up',
-      icon: <CheckCircle size={22} color="#10b981" />,
-      bg: '#ecfdf5'
-    },
-    { 
-      label: 'Completed', 
-      value: '70', 
-      change: '+22.5%', 
-      trend: 'up',
-      icon: <CheckCircle size={22} color="#8b5cf6" />,
-      bg: '#f5f3ff'
-    },
-    { 
-      label: 'Cancelled', 
-      value: '15', 
-      change: '-8.3%', 
-      trend: 'down',
-      icon: <XCircle size={22} color="#ef4444" />,
-      bg: '#fef2f2'
+  const loadOrders = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/orders");
+      setOrders(res.data || []);
+    } catch (err) {
+      console.error("Load Orders Error:", err);
     }
+  };
+
+  const loadStats = async () => {
+    try {
+      const res = await axios.get("http://localhost:5000/api/orders/stats");
+      setOrderStats(res.data);
+    } catch (err) {
+      console.error("Load Order Stats Error:", err);
+    }
+  };
+
+  const formatOrderDate = (date) => {
+    if (!date) return "N/A";
+
+    return new Date(date).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  // Stat cards are built here from the real counts returned by the backend,
+  // the same pattern used on AdminDashboard.js.
+  const stats = [
+    {
+      label: "Total Orders",
+      value: orderStats.totalOrders.toLocaleString(),
+      icon: Clipboard,
+      color: "var(--clothcore-blush)",
+      bg: "rgba(82,43,91,0.1)",
+    },
+    {
+      label: "Pending",
+      value: orderStats.pending.toLocaleString(),
+      icon: HourglassSplit,
+      color: "var(--clothcore-warning)",
+      bg: "var(--clothcore-warning-bg)",
+    },
+    {
+      label: "In Production",
+      value: orderStats.inProduction.toLocaleString(),
+      icon: Truck,
+      color: "var(--clothcore-mauve)",
+      bg: "rgba(133,79,108,0.12)",
+    },
+    {
+      label: "Delivered",
+      value: orderStats.delivered.toLocaleString(),
+      icon: CheckCircle,
+      color: "var(--clothcore-success)",
+      bg: "var(--clothcore-success-bg)",
+    },
+    {
+      label: "Cancelled",
+      value: orderStats.cancelled.toLocaleString(),
+      icon: XCircle,
+      color: "var(--clothcore-danger)",
+      bg: "var(--clothcore-danger-bg)",
+    },
   ];
 
-  // Orders Data
-  useEffect(() => {
-  loadOrders();
-  loadStats();
-}, []);
-
-const loadOrders = async () => {
-  try {
-    const res = await axios.get("http://localhost:5000/api/orders");
-    setOrders(res.data.data);
-  } catch (err) {
-    console.log(err);
-  }
-};
-
-const loadStats = async () => {
-  try {
-    const res = await axios.get(
-      "http://localhost:5000/api/orders/dashboard/stats"
-    );
-    setStats(res.data);
-  } catch (err) {
-    console.log(err);
-  }
-};
-  // Filter orders based on search
-const filteredOrders = (orders || []).filter((order) => {
-    const matchesSearch = order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.shop.toLowerCase().includes(searchTerm.toLowerCase());
+  // Filter orders based on search. Field names match the real Order schema
+  // (customerName / paymentStatus / quantity / createdAt) — there is no
+  // "shop" field on the Order model yet (no Shop model exists), so shop
+  // search/columns were removed rather than referencing data that doesn't
+  // exist.
+  const filteredOrders = (orders || []).filter((order) => {
+    const matchesSearch =
+      (order.orderId || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customerName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = selectedStatus === 'All Status' || order.status === selectedStatus;
-    const matchesPayment = selectedPayment === 'All Payment' || order.payment === selectedPayment;
+    const matchesPayment = selectedPayment === 'All Payment' || order.paymentStatus === selectedPayment;
     return matchesSearch && matchesStatus && matchesPayment;
   });
 
@@ -131,130 +145,314 @@ const filteredOrders = (orders || []).filter((order) => {
   const indexOfLastOrder = currentPage * ordersPerPage;
   const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
   const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
-  const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
-  const getStatusStyle = (status) => {
-    const styles = {
-      'Pending Approval': { bg: '#fef3c7', color: '#d97706' },
-      'Approved': { bg: '#e0e7ff', color: '#6366f1' },
-      'Waiting Payment': { bg: '#fef3c7', color: '#d97706' },
-      'In Production': { bg: '#d1fae5', color: '#059669' },
-      'Completed': { bg: '#f5f3ff', color: '#8b5cf6' },
-      'Cancelled': { bg: '#fee2e2', color: '#dc2626' }
+  // Status/payment values match the real Order model enums exactly.
+  const getStatusBadgeClass = (status) => {
+    const classes = {
+      Pending: 'admin-badge-warning',
+      Approved: 'admin-badge-info',
+      Production: 'admin-badge-accent',
+      Delivered: 'admin-badge-success',
+      Cancelled: 'admin-badge-danger',
     };
-    return styles[status] || styles['Pending Approval'];
+    return classes[status] || 'admin-badge-warning';
   };
 
-  const getPaymentStyle = (payment) => {
-    const styles = {
-      'Paid': { bg: '#d1fae5', color: '#059669' },
-      'Pending': { bg: '#fef3c7', color: '#d97706' }
+  const getPaymentBadgeClass = (payment) => {
+    const classes = {
+      Paid: 'admin-badge-success',
+      Partial: 'admin-badge-accent',
+      Pending: 'admin-badge-warning',
     };
-    return styles[payment] || styles['Pending'];
+    return classes[payment] || 'admin-badge-warning';
   };
 
-  const statuses = ['All Status', 'Pending Approval', 'Approved', 'Waiting Payment', 'In Production', 'Completed', 'Cancelled'];
-  const payments = ['All Payment', 'Paid', 'Pending'];
-  const periods = ['This Month', 'This Week', 'Today'];
+  const statuses = ['All Status', 'Pending', 'Approved', 'Production', 'Delivered', 'Cancelled'];
+  const payments = ['All Payment', 'Pending', 'Partial', 'Paid'];
+  const DELIVERY_STATUSES = ['Not Scheduled', 'Scheduled', 'Dispatched', 'In Transit', 'Delivered', 'Delivery Failed'];
 
-  // Action Handlers - FIXED for navigation
-  const handleActionClick = (action, orderId) => {
-    setOpenDropdown(null);
-    
-    if (action === 'View Details') {
-      // Navigate to order details page
-      navigate('/admin/order-details', { state: { orderId } });
+  const approveOrder = async (order) => {
+    if (!window.confirm(`Approve order ${order.orderId}?`)) return;
+    try {
+      await axios.put(`http://localhost:5000/api/orders/${order._id}`, { status: 'Approved' });
+      await loadOrders();
+      await loadStats();
+      alert(`Order ${order.orderId} has been approved.`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to approve order.');
+    }
+  };
+
+  const sendToProduction = async (order) => {
+    if (!window.confirm(`Send order ${order.orderId} to production?`)) return;
+    try {
+      await axios.put(`http://localhost:5000/api/orders/${order._id}`, { status: 'Production' });
+      await loadOrders();
+      await loadStats();
+      alert(`Order ${order.orderId} has been sent to production.`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to send order to production.');
+    }
+  };
+
+  const cancelOrder = async (order) => {
+    if (!window.confirm(`Are you sure you want to cancel order ${order.orderId}? This action cannot be undone.`)) return;
+    try {
+      await axios.put(`http://localhost:5000/api/orders/${order._id}`, { status: 'Cancelled' });
+      await loadOrders();
+      await loadStats();
+      alert(`Order ${order.orderId} has been cancelled.`);
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to cancel order.');
+    }
+  };
+
+  const handlePaymentDetails = async (order) => {
+    try {
+      const res = await axios.get(`http://localhost:5000/api/payments/order/${order._id}`);
+      const paymentsList = res.data || [];
+
+      if (!paymentsList.length) {
+        alert('No payments recorded for this order yet.');
+        return;
+      }
+
+      const summary = paymentsList
+        .map((p, i) => {
+          const line = `${i + 1}. ${p.paymentType || 'Payment'} via ${p.paymentMethod || 'N/A'} - Rs. ${p.amount} - ${p.status}`;
+          const ref = p.transactionReference ? ` (Ref: ${p.transactionReference})` : '';
+          const rejection = p.status === 'Rejected' && p.rejectionReason ? ` - Reason: ${p.rejectionReason}` : '';
+          return line + ref + rejection;
+        })
+        .join('\n');
+      alert(`Payments for Order ${order.orderId}:\n\n${summary}`);
+
+      const submitted = paymentsList.filter((p) => p.status === 'Submitted');
+      for (const payment of submitted) {
+        const shouldVerify = window.confirm(
+          `Payment of Rs. ${payment.amount} (${payment.paymentMethod || payment.paymentType}) is awaiting verification.\n\nClick OK to VERIFY this payment, or Cancel to skip.`
+        );
+        if (shouldVerify) {
+          await axios.put(`http://localhost:5000/api/payments/${payment._id}/verify`);
+          alert('Payment verified.');
+        } else if (window.confirm('Reject this payment instead?')) {
+          const reason = window.prompt('Reason for rejection:') || 'Rejected by admin';
+          await axios.put(`http://localhost:5000/api/payments/${payment._id}/reject`, { reason });
+          alert('Payment rejected.');
+        }
+      }
+
+      await loadOrders();
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to load payment details.');
+    }
+  };
+
+  const printInvoice = async (order) => {
+    let invoiceData;
+    try {
+      const res = await axios.get(`http://localhost:5000/api/orders/${order._id}/invoice`);
+      invoiceData = res.data;
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to generate invoice.');
       return;
     }
-    
-    // Other actions show alert
-    const actionMessages = {
-      'Approve Order': `Order ${orderId} has been approved!`,
-      'Send to Production': `Order ${orderId} has been sent to production!`,
-      'Payment Details': `Viewing payment details for Order: ${orderId}`,
-      'Print Invoice': `Printing invoice for Order: ${orderId}`,
-      'Cancel Order': `Order ${orderId} has been cancelled!`
-    };
-    alert(actionMessages[action] || `${action} clicked for Order: ${orderId}`);
+
+    const invoiceWindow = window.open('', '_blank', 'width=800,height=900');
+    if (!invoiceWindow) {
+      alert('Please allow pop-ups for this site to print the invoice.');
+      return;
+    }
+
+    const { order: o, amountPaid, balanceDue, invoiceNumber } = invoiceData;
+    const orderDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString() : '-';
+    const html = `
+      <html>
+        <head>
+          <title>Invoice - ${o.orderId}</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 32px; color: #221033; }
+            h1 { color: #522b5b; margin-bottom: 4px; }
+            table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+            th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e0d5dd; }
+            .total { font-weight: bold; font-size: 16px; }
+          </style>
+        </head>
+        <body>
+          <h1>ClothCore</h1>
+          <p>${invoiceNumber} — Order ${o.orderId}</p>
+          <p>Date: ${orderDate}</p>
+          <hr />
+          <p><strong>Customer:</strong> ${o.customerName || '-'}</p>
+          <table>
+            <thead>
+              <tr><th>Item</th><th>Quantity</th><th>Unit Price</th><th>Amount</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>${o.item || '-'}</td>
+                <td>${o.quantity ?? '-'}</td>
+                <td>Rs. ${o.unitPrice ?? '-'}</td>
+                <td>Rs. ${o.totalAmount ?? '-'}</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="total">Total Amount: Rs. ${o.totalAmount ?? '-'}</p>
+          <p>Amount Paid (Verified): Rs. ${amountPaid.toLocaleString()}</p>
+          <p class="total">Balance Due: Rs. ${balanceDue.toLocaleString()}</p>
+          <p><strong>Status:</strong> ${o.status || '-'}</p>
+        </body>
+      </html>
+    `;
+    invoiceWindow.document.open();
+    invoiceWindow.document.write(html);
+    invoiceWindow.document.close();
+    invoiceWindow.focus();
+    setTimeout(() => {
+      try { invoiceWindow.print(); } catch (e) { /* ignore */ }
+    }, 300);
+  };
+
+  const handleManageSample = async (order) => {
+    try {
+      let existing = null;
+      try {
+        const res = await axios.get(`http://localhost:5000/api/samples/order/${order._id}`);
+        existing = res.data;
+      } catch (err) {
+        if (err.response && err.response.status !== 404) throw err;
+      }
+
+      if (!existing) {
+        if (!window.confirm(`No sample exists yet for order ${order.orderId}. Create one now?`)) return;
+        const imageUrl = window.prompt('Sample image URL (optional):') || '';
+        const notes = window.prompt('Sample notes:') || '';
+        await axios.post('http://localhost:5000/api/samples', {
+          orderId: order._id,
+          imageUrl,
+          notes
+        });
+        alert('Sample created and awaiting shop approval.');
+      } else {
+        alert(`Current sample status: ${existing.status}\nNotes: ${existing.notes || '(none)'}`);
+        if (!window.confirm('Update this sample?')) return;
+        const notes = window.prompt('Updated notes:', existing.notes || '');
+        const status = window.prompt('Updated status (e.g. Awaiting Shop Approval / Approved / Rejected):', existing.status || '');
+        const payload = {};
+        if (notes !== null) payload.notes = notes;
+        if (status !== null && status.trim()) payload.status = status.trim();
+        if (Object.keys(payload).length === 0) return;
+        await axios.put(`http://localhost:5000/api/samples/${existing._id}`, payload);
+        alert('Sample updated.');
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to manage sample.');
+    }
+  };
+
+  const handleManageDelivery = async (order) => {
+    try {
+      let existing = null;
+      try {
+        const res = await axios.get(`http://localhost:5000/api/deliveries/order/${order._id}`);
+        existing = res.data;
+      } catch (err) {
+        if (err.response && err.response.status !== 404) throw err;
+      }
+
+      if (!existing) {
+        if (!window.confirm(`No delivery record exists yet for order ${order.orderId}. Create one now?`)) return;
+        const deliveryStaffName = window.prompt('Delivery staff name:') || '';
+        const trackingNumber = window.prompt('Tracking number:') || '';
+        const scheduledDate = window.prompt('Scheduled date (YYYY-MM-DD):') || '';
+        const notes = window.prompt('Notes (optional):') || '';
+        await axios.post('http://localhost:5000/api/deliveries', {
+          orderId: order._id,
+          deliveryStaffName,
+          trackingNumber,
+          scheduledDate,
+          notes
+        });
+        alert('Delivery record created.');
+      } else {
+        alert(`Current delivery status: ${existing.status}\nTracking: ${existing.trackingNumber || '(none)'}\nStaff: ${existing.deliveryStaffName || '(none)'}`);
+        if (!window.confirm('Update delivery status?')) return;
+        let status = window.prompt(`New status (one of: ${DELIVERY_STATUSES.join(', ')}):`, existing.status || '');
+        if (status === null) return;
+        status = status.trim();
+        if (!DELIVERY_STATUSES.includes(status)) {
+          alert(`Invalid status. Must be one of: ${DELIVERY_STATUSES.join(', ')}`);
+          return;
+        }
+        await axios.put(`http://localhost:5000/api/deliveries/${existing._id}`, { status });
+        alert('Delivery updated.');
+        await loadOrders();
+      }
+    } catch (err) {
+      console.error(err);
+      alert(err.response?.data?.message || 'Failed to manage delivery.');
+    }
+  };
+
+  const handleActionClick = (action, order) => {
+    setOpenDropdown(null);
+
+    if (action === 'View Details') {
+      navigate(`/admin/order-details/${order._id}`);
+      return;
+    }
+    if (action === 'Approve Order') return approveOrder(order);
+    if (action === 'Send to Production') return sendToProduction(order);
+    if (action === 'Cancel Order') return cancelOrder(order);
+    if (action === 'Payment Details') return handlePaymentDetails(order);
+    if (action === 'Print Invoice') return printInvoice(order);
+    if (action === 'Manage Sample') return handleManageSample(order);
+    if (action === 'Manage Delivery') return handleManageDelivery(order);
   };
 
   const toggleDropdown = (orderId) => {
-    if (openDropdown === orderId) {
-      setOpenDropdown(null);
-    } else {
-      setOpenDropdown(orderId);
-    }
+    setOpenDropdown((current) => (current === orderId ? null : orderId));
   };
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", background: "#f0f2f5" }}>
-      <Adminsidebar />
-      
-      <div className="flex-grow-1">
-        <Admintopbar />
-        
-        <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0">
-            
+    <AdminLayout>
+
             {/* Breadcrumb */}
             <div style={{ marginBottom: '20px' }}>
-              <span style={{ color: '#6c757d', fontSize: '14px' }}>Dashboard</span>
-              <span style={{ color: '#6c757d', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: '#0b3aa0', fontWeight: '600', fontSize: '14px' }}>Orders Management</span>
+              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Dashboard</span>
+              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
+              <span style={{ color: 'var(--clothcore-purple)', fontWeight: '600', fontSize: '14px' }}>Orders Management</span>
             </div>
 
             {/* Page Header */}
-            <div style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a1a2e', marginBottom: '4px' }}>
-                Orders Management
-              </h2>
-              <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '0' }}>
-                Manage customer orders and track their status
-              </p>
+            <div className="admin-page-header">
+              <div>
+                <h2 className="admin-page-title" style={{ fontSize: '24px' }}>Orders Management</h2>
+                <p className="admin-page-subtitle">
+                  Manage customer orders and track their status
+                </p>
+              </div>
             </div>
 
-            {/* Stats Cards - 5 in a row */}
+            {/* Stats Cards */}
             <div className="row g-3 mb-4">
               {stats.map((stat, index) => (
                 <div key={index} className="col-xl-2 col-lg-3 col-md-6 col-sm-12">
-                  <div className="card border-0 h-100" style={{ borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                  <div className="card admin-stat-card">
                     <div className="card-body">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                        <div style={{ 
-                          width: "40px", 
-                          height: "40px", 
-                          borderRadius: "10px", 
-                          background: stat.bg,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center"
-                        }}>
-                          {stat.icon}
-                        </div>
+                      <div className="admin-stat-icon mb-2" style={{ background: stat.bg, width: "40px", height: "40px" }}>
+                        <stat.icon size={18} style={{ color: stat.color }} />
                       </div>
-                      <div style={{ fontSize: "12px", color: "#6c757d", fontWeight: "500", marginBottom: "2px" }}>
-                        {stat.label}
-                      </div>
-                      <div style={{ fontSize: "24px", fontWeight: "700", color: "#1a1a2e" }}>
-                        {stat.value}
-                      </div>
-                      <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "4px" }}>
-                        {stat.trend === 'up' ? (
-                          <ArrowUp size={12} color="#10b981" />
-                        ) : (
-                          <ArrowDown size={12} color="#ef4444" />
-                        )}
-                        <span style={{ 
-                          fontSize: "12px", 
-                          fontWeight: "500", 
-                          color: stat.trend === 'up' ? '#10b981' : '#ef4444'
-                        }}>
-                          {stat.change}
-                        </span>
-                        <span style={{ fontSize: "12px", color: "#6c757d" }}>
-                          vs last month
-                        </span>
-                      </div>
+                      <div className="admin-stat-label">{stat.label}</div>
+                      <div className="admin-stat-value" style={{ fontSize: "22px" }}>{stat.value}</div>
                     </div>
                   </div>
                 </div>
@@ -262,56 +460,45 @@ const filteredOrders = (orders || []).filter((order) => {
             </div>
 
             {/* Orders Table Card */}
-            <div className="card border-0" style={{ borderRadius: "12px", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+            <div className="card admin-content-card">
               <div className="card-body">
                 {/* Search and Filters */}
                 <div style={{ marginBottom: "16px" }}>
                   <div className="row g-2">
-                    <div className="col-md-4">
+                    <div className="col-md-5">
                       <div className="position-relative">
-                        <Search 
-                          size={16} 
-                          style={{ 
-                            position: "absolute", 
-                            left: "12px", 
-                            top: "50%", 
+                        <Search
+                          size={16}
+                          style={{
+                            position: "absolute",
+                            left: "12px",
+                            top: "50%",
                             transform: "translateY(-50%)",
-                            color: "#94a3b8"
-                          }} 
+                            color: "var(--clothcore-text-soft)"
+                          }}
                         />
                         <input
                           type="text"
-                          className="form-control"
-                          placeholder="Search by Order ID / Customer / Phone..."
+                          className="form-control admin-select"
+                          placeholder="Search by Order ID or Customer..."
                           value={searchTerm}
                           onChange={(e) => {
                             setSearchTerm(e.target.value);
                             setCurrentPage(1);
                           }}
-                          style={{
-                            paddingLeft: "36px",
-                            borderRadius: "8px",
-                            border: "1px solid #e9ecef",
-                            fontSize: "13px",
-                            height: "38px"
-                          }}
+                          style={{ paddingLeft: "36px", height: "38px" }}
                         />
                       </div>
                     </div>
-                    <div className="col-md-2">
+                    <div className="col-md-3">
                       <select
-                        className="form-select"
+                        className="form-select admin-select"
                         value={selectedStatus}
                         onChange={(e) => {
                           setSelectedStatus(e.target.value);
                           setCurrentPage(1);
                         }}
-                        style={{
-                          borderRadius: "8px",
-                          border: "1px solid #e9ecef",
-                          fontSize: "12px",
-                          height: "38px"
-                        }}
+                        style={{ height: "38px" }}
                       >
                         {statuses.map(status => (
                           <option key={status} value={status}>{status}</option>
@@ -320,18 +507,13 @@ const filteredOrders = (orders || []).filter((order) => {
                     </div>
                     <div className="col-md-2">
                       <select
-                        className="form-select"
+                        className="form-select admin-select"
                         value={selectedPayment}
                         onChange={(e) => {
                           setSelectedPayment(e.target.value);
                           setCurrentPage(1);
                         }}
-                        style={{
-                          borderRadius: "8px",
-                          border: "1px solid #e9ecef",
-                          fontSize: "12px",
-                          height: "38px"
-                        }}
+                        style={{ height: "38px" }}
                       >
                         {payments.map(payment => (
                           <option key={payment} value={payment}>{payment}</option>
@@ -339,47 +521,26 @@ const filteredOrders = (orders || []).filter((order) => {
                       </select>
                     </div>
                     <div className="col-md-2">
-                      <select
-                        className="form-select"
-                        value={selectedPeriod}
-                        onChange={(e) => setSelectedPeriod(e.target.value)}
+                      <button
+                        className="btn w-100 admin-select"
                         style={{
-                          borderRadius: "8px",
-                          border: "1px solid #e9ecef",
-                          fontSize: "12px",
-                          height: "38px"
-                        }}
-                      >
-                        {periods.map(period => (
-                          <option key={period} value={period}>{period}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="col-md-2">
-                      <button 
-                        className="btn w-100"
-                        style={{
-                          borderRadius: "8px",
-                          border: "1px solid #e9ecef",
-                          fontSize: "12px",
-                          height: "38px",
-                          background: "white",
-                          color: "#1a1a2e",
+                          background: "rgba(255,255,255,0.055)",
+                          color: "var(--clothcore-text)",
                           display: "flex",
                           alignItems: "center",
                           justifyContent: "center",
-                          gap: "6px"
+                          gap: "6px",
+                          height: "38px"
                         }}
                         onClick={() => {
                           setSearchTerm('');
                           setSelectedStatus('All Status');
                           setSelectedPayment('All Payment');
-                          setSelectedPeriod('This Month');
                           setCurrentPage(1);
                         }}
                       >
                         <Filter size={14} />
-                        Filter
+                        Reset
                       </button>
                     </div>
                   </div>
@@ -387,74 +548,68 @@ const filteredOrders = (orders || []).filter((order) => {
 
                 {/* Table */}
                 <div className="table-responsive">
-                  <table className="table table-hover mb-0" style={{ fontSize: "13px" }}>
-                    <thead style={{ background: "#f8f9fa" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+                    <thead>
                       <tr>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>#</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>ORDER ID</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>CUSTOMER</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>SHOP</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>TOTAL QTY</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>ORDER DATE</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>PAYMENT</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d" }}>STATUS</th>
-                        <th style={{ padding: "8px 10px", fontWeight: "600", color: "#6c757d", textAlign: "center" }}>ACTIONS</th>
+                        <th>#</th>
+                        <th>ORDER ID</th>
+                        <th>CUSTOMER</th>
+                        <th>QUANTITY</th>
+                        <th>ORDER DATE</th>
+                        <th>PAYMENT</th>
+                        <th>STATUS</th>
+                        <th style={{ textAlign: "center" }}>ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {currentOrders.map((order, index) => {
-                        const statusStyle = getStatusStyle(order.status);
-                        const paymentStyle = getPaymentStyle(order.payment);
-                        const isOpen = openDropdown === order.id;
+                      {currentOrders.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="text-center py-5" style={{ color: "var(--clothcore-text-soft)" }}>
+                            <Clipboard size={40} style={{ opacity: 0.3, marginBottom: "10px" }} />
+                            <div style={{ fontWeight: 600 }}>No orders found</div>
+                            <div style={{ fontSize: "13px", marginTop: "4px" }}>
+                              {searchTerm || selectedStatus !== 'All Status' || selectedPayment !== 'All Payment'
+                                ? "Try adjusting your search or filters."
+                                : "Orders placed by shop owners will appear here."}
+                            </div>
+                          </td>
+                        </tr>
+                      ) : currentOrders.map((order, index) => {
+                        const isOpen = openDropdown === order._id;
                         return (
-                          <tr key={order.id}>
-                            <td style={{ padding: "8px 10px", color: "#94a3b8" }}>
+                          <tr key={order._id}>
+                            <td style={{ color: "var(--clothcore-text-soft)" }}>
                               {indexOfFirstOrder + index + 1}
                             </td>
-                            <td style={{ padding: "8px 10px", fontWeight: "600", color: "#6366f1" }}>
+                            <td style={{ fontWeight: "600", color: "var(--clothcore-blush)" }}>
                               {order.orderId}
                             </td>
-                            <td style={{ padding: "8px 10px" }}>{order.customer}</td>
-                            <td style={{ padding: "8px 10px", color: "#64748b" }}>{order.shop}</td>
-                            <td style={{ padding: "8px 10px", color: "#64748b" }}>{order.totalQty}</td>
-                            <td style={{ padding: "8px 10px", color: "#64748b" }}>{order.orderDate}</td>
-                            <td style={{ padding: "8px 10px" }}>
-                              <span style={{
-                                padding: "2px 10px",
-                                borderRadius: "12px",
-                                fontSize: "11px",
-                                fontWeight: "500",
-                                background: paymentStyle.bg,
-                                color: paymentStyle.color
-                              }}>
-                                {order.payment}
+                            <td>{order.customerName || <span style={{ fontStyle: "italic", color: "var(--clothcore-text-soft)" }}>Legacy order data incomplete</span>}</td>
+                            <td style={{ color: "var(--clothcore-text-soft)" }}>{order.quantity}</td>
+                            <td style={{ color: "var(--clothcore-text-soft)" }}>{formatOrderDate(order.createdAt)}</td>
+                            <td>
+                              <span className={`admin-badge ${getPaymentBadgeClass(order.paymentStatus)}`}>
+                                {order.paymentStatus}
                               </span>
                             </td>
-                            <td style={{ padding: "8px 10px" }}>
-                              <span style={{
-                                padding: "2px 10px",
-                                borderRadius: "12px",
-                                fontSize: "11px",
-                                fontWeight: "500",
-                                background: statusStyle.bg,
-                                color: statusStyle.color
-                              }}>
+                            <td>
+                              <span className={`admin-badge ${getStatusBadgeClass(order.status)}`}>
                                 {order.status}
                               </span>
                             </td>
-                            <td style={{ padding: "8px 10px", textAlign: "center" }}>
-                              <div style={{ position: 'relative', display: 'inline-block' }}>
-                                <button 
-                                  className="btn btn-sm" 
+                            <td style={{ textAlign: "center" }}>
+                              <div style={{ position: 'relative', display: 'inline-block' }} ref={isOpen ? dropdownRef : null}>
+                                <button
+                                  className="btn btn-sm"
                                   style={{
                                     background: "transparent",
                                     border: "none",
                                     padding: "4px 8px",
                                     borderRadius: "8px",
-                                    color: "#64748b",
+                                    color: "var(--clothcore-text-soft)",
                                     cursor: "pointer"
                                   }}
-                                  onClick={() => toggleDropdown(order.id)}
+                                  onClick={() => toggleDropdown(order._id)}
                                 >
                                   <ThreeDotsVertical size={18} />
                                 </button>
@@ -464,134 +619,70 @@ const filteredOrders = (orders || []).filter((order) => {
                                     right: 0,
                                     top: '100%',
                                     marginTop: '4px',
-                                    background: 'white',
+                                    background: 'rgba(255,255,255,0.055)',
                                     borderRadius: '12px',
                                     padding: '6px',
                                     minWidth: '200px',
-                                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                                    boxShadow: 'var(--clothcore-shadow-hover)',
                                     zIndex: 1000,
-                                    border: '1px solid #e9ecef'
+                                    border: '1px solid var(--clothcore-border)'
                                   }}>
-                                    <button 
-                                      className="dropdown-item d-flex align-items-center gap-2" 
-                                      style={{ 
-                                        borderRadius: "8px", 
-                                        fontSize: "13px", 
-                                        padding: "8px 12px", 
-                                        width: '100%',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: "all 0.2s ease",
-                                        color: '#1a1a2e'
-                                      }}
-                                      onClick={() => handleActionClick('View Details', order.orderId)}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('View Details', order)}
                                     >
-                                      <Eye size={14} color="#6366f1" /> View Details
+                                      <Eye size={14} color="var(--clothcore-purple)" /> View Details
                                     </button>
-                                    <button 
-                                      className="dropdown-item d-flex align-items-center gap-2" 
-                                      style={{ 
-                                        borderRadius: "8px", 
-                                        fontSize: "13px", 
-                                        padding: "8px 12px", 
-                                        width: '100%',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: "all 0.2s ease",
-                                        color: '#1a1a2e'
-                                      }}
-                                      onClick={() => handleActionClick('Approve Order', order.orderId)}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('Approve Order', order)}
                                     >
-                                      <Check size={14} color="#10b981" /> Approve Order
+                                      <Check size={14} color="var(--clothcore-success)" /> Approve Order
                                     </button>
-                                    <button 
-                                      className="dropdown-item d-flex align-items-center gap-2" 
-                                      style={{ 
-                                        borderRadius: "8px", 
-                                        fontSize: "13px", 
-                                        padding: "8px 12px", 
-                                        width: '100%',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: "all 0.2s ease",
-                                        color: '#1a1a2e'
-                                      }}
-                                      onClick={() => handleActionClick('Send to Production', order.orderId)}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('Send to Production', order)}
                                     >
-                                      <Send size={14} color="#f59e0b" /> Send to Production
+                                      <Send size={14} color="var(--clothcore-mauve)" /> Send to Production
                                     </button>
-                                    <button 
-                                      className="dropdown-item d-flex align-items-center gap-2" 
-                                      style={{ 
-                                        borderRadius: "8px", 
-                                        fontSize: "13px", 
-                                        padding: "8px 12px", 
-                                        width: '100%',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: "all 0.2s ease",
-                                        color: '#1a1a2e'
-                                      }}
-                                      onClick={() => handleActionClick('Payment Details', order.orderId)}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('Payment Details', order)}
                                     >
-                                      <CreditCard size={14} color="#8b5cf6" /> Payment Details
+                                      <CreditCard size={14} color="var(--clothcore-deep)" /> Payment Details
                                     </button>
-                                    <button 
-                                      className="dropdown-item d-flex align-items-center gap-2" 
-                                      style={{ 
-                                        borderRadius: "8px", 
-                                        fontSize: "13px", 
-                                        padding: "8px 12px", 
-                                        width: '100%',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: "all 0.2s ease",
-                                        color: '#1a1a2e'
-                                      }}
-                                      onClick={() => handleActionClick('Print Invoice', order.orderId)}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = "#f3f4f6"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('Manage Sample', order)}
                                     >
-                                      <Printer size={14} color="#6366f1" /> Print Invoice
+                                      <Image size={14} color="var(--clothcore-mauve)" /> Manage Sample
+                                    </button>
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('Manage Delivery', order)}
+                                    >
+                                      <TruckFront size={14} color="var(--clothcore-deep)" /> Manage Delivery
+                                    </button>
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-text)' }}
+                                      onClick={() => handleActionClick('Print Invoice', order)}
+                                    >
+                                      <Printer size={14} color="var(--clothcore-purple)" /> Print Invoice
                                     </button>
                                     <hr style={{ margin: "4px 0" }} />
-                                    <button 
-                                      className="dropdown-item d-flex align-items-center gap-2 text-danger" 
-                                      style={{ 
-                                        borderRadius: "8px", 
-                                        fontSize: "13px", 
-                                        padding: "8px 12px", 
-                                        width: '100%',
-                                        border: 'none',
-                                        background: 'transparent',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        transition: "all 0.2s ease",
-                                        color: '#dc2626'
-                                      }}
-                                      onClick={() => handleActionClick('Cancel Order', order.orderId)}
-                                      onMouseEnter={(e) => { e.currentTarget.style.background = "#fef2f2"; }}
-                                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                    <button
+                                      className="dropdown-item d-flex align-items-center gap-2 text-danger"
+                                      style={{ borderRadius: "8px", fontSize: "13px", padding: "8px 12px", width: '100%', border: 'none', background: 'transparent', textAlign: 'left', cursor: 'pointer', color: 'var(--clothcore-danger)' }}
+                                      onClick={() => handleActionClick('Cancel Order', order)}
                                     >
-                                      <Trash size={14} color="#ef4444" /> Cancel Order
+                                      <Trash size={14} color="var(--clothcore-danger)" /> Cancel Order
                                     </button>
                                   </div>
                                 )}
@@ -604,10 +695,10 @@ const filteredOrders = (orders || []).filter((order) => {
                   </table>
                 </div>
 
-                {/* Pagination */}
+                {/* Pagination — reflects the real number of pages, no fake page numbers */}
                 {filteredOrders.length > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid #f0f0f0" }}>
-                    <div style={{ fontSize: "13px", color: "#6c757d" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--clothcore-border)" }}>
+                    <div style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>
                       Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, filteredOrders.length)} of {filteredOrders.length} orders
                     </div>
                     <div style={{ display: "flex", gap: "4px" }}>
@@ -616,26 +707,26 @@ const filteredOrders = (orders || []).filter((order) => {
                         disabled={currentPage === 1}
                         style={{
                           padding: "4px 10px",
-                          border: "1px solid #e9ecef",
+                          border: "1px solid var(--clothcore-border)",
                           borderRadius: "6px",
-                          background: "white",
+                          background: "rgba(255,255,255,0.055)",
                           cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                          color: currentPage === 1 ? "#ccc" : "#1a1a2e",
+                          color: currentPage === 1 ? "#ccc" : "var(--clothcore-text)",
                           fontSize: "13px"
                         }}
                       >
                         <ChevronLeft size={14} />
                       </button>
-                      {[1, 2, 3, 4, 5].map((page) => (
+                      {pageNumbers.map((page) => (
                         <button
                           key={page}
                           onClick={() => setCurrentPage(page)}
                           style={{
                             padding: "4px 12px",
-                            border: currentPage === page ? "none" : "1px solid #e9ecef",
+                            border: currentPage === page ? "none" : "1px solid var(--clothcore-border)",
                             borderRadius: "6px",
-                            background: currentPage === page ? "#6366f1" : "white",
-                            color: currentPage === page ? "white" : "#1a1a2e",
+                            background: currentPage === page ? "var(--clothcore-purple)" : "rgba(255,255,255,0.055)",
+                            color: currentPage === page ? "white" : "var(--clothcore-text)",
                             fontWeight: currentPage === page ? "600" : "400",
                             cursor: "pointer",
                             fontSize: "13px"
@@ -644,32 +735,16 @@ const filteredOrders = (orders || []).filter((order) => {
                           {page}
                         </button>
                       ))}
-                      <span style={{ padding: "4px 4px", color: "#94a3b8", fontSize: "13px" }}>...</span>
-                      <button
-                        onClick={() => setCurrentPage(25)}
-                        style={{
-                          padding: "4px 12px",
-                          border: currentPage === 25 ? "none" : "1px solid #e9ecef",
-                          borderRadius: "6px",
-                          background: currentPage === 25 ? "#6366f1" : "white",
-                          color: currentPage === 25 ? "white" : "#1a1a2e",
-                          fontWeight: currentPage === 25 ? "600" : "400",
-                          cursor: "pointer",
-                          fontSize: "13px"
-                        }}
-                      >
-                        25
-                      </button>
                       <button
                         onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
                         disabled={currentPage === totalPages}
                         style={{
                           padding: "4px 10px",
-                          border: "1px solid #e9ecef",
+                          border: "1px solid var(--clothcore-border)",
                           borderRadius: "6px",
-                          background: "white",
+                          background: "rgba(255,255,255,0.055)",
                           cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                          color: currentPage === totalPages ? "#ccc" : "#1a1a2e",
+                          color: currentPage === totalPages ? "#ccc" : "var(--clothcore-text)",
                           fontSize: "13px"
                         }}
                       >
@@ -681,10 +756,7 @@ const filteredOrders = (orders || []).filter((order) => {
               </div>
             </div>
 
-          </div>
-        </div>
-      </div>
-    </div>
+    </AdminLayout>
   );
 }
 

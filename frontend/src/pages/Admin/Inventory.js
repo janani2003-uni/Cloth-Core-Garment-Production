@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Adminsidebar from "../../components/Adminsidebar";
-import Admintopbar from "../../components/Admintopbar";
+import AdminLayout from "../../components/AdminLayout";
 import axios from "axios";
 
 import {
@@ -34,8 +33,6 @@ function InventoryManagement() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [activeMenu, setActiveMenu] = useState("Inventory");
   const [currentPage, setCurrentPage] = useState(1);
 
   // MongoDB states
@@ -342,55 +339,33 @@ function InventoryManagement() {
     }
   };
 
-  const getStatusStyle = (status) => {
+  const getStatusBadgeClass = (status) => {
     switch(status) {
       case "In Stock":
-        return { bg: "#e8f5e9", color: "#2e7d32" };
+        return "admin-badge-success";
       case "Low Stock":
-        return { bg: "#fff3e0", color: "#e65100" };
+        return "admin-badge-warning";
       case "Out of Stock":
-        return { bg: "#fce4ec", color: "#c62828" };
+        return "admin-badge-danger";
       default:
-        return { bg: "#f5f5f5", color: "#616161" };
+        return "admin-badge-info";
     }
   };
 
   return (
-    <div style={{
-      display: "flex",
-      minHeight: "100vh",
-      backgroundColor: "#f0f2f7",
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    }}>
-      <Adminsidebar 
-        sidebarCollapsed={sidebarCollapsed}
-        setSidebarCollapsed={setSidebarCollapsed}
-        activeMenu={activeMenu}
-        setActiveMenu={setActiveMenu}
-      />
-
-      <div style={{
-        flex: 1,
-        transition: "margin-left 0.3s ease",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: "100vh"
-      }}>
-        <Admintopbar />
-
-        <div style={{ padding: "20px 24px", flex: 1 }}>
+    <AdminLayout shellStyle={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
           {/* Loading State */}
           {loading ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
               <div className="spinner-border text-primary" style={{ width: "3rem", height: "3rem" }} role="status">
                 <span className="visually-hidden">Loading...</span>
               </div>
-              <h5 style={{ marginTop: "16px", color: "#1a2332" }}>Loading inventory...</h5>
+              <h5 style={{ marginTop: "16px", color: "var(--clothcore-text)" }}>Loading inventory...</h5>
             </div>
           ) : error ? (
             <div style={{ 
-              backgroundColor: "#fce4ec", 
-              color: "#c62828", 
+              backgroundColor: "var(--clothcore-danger-bg)", 
+              color: "var(--clothcore-danger)", 
               padding: "16px 20px", 
               borderRadius: "8px",
               marginBottom: "20px"
@@ -401,7 +376,7 @@ function InventoryManagement() {
                 style={{
                   marginLeft: "16px",
                   padding: "6px 16px",
-                  backgroundColor: "#c62828",
+                  backgroundColor: "#d1495b",
                   color: "white",
                   border: "none",
                   borderRadius: "4px",
@@ -421,25 +396,25 @@ function InventoryManagement() {
                 marginBottom: "20px"
               }}>
                 {[
-                  { label: "Total Items", value: totalItems.toLocaleString(), icon: BoxSeam, color: "#2d4a8a", bg: "#e8edf5" },
-                  { label: "In Stock", value: inStockItems.toLocaleString(), icon: CheckCircle, color: "#2e7d32", bg: "#e8f5e9" },
-                  { label: "Low Stock", value: lowStockItems.toLocaleString(), icon: ExclamationTriangle, color: "#e65100", bg: "#fff3e0" },
-                  { label: "Out of Stock", value: outOfStockItems.toLocaleString(), icon: XCircle, color: "#c62828", bg: "#fce4ec" },
-                  { label: "Total Value", value: `Rs. ${totalValue.toLocaleString()}`, icon: Wallet2, color: "#2d4a8a", bg: "#e8edf5" },
+                  { label: "Total Items", value: totalItems.toLocaleString(), icon: BoxSeam, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
+                  { label: "In Stock", value: inStockItems.toLocaleString(), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
+                  { label: "Low Stock", value: lowStockItems.toLocaleString(), icon: ExclamationTriangle, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
+                  { label: "Out of Stock", value: outOfStockItems.toLocaleString(), icon: XCircle, color: "var(--clothcore-danger)", bg: "var(--clothcore-danger-bg)" },
+                  { label: "Total Value", value: `Rs. ${totalValue.toLocaleString()}`, icon: Wallet2, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
                 ].map((stat, index) => (
                   <div key={index} style={{
-                    backgroundColor: "white",
+                    backgroundColor: "var(--clothcore-card)",
                     borderRadius: "8px",
                     padding: "14px 16px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                    border: "1px solid #e8ecf1"
+                    boxShadow: "var(--clothcore-shadow)",
+                    border: "1px solid var(--clothcore-border)"
                   }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                       <div>
-                        <div style={{ color: "#6b7a8f", fontSize: "12px", fontWeight: "500", marginBottom: "4px" }}>
+                        <div style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", fontWeight: "500", marginBottom: "4px" }}>
                           {stat.label}
                         </div>
-                        <div style={{ fontSize: "20px", fontWeight: "700", color: "#1a2332" }}>
+                        <div style={{ fontSize: "20px", fontWeight: "700", color: "var(--clothcore-text)" }}>
                           {stat.value}
                         </div>
                       </div>
@@ -463,11 +438,11 @@ function InventoryManagement() {
                 <div style={{ 
                   width: "220px", 
                   flexShrink: 0,
-                  backgroundColor: "white",
+                  backgroundColor: "var(--clothcore-card)",
                   borderRadius: "8px",
                   padding: "16px",
-                  boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                  border: "1px solid #e8ecf1",
+                  boxShadow: "var(--clothcore-shadow)",
+                  border: "1px solid var(--clothcore-border)",
                   height: "fit-content"
                 }}>
                   {/* Categories */}
@@ -478,10 +453,10 @@ function InventoryManagement() {
                       gap: "8px",
                       fontSize: "14px",
                       fontWeight: "600",
-                      color: "#1a2332",
+                      color: "var(--clothcore-text)",
                       marginBottom: "8px"
                     }}>
-                      <Folder2Open size={16} color="#2d4a8a" /> Categories
+                      <Folder2Open size={16} color="var(--clothcore-purple)" /> Categories
                     </div>
                     {Object.entries(categories).map(([category, count]) => (
                       <div
@@ -494,8 +469,8 @@ function InventoryManagement() {
                           padding: "6px 10px",
                           borderRadius: "4px",
                           cursor: "pointer",
-                          backgroundColor: selectedCategory === category ? "#e8edf5" : "transparent",
-                          color: selectedCategory === category ? "#2d4a8a" : "#4a5568",
+                          backgroundColor: selectedCategory === category ? "rgba(82,43,91,0.1)" : "transparent",
+                          color: selectedCategory === category ? "var(--clothcore-purple)" : "var(--clothcore-text-soft)",
                           fontWeight: selectedCategory === category ? "600" : "400",
                           fontSize: "13px",
                           transition: "all 0.2s"
@@ -503,8 +478,8 @@ function InventoryManagement() {
                       >
                         <span>{category}</span>
                         <span style={{
-                          backgroundColor: selectedCategory === category ? "#2d4a8a" : "#e8ecf1",
-                          color: selectedCategory === category ? "white" : "#4a5568",
+                          backgroundColor: selectedCategory === category ? "var(--clothcore-purple)" : "var(--clothcore-border)",
+                          color: selectedCategory === category ? "white" : "var(--clothcore-text-soft)",
                           padding: "0 8px",
                           borderRadius: "12px",
                           fontSize: "11px",
@@ -524,10 +499,10 @@ function InventoryManagement() {
                       gap: "8px",
                       fontSize: "14px",
                       fontWeight: "600",
-                      color: "#1a2332",
+                      color: "var(--clothcore-text)",
                       marginBottom: "8px"
                     }}>
-                      <Palette size={16} color="#2d4a8a" /> Colors
+                      <Palette size={16} color="var(--clothcore-purple)" /> Colors
                     </div>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                       {colorOptions.map(color => (
@@ -536,9 +511,9 @@ function InventoryManagement() {
                           onClick={() => setSelectedColor(color)}
                           style={{
                             padding: "4px 10px",
-                            backgroundColor: selectedColor === color ? "#2d4a8a" : "white",
-                            color: selectedColor === color ? "white" : "#4a5568",
-                            border: selectedColor === color ? "none" : "1px solid #dce0e6",
+                            backgroundColor: selectedColor === color ? "var(--clothcore-purple)" : "rgba(255,255,255,0.055)",
+                            color: selectedColor === color ? "white" : "var(--clothcore-text-soft)",
+                            border: selectedColor === color ? "none" : "1px solid var(--clothcore-border-strong)",
                             borderRadius: "4px",
                             fontSize: "12px",
                             cursor: "pointer",
@@ -560,12 +535,12 @@ function InventoryManagement() {
                 <div style={{ flex: 1 }}>
                   {/* Search and Filters */}
                   <div style={{
-                    backgroundColor: "white",
+                    backgroundColor: "var(--clothcore-card)",
                     borderRadius: "8px",
                     padding: "14px 16px",
                     marginBottom: "16px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                    border: "1px solid #e8ecf1"
+                    boxShadow: "var(--clothcore-shadow)",
+                    border: "1px solid var(--clothcore-border)"
                   }}>
                     <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                       <div style={{ flex: 1, minWidth: "200px", position: "relative" }}>
@@ -574,7 +549,7 @@ function InventoryManagement() {
                           left: "10px", 
                           top: "50%", 
                           transform: "translateY(-50%)",
-                          color: "#6b7a8f"
+                          color: "var(--clothcore-text-soft)"
                         }} />
                         <input
                           type="text"
@@ -584,7 +559,7 @@ function InventoryManagement() {
                           style={{
                             width: "100%",
                             padding: "8px 12px 8px 34px",
-                            border: "1px solid #dce0e6",
+                            border: "1px solid var(--clothcore-border)",
                             borderRadius: "4px",
                             fontSize: "14px",
                             outline: "none"
@@ -596,10 +571,10 @@ function InventoryManagement() {
                         onChange={(e) => setSelectedCategory(e.target.value)}
                         style={{
                           padding: "8px 12px",
-                          border: "1px solid #dce0e6",
+                          border: "1px solid var(--clothcore-border)",
                           borderRadius: "4px",
                           fontSize: "14px",
-                          backgroundColor: "white",
+                          backgroundColor: "var(--clothcore-card)",
                           minWidth: "120px",
                           outline: "none"
                         }}
@@ -617,10 +592,10 @@ function InventoryManagement() {
                         onChange={(e) => setSelectedColor(e.target.value)}
                         style={{
                           padding: "8px 12px",
-                          border: "1px solid #dce0e6",
+                          border: "1px solid var(--clothcore-border)",
                           borderRadius: "4px",
                           fontSize: "14px",
-                          backgroundColor: "white",
+                          backgroundColor: "var(--clothcore-card)",
                           minWidth: "110px",
                           outline: "none"
                         }}
@@ -635,10 +610,10 @@ function InventoryManagement() {
                         onChange={(e) => setSelectedStatus(e.target.value)}
                         style={{
                           padding: "8px 12px",
-                          border: "1px solid #dce0e6",
+                          border: "1px solid var(--clothcore-border)",
                           borderRadius: "4px",
                           fontSize: "14px",
-                          backgroundColor: "white",
+                          backgroundColor: "var(--clothcore-card)",
                           minWidth: "110px",
                           outline: "none"
                         }}
@@ -657,10 +632,10 @@ function InventoryManagement() {
                         }}
                         style={{
                           padding: "8px 14px",
-                          backgroundColor: "white",
-                          border: "1px solid #dce0e6",
+                          backgroundColor: "var(--clothcore-card)",
+                          border: "1px solid var(--clothcore-border)",
                           borderRadius: "4px",
-                          color: "#4a5568",
+                          color: "var(--clothcore-text-soft)",
                           cursor: "pointer",
                           display: "flex",
                           alignItems: "center",
@@ -672,19 +647,8 @@ function InventoryManagement() {
                       </button>
                       <button
                         onClick={() => setShowAddModal(true)}
-                        style={{
-                          padding: "8px 18px",
-                          backgroundColor: "#2d4a8a",
-                          border: "none",
-                          borderRadius: "4px",
-                          color: "white",
-                          fontSize: "14px",
-                          fontWeight: "500",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "6px"
-                        }}
+                        className="admin-btn-primary"
+                        style={{ padding: "8px 18px", fontSize: "14px" }}
                       >
                         <PlusCircle size={14} /> Add Item
                       </button>
@@ -693,41 +657,38 @@ function InventoryManagement() {
 
                   {/* Table */}
                   <div style={{
-                    backgroundColor: "white",
+                    backgroundColor: "var(--clothcore-card)",
                     borderRadius: "8px",
-                    boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
-                    border: "1px solid #e8ecf1",
+                    boxShadow: "var(--clothcore-shadow)",
+                    border: "1px solid var(--clothcore-border)",
                     overflow: "hidden"
                   }}>
                     <div style={{ overflowX: "auto" }}>
-                      <table style={{
+                      <table className="admin-table" style={{
                         width: "100%",
                         borderCollapse: "collapse",
                         fontSize: "13px"
                       }}>
                         <thead>
-                          <tr style={{
-                            backgroundColor: "#f8f9fb",
-                            borderBottom: "1px solid #e8ecf1"
-                          }}>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>#</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Item</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Item Name</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>SKU</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Category</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Color</th>
-                            <th style={{ padding: "10px 14px", textAlign: "right", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Stock Qty</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Unit</th>
-                            <th style={{ padding: "10px 14px", textAlign: "right", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Unit Cost</th>
-                            <th style={{ padding: "10px 14px", textAlign: "right", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Total Value</th>
-                            <th style={{ padding: "10px 14px", textAlign: "left", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Status</th>
-                            <th style={{ padding: "10px 14px", textAlign: "center", color: "#4a5568", fontWeight: "600", fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.3px" }}>Actions</th>
+                          <tr>
+                            <th>#</th>
+                            <th>Item</th>
+                            <th>Item Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Color</th>
+                            <th style={{ textAlign: "right" }}>Stock Qty</th>
+                            <th>Unit</th>
+                            <th style={{ textAlign: "right" }}>Unit Cost</th>
+                            <th style={{ textAlign: "right" }}>Total Value</th>
+                            <th>Status</th>
+                            <th style={{ textAlign: "center" }}>Actions</th>
                           </tr>
                         </thead>
                         <tbody>
                           {currentItems.length === 0 ? (
                             <tr>
-                              <td colSpan="12" style={{ textAlign: "center", padding: "40px 20px", color: "#6b7a8f" }}>
+                              <td colSpan="12" style={{ textAlign: "center", padding: "40px 20px", color: "var(--clothcore-text-soft)" }}>
                                 <Box size={48} style={{ opacity: 0.3, marginBottom: "12px" }} />
                                 <div style={{ fontSize: "16px", fontWeight: "500" }}>No inventory items found</div>
                                 <div style={{ fontSize: "13px", marginTop: "4px" }}>Try adjusting your search or filters</div>
@@ -735,17 +696,16 @@ function InventoryManagement() {
                             </tr>
                           ) : (
                             currentItems.map((item, index) => {
-                              const statusStyle = getStatusStyle(item.status);
                               const totalValue = (item.stockQuantity || 0) * (item.unitCost || 0);
                               return (
                                 <tr key={item._id} style={{
-                                  borderBottom: "1px solid #f0f2f7",
+                                  borderBottom: "1px solid var(--clothcore-border)",
                                   transition: "all 0.2s"
                                 }}
-                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f8f9fb"}
+                                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "var(--clothcore-bg)"}
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                                 >
-                                  <td style={{ padding: "10px 14px", color: "#4a5568", fontSize: "13px" }}>
+                                  <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>
                                     {indexOfFirstItem + index + 1}
                                   </td>
                                   <td style={{ padding: "10px 14px" }}>
@@ -753,48 +713,41 @@ function InventoryManagement() {
                                       width: "40px",
                                       height: "40px",
                                       borderRadius: "4px",
-                                      backgroundColor: "#e8ecf1",
+                                      backgroundColor: "var(--clothcore-border)",
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
                                       fontSize: "16px",
                                       fontWeight: "600",
-                                      color: "#4a5568"
+                                      color: "var(--clothcore-text-soft)"
                                     }}>
                                       {item.itemName ? item.itemName.charAt(0).toUpperCase() : "?"}
                                     </div>
                                   </td>
                                   <td style={{ padding: "10px 14px" }}>
-                                    <div style={{ fontWeight: "600", color: "#1a2332", fontSize: "14px" }}>{item.itemName}</div>
-                                    <div style={{ fontSize: "11px", color: "#6b7a8f" }}>{item.description}</div>
+                                    <div style={{ fontWeight: "600", color: "var(--clothcore-text)", fontSize: "14px" }}>{item.itemName}</div>
+                                    <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)" }}>{item.description}</div>
                                   </td>
-                                  <td style={{ padding: "10px 14px", color: "#6b7a8f", fontSize: "12px" }}>{item.sku}</td>
-                                  <td style={{ padding: "10px 14px", color: "#4a5568", fontSize: "13px" }}>{item.category}</td>
+                                  <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "12px" }}>{item.sku}</td>
+                                  <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>{item.category}</td>
                                   <td style={{ padding: "10px 14px" }}>
                                     <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                                       <CircleFill size={11} color={colorHexMap[item.color] || "#000"} />
                                       <span style={{ fontSize: "13px" }}>{item.color}</span>
                                     </span>
                                   </td>
-                                  <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "600", color: "#1a2332", fontSize: "14px" }}>
+                                  <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "600", color: "var(--clothcore-text)", fontSize: "14px" }}>
                                     {item.stockQuantity}
                                   </td>
-                                  <td style={{ padding: "10px 14px", color: "#4a5568", fontSize: "13px" }}>{item.unit}</td>
-                                  <td style={{ padding: "10px 14px", textAlign: "right", color: "#4a5568", fontSize: "13px" }}>
+                                  <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>{item.unit}</td>
+                                  <td style={{ padding: "10px 14px", textAlign: "right", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>
                                     Rs. {item.unitCost?.toFixed(2) || "0.00"}
                                   </td>
-                                  <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "600", color: "#1a2332", fontSize: "14px" }}>
+                                  <td style={{ padding: "10px 14px", textAlign: "right", fontWeight: "600", color: "var(--clothcore-text)", fontSize: "14px" }}>
                                     Rs. {totalValue.toLocaleString()}
                                   </td>
                                   <td style={{ padding: "10px 14px" }}>
-                                    <span style={{
-                                      padding: "3px 10px",
-                                      borderRadius: "4px",
-                                      fontSize: "12px",
-                                      fontWeight: "500",
-                                      backgroundColor: statusStyle.bg,
-                                      color: statusStyle.color
-                                    }}>
+                                    <span className={`admin-badge ${getStatusBadgeClass(item.status)}`}>
                                       {item.status}
                                     </span>
                                   </td>
@@ -802,7 +755,7 @@ function InventoryManagement() {
                                     <Eye
                                       size={16}
                                       style={{ 
-                                        color: "#2d4a8a", 
+                                        color: "var(--clothcore-blush)", 
                                         cursor: "pointer", 
                                         marginRight: "8px",
                                         transition: "all 0.2s"
@@ -812,7 +765,7 @@ function InventoryManagement() {
                                     <PencilSquare
                                       size={16}
                                       style={{ 
-                                        color: "#2e7d32", 
+                                        color: "var(--clothcore-success)", 
                                         cursor: "pointer", 
                                         marginRight: "8px",
                                         transition: "all 0.2s"
@@ -822,7 +775,7 @@ function InventoryManagement() {
                                     <Trash
                                       size={16}
                                       style={{ 
-                                        color: deletingItemId === item._id ? "#6b7a8f" : "#c62828", 
+                                        color: deletingItemId === item._id ? "var(--clothcore-text-soft)" : "var(--clothcore-danger)", 
                                         cursor: deletingItemId === item._id ? "not-allowed" : "pointer",
                                         transition: "all 0.2s",
                                         opacity: deletingItemId === item._id ? 0.5 : 1
@@ -830,7 +783,7 @@ function InventoryManagement() {
                                       onClick={() => handleDelete(item)}
                                     />
                                     {deletingItemId === item._id && (
-                                      <span style={{ marginLeft: "4px", fontSize: "11px", color: "#6b7a8f" }}>
+                                      <span style={{ marginLeft: "4px", fontSize: "11px", color: "var(--clothcore-text-soft)" }}>
                                         <span className="spinner-border spinner-border-sm" style={{ width: "12px", height: "12px" }} />
                                       </span>
                                     )}
@@ -849,10 +802,10 @@ function InventoryManagement() {
                       justifyContent: "space-between",
                       alignItems: "center",
                       padding: "12px 16px",
-                      borderTop: "1px solid #e8ecf1",
-                      backgroundColor: "#f8f9fb"
+                      borderTop: "1px solid var(--clothcore-border)",
+                      backgroundColor: "var(--clothcore-bg)"
                     }}>
-                      <span style={{ color: "#6b7a8f", fontSize: "13px" }}>
+                      <span style={{ color: "var(--clothcore-text-soft)", fontSize: "13px" }}>
                         Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} items
                       </span>
                       <div style={{ display: "flex", gap: "4px" }}>
@@ -861,10 +814,10 @@ function InventoryManagement() {
                           disabled={currentPage === 1}
                           style={{
                             padding: "6px 14px",
-                            border: "1px solid #dce0e6",
+                            border: "1px solid var(--clothcore-border)",
                             borderRadius: "4px",
-                            backgroundColor: "white",
-                            color: currentPage === 1 ? "#adb5bd" : "#6b7a8f",
+                            backgroundColor: "var(--clothcore-card)",
+                            color: currentPage === 1 ? "rgba(107, 91, 115, 0.5)" : "var(--clothcore-text-soft)",
                             fontSize: "13px",
                             cursor: currentPage === 1 ? "not-allowed" : "pointer"
                           }}
@@ -875,7 +828,7 @@ function InventoryManagement() {
                           padding: "6px 14px",
                           border: "none",
                           borderRadius: "4px",
-                          backgroundColor: "#2d4a8a",
+                          backgroundColor: "var(--clothcore-purple)",
                           color: "white",
                           fontSize: "13px",
                           cursor: "pointer",
@@ -888,10 +841,10 @@ function InventoryManagement() {
                           disabled={currentPage === totalPages}
                           style={{
                             padding: "6px 14px",
-                            border: "1px solid #dce0e6",
+                            border: "1px solid var(--clothcore-border)",
                             borderRadius: "4px",
-                            backgroundColor: "white",
-                            color: currentPage === totalPages ? "#adb5bd" : "#6b7a8f",
+                            backgroundColor: "var(--clothcore-card)",
+                            color: currentPage === totalPages ? "rgba(107, 91, 115, 0.5)" : "var(--clothcore-text-soft)",
                             fontSize: "13px",
                             cursor: currentPage === totalPages ? "not-allowed" : "pointer"
                           }}
@@ -905,8 +858,6 @@ function InventoryManagement() {
               </div>
             </>
           )}
-        </div>
-      </div>
 
       {/* Add Item Modal */}
       {showAddModal && (
@@ -925,7 +876,7 @@ function InventoryManagement() {
           if (e.target === e.currentTarget) setShowAddModal(false);
         }}>
           <div style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--clothcore-card)",
             borderRadius: "12px",
             width: "600px",
             maxWidth: "95%",
@@ -935,12 +886,12 @@ function InventoryManagement() {
           }}>
             <div style={{
               padding: "22px 28px",
-              borderBottom: "1px solid #e8ecf1",
+              borderBottom: "1px solid var(--clothcore-border)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "600", color: "#1a2332" }}>
+              <h3 style={{ margin: 0, fontSize: "20px", fontWeight: "600", color: "var(--clothcore-text)" }}>
                 Add New Inventory Item
               </h3>
               <button
@@ -950,7 +901,7 @@ function InventoryManagement() {
                   border: "none",
                   fontSize: "26px",
                   cursor: "pointer",
-                  color: "#6b7a8f"
+                  color: "var(--clothcore-text-soft)"
                 }}
               >
                 ×
@@ -959,7 +910,7 @@ function InventoryManagement() {
             <div style={{ padding: "24px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Item Name *
                   </label>
                   <input
@@ -968,11 +919,11 @@ function InventoryManagement() {
                     placeholder="Enter item name"
                     value={formData.itemName}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px" }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     SKU *
                   </label>
                   <input
@@ -981,18 +932,18 @@ function InventoryManagement() {
                     placeholder="Enter SKU"
                     value={formData.sku}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px" }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Category *
                   </label>
                   <select
                     name="category"
                     value={formData.category}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px", backgroundColor: "white" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px", backgroundColor: "var(--clothcore-card)" }}
                   >
                     <option value="Fabrics">Fabrics</option>
                     <option value="Threads">Threads</option>
@@ -1003,14 +954,14 @@ function InventoryManagement() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Color
                   </label>
                   <select
                     name="color"
                     value={formData.color}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px", backgroundColor: "white" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px", backgroundColor: "var(--clothcore-card)" }}
                   >
                     {colorOptions.map(color => (
                       <option key={color}>{color}</option>
@@ -1018,7 +969,7 @@ function InventoryManagement() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Stock Quantity *
                   </label>
                   <input
@@ -1027,18 +978,18 @@ function InventoryManagement() {
                     placeholder="Enter quantity"
                     value={formData.stockQuantity}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px" }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Unit *
                   </label>
                   <select
                     name="unit"
                     value={formData.unit}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px", backgroundColor: "white" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px", backgroundColor: "var(--clothcore-card)" }}
                   >
                     <option value="Meter">Meter</option>
                     <option value="Piece">Piece</option>
@@ -1047,7 +998,7 @@ function InventoryManagement() {
                   </select>
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Unit Cost (Rs.) *
                   </label>
                   <input
@@ -1056,11 +1007,11 @@ function InventoryManagement() {
                     placeholder="Enter cost"
                     value={formData.unitCost}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px" }}
                   />
                 </div>
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Minimum Stock
                   </label>
                   <input
@@ -1069,11 +1020,11 @@ function InventoryManagement() {
                     placeholder="Enter minimum stock"
                     value={formData.minimumStock}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px" }}
                   />
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Description
                   </label>
                   <textarea
@@ -1082,30 +1033,30 @@ function InventoryManagement() {
                     placeholder="Enter description"
                     value={formData.description}
                     onChange={handleFormChange}
-                    style={{ width: "100%", padding: "8px 12px", border: "1px solid #dce0e6", borderRadius: "4px", fontSize: "14px", resize: "vertical" }}
+                    style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px", resize: "vertical" }}
                   />
                 </div>
               </div>
             </div>
             <div style={{
               padding: "14px 24px",
-              borderTop: "1px solid #e8ecf1",
+              borderTop: "1px solid var(--clothcore-border)",
               display: "flex",
               justifyContent: "flex-end",
               gap: "10px",
-              backgroundColor: "#f8f9fb",
+              backgroundColor: "var(--clothcore-bg)",
               borderRadius: "0 0 12px 12px"
             }}>
               <button
                 onClick={() => setShowAddModal(false)}
                 style={{
                   padding: "8px 20px",
-                  backgroundColor: "white",
-                  border: "1px solid #dce0e6",
+                  backgroundColor: "var(--clothcore-card)",
+                  border: "1px solid var(--clothcore-border)",
                   borderRadius: "4px",
                   fontSize: "14px",
                   cursor: "pointer",
-                  color: "#4a5568"
+                  color: "var(--clothcore-text-soft)"
                 }}
               >
                 Cancel
@@ -1115,7 +1066,7 @@ function InventoryManagement() {
                 disabled={savingItem}
                 style={{
                   padding: "8px 20px",
-                  backgroundColor: savingItem ? "#6b7a8f" : "#2d4a8a",
+                  backgroundColor: savingItem ? "var(--clothcore-text-soft)" : "var(--clothcore-purple)",
                   border: "none",
                   borderRadius: "4px",
                   fontSize: "14px",
@@ -1149,7 +1100,7 @@ function InventoryManagement() {
           if (e.target === e.currentTarget) setShowViewModal(false);
         }}>
           <div style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--clothcore-card)",
             borderRadius: "12px",
             width: "420px",
             maxWidth: "95%",
@@ -1157,12 +1108,12 @@ function InventoryManagement() {
           }}>
             <div style={{
               padding: "18px 24px",
-              borderBottom: "1px solid #e8ecf1",
+              borderBottom: "1px solid var(--clothcore-border)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "#1a2332" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "var(--clothcore-text)" }}>
                 Item Details
               </h3>
               <button
@@ -1172,7 +1123,7 @@ function InventoryManagement() {
                   border: "none",
                   fontSize: "24px",
                   cursor: "pointer",
-                  color: "#6b7a8f"
+                  color: "var(--clothcore-text-soft)"
                 }}
               >
                 ×
@@ -1184,85 +1135,78 @@ function InventoryManagement() {
                   width: "70px",
                   height: "70px",
                   borderRadius: "6px",
-                  backgroundColor: "#e8ecf1",
+                  backgroundColor: "var(--clothcore-border)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   margin: "0 auto 8px",
                   fontSize: "28px",
                   fontWeight: "600",
-                  color: "#4a5568"
+                  color: "var(--clothcore-text-soft)"
                 }}>
                   {selectedItem.itemName ? selectedItem.itemName.charAt(0).toUpperCase() : "?"}
                 </div>
-                <h4 style={{ margin: "4px 0", fontSize: "16px", fontWeight: "600", color: "#1a2332" }}>
+                <h4 style={{ margin: "4px 0", fontSize: "16px", fontWeight: "600", color: "var(--clothcore-text)" }}>
                   {selectedItem.itemName}
                 </h4>
-                <span style={{ fontSize: "12px", color: "#6b7a8f" }}>{selectedItem.sku}</span>
+                <span style={{ fontSize: "12px", color: "var(--clothcore-text-soft)" }}>{selectedItem.sku}</span>
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
                 <div>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Category</div>
-                  <div style={{ fontWeight: "500", color: "#1a2332", fontSize: "14px" }}>{selectedItem.category}</div>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Category</div>
+                  <div style={{ fontWeight: "500", color: "var(--clothcore-text)", fontSize: "14px" }}>{selectedItem.category}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Color</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontWeight: "500", color: "#1a2332", fontSize: "14px" }}>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Color</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "5px", fontWeight: "500", color: "var(--clothcore-text)", fontSize: "14px" }}>
                     <CircleFill size={11} color={colorHexMap[selectedItem.color] || "#000"} />
                     {selectedItem.color}
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Quantity</div>
-                  <div style={{ fontWeight: "500", color: "#1a2332", fontSize: "14px" }}>{selectedItem.stockQuantity} {selectedItem.unit}</div>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Quantity</div>
+                  <div style={{ fontWeight: "500", color: "var(--clothcore-text)", fontSize: "14px" }}>{selectedItem.stockQuantity} {selectedItem.unit}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Unit Cost</div>
-                  <div style={{ fontWeight: "500", color: "#1a2332", fontSize: "14px" }}>Rs. {selectedItem.unitCost?.toFixed(2) || "0.00"}</div>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Unit Cost</div>
+                  <div style={{ fontWeight: "500", color: "var(--clothcore-text)", fontSize: "14px" }}>Rs. {selectedItem.unitCost?.toFixed(2) || "0.00"}</div>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Total Value</div>
-                  <div style={{ fontWeight: "600", color: "#1a2332", fontSize: "16px" }}>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Total Value</div>
+                  <div style={{ fontWeight: "600", color: "var(--clothcore-text)", fontSize: "16px" }}>
                     Rs. {((selectedItem.stockQuantity || 0) * (selectedItem.unitCost || 0)).toLocaleString()}
                   </div>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Status</div>
-                  <span style={{
-                    padding: "3px 12px",
-                    borderRadius: "4px",
-                    fontSize: "12px",
-                    fontWeight: "500",
-                    backgroundColor: getStatusStyle(selectedItem.status).bg,
-                    color: getStatusStyle(selectedItem.status).color
-                  }}>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Status</div>
+                  <span className={`admin-badge ${getStatusBadgeClass(selectedItem.status)}`}>
                     {selectedItem.status}
                   </span>
                 </div>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <div style={{ fontSize: "12px", color: "#6b7a8f", marginBottom: "2px" }}>Description</div>
-                  <div style={{ color: "#4a5568", fontSize: "14px" }}>{selectedItem.description}</div>
+                  <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "2px" }}>Description</div>
+                  <div style={{ color: "var(--clothcore-text-soft)", fontSize: "14px" }}>{selectedItem.description}</div>
                 </div>
               </div>
             </div>
             <div style={{
               padding: "14px 24px",
-              borderTop: "1px solid #e8ecf1",
+              borderTop: "1px solid var(--clothcore-border)",
               display: "flex",
               justifyContent: "flex-end",
-              backgroundColor: "#f8f9fb",
+              backgroundColor: "var(--clothcore-bg)",
               borderRadius: "0 0 12px 12px"
             }}>
               <button
                 onClick={() => setShowViewModal(false)}
                 style={{
                   padding: "8px 20px",
-                  backgroundColor: "white",
-                  border: "1px solid #dce0e6",
+                  backgroundColor: "var(--clothcore-card)",
+                  border: "1px solid var(--clothcore-border)",
                   borderRadius: "4px",
                   fontSize: "14px",
                   cursor: "pointer",
-                  color: "#4a5568"
+                  color: "var(--clothcore-text-soft)"
                 }}
               >
                 Close
@@ -1289,7 +1233,7 @@ function InventoryManagement() {
           if (e.target === e.currentTarget) setShowEditModal(false);
         }}>
           <div style={{
-            backgroundColor: "white",
+            backgroundColor: "var(--clothcore-card)",
             borderRadius: "12px",
             width: "540px",
             maxWidth: "95%",
@@ -1299,12 +1243,12 @@ function InventoryManagement() {
           }}>
             <div style={{
               padding: "18px 24px",
-              borderBottom: "1px solid #e8ecf1",
+              borderBottom: "1px solid var(--clothcore-border)",
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "#1a2332" }}>
+              <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "600", color: "var(--clothcore-text)" }}>
                 Edit Inventory Item
               </h3>
               <button
@@ -1314,7 +1258,7 @@ function InventoryManagement() {
                   border: "none",
                   fontSize: "22px",
                   cursor: "pointer",
-                  color: "#6b7a8f",
+                  color: "var(--clothcore-text-soft)",
                   padding: "4px"
                 }}
               >
@@ -1325,7 +1269,7 @@ function InventoryManagement() {
             <div style={{ padding: "24px" }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Item Name *
                   </label>
                   <input
@@ -1336,17 +1280,17 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#f8f9fb"
+                      backgroundColor: "var(--clothcore-bg)"
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Category *
                   </label>
                   <select
@@ -1356,10 +1300,10 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
-                      backgroundColor: "white",
+                      backgroundColor: "var(--clothcore-card)",
                       outline: "none"
                     }}
                   >
@@ -1373,7 +1317,7 @@ function InventoryManagement() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     SKU *
                   </label>
                   <input
@@ -1384,17 +1328,17 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#f8f9fb"
+                      backgroundColor: "var(--clothcore-bg)"
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Color
                   </label>
                   <select
@@ -1404,10 +1348,10 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
-                      backgroundColor: "white",
+                      backgroundColor: "var(--clothcore-card)",
                       outline: "none"
                     }}
                   >
@@ -1418,7 +1362,7 @@ function InventoryManagement() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Unit *
                   </label>
                   <select
@@ -1428,10 +1372,10 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
-                      backgroundColor: "white",
+                      backgroundColor: "var(--clothcore-card)",
                       outline: "none"
                     }}
                   >
@@ -1443,7 +1387,7 @@ function InventoryManagement() {
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Stock Quantity *
                   </label>
                   <input
@@ -1454,17 +1398,17 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#f8f9fb"
+                      backgroundColor: "var(--clothcore-bg)"
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Unit Cost (Rs.) *
                   </label>
                   <input
@@ -1475,17 +1419,17 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#f8f9fb"
+                      backgroundColor: "var(--clothcore-bg)"
                     }}
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Minimum Stock
                   </label>
                   <input
@@ -1496,17 +1440,17 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
                       outline: "none",
-                      backgroundColor: "#f8f9fb"
+                      backgroundColor: "var(--clothcore-bg)"
                     }}
                   />
                 </div>
 
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "#1a2332" }}>
+                  <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Description / Notes
                   </label>
                   <textarea
@@ -1517,12 +1461,12 @@ function InventoryManagement() {
                     style={{
                       width: "100%",
                       padding: "8px 12px",
-                      border: "1px solid #dce0e6",
+                      border: "1px solid var(--clothcore-border)",
                       borderRadius: "4px",
                       fontSize: "14px",
                       resize: "vertical",
                       outline: "none",
-                      backgroundColor: "#f8f9fb",
+                      backgroundColor: "var(--clothcore-bg)",
                       fontFamily: "inherit"
                     }}
                   />
@@ -1532,23 +1476,23 @@ function InventoryManagement() {
 
             <div style={{
               padding: "14px 24px",
-              borderTop: "1px solid #e8ecf1",
+              borderTop: "1px solid var(--clothcore-border)",
               display: "flex",
               justifyContent: "flex-end",
               gap: "10px",
-              backgroundColor: "#f8f9fb",
+              backgroundColor: "var(--clothcore-bg)",
               borderRadius: "0 0 12px 12px"
             }}>
               <button
                 onClick={() => setShowEditModal(false)}
                 style={{
                   padding: "8px 20px",
-                  backgroundColor: "white",
-                  border: "1px solid #dce0e6",
+                  backgroundColor: "var(--clothcore-card)",
+                  border: "1px solid var(--clothcore-border)",
                   borderRadius: "4px",
                   fontSize: "14px",
                   cursor: "pointer",
-                  color: "#4a5568",
+                  color: "var(--clothcore-text-soft)",
                   fontWeight: "500"
                 }}
               >
@@ -1559,7 +1503,7 @@ function InventoryManagement() {
                 disabled={updatingItem}
                 style={{
                   padding: "8px 20px",
-                  backgroundColor: updatingItem ? "#6b7a8f" : "#2d4a8a",
+                  backgroundColor: updatingItem ? "var(--clothcore-text-soft)" : "var(--clothcore-purple)",
                   border: "none",
                   borderRadius: "4px",
                   fontSize: "14px",
@@ -1575,7 +1519,7 @@ function InventoryManagement() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
 

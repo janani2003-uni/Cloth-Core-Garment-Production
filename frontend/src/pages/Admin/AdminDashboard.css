@@ -1,0 +1,229 @@
+/* Scoped visual polish for the Admin Dashboard only — the parts that are
+   genuinely unique to this page (skeleton loaders, chart, progress rows,
+   summary card). The stat-card/content-card base look now lives in the
+   shared adminTheme.css, so every other Admin page gets it too. */
+
+.dashboard-page {
+  background: transparent;
+}
+
+.dashboard-trend-value {
+  font-size: 12px;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.dashboard-trend-caption {
+  font-size: 11.5px;
+  color: var(--clothcore-text-muted);
+  margin-left: 6px;
+}
+
+/* Loading skeleton — intentionally static (no shimmer/pulse animation). */
+.dashboard-stat-skeleton {
+  cursor: default;
+}
+
+.skeleton-line {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.skeleton-line-sm {
+  width: 60%;
+  height: 11px;
+  margin-bottom: 10px;
+}
+
+.skeleton-line-lg {
+  width: 45%;
+  height: 22px;
+}
+
+/* ---------- Error banner ---------- */
+
+.dashboard-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--clothcore-danger-bg);
+  color: var(--clothcore-danger);
+  font-size: 13.5px;
+  font-weight: 500;
+}
+
+.dashboard-card-subtitle {
+  font-size: 12px;
+  color: var(--clothcore-text-soft);
+}
+
+/* ---------- Chart range toggle ---------- */
+
+.dashboard-range-toggle {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  gap: 2px;
+}
+
+.dashboard-range-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--clothcore-text-soft);
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease;
+}
+
+.dashboard-range-btn:hover {
+  color: var(--clothcore-text);
+}
+
+.dashboard-range-btn.is-active {
+  background: var(--clothcore-surface-strong);
+  color: var(--clothcore-text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.24);
+}
+
+.dashboard-chart-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--clothcore-text-muted);
+  padding: 0 20px;
+}
+
+.dashboard-chart-empty svg {
+  color: rgba(223, 182, 178, 0.35);
+}
+
+/* ---------- Range summary card ---------- */
+
+.dashboard-summary-hero {
+  text-align: center;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--clothcore-border);
+}
+
+.dashboard-summary-value {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--clothcore-text);
+  margin-top: 2px;
+}
+
+.dashboard-summary-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 13px;
+  color: var(--clothcore-text-soft);
+}
+
+.dashboard-summary-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dashboard-summary-row strong {
+  font-size: 13.5px;
+  color: var(--clothcore-text);
+  font-weight: 700;
+}
+
+/* ---------- Progress rows (Production Status / Role Distribution) ---------- */
+
+.dashboard-progress-row {
+  margin-bottom: 16px;
+}
+
+.dashboard-progress-row:last-child {
+  margin-bottom: 0;
+}
+
+.dashboard-progress-label {
+  font-size: 13px;
+  color: var(--clothcore-text);
+  font-weight: 500;
+}
+
+.dashboard-progress-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--clothcore-text);
+}
+
+.dashboard-progress-track {
+  height: 7px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.dashboard-progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--clothcore-mauve), var(--clothcore-blush));
+  transition: width 500ms ease;
+}
+
+/* ---------- Low stock summary ---------- */
+
+.dashboard-lowstock-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.dashboard-lowstock-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.dashboard-lowstock-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--clothcore-text);
+}
+
+/* ---------- System activity ---------- */
+
+.dashboard-activity-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 1200px) {
+  .dashboard-page .admin-stat-value {
+    font-size: 24px;
+  }
+}

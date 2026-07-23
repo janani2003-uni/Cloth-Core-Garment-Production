@@ -2,12 +2,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import Sidebar from "../components/Sidebar"; // ✅ Correct import path
-import tshirtImage from "../assets/ChrisCrossNavyBlueCottonT-Shirt.webp";
+import ShopOwnerLayout from "../components/ShopOwnerLayout";
+import denimImage from "../assets/denim.jpg.png";
+import shirtImage from "../assets/shirt.jpg.png";
+import tshirtImage from "../assets/tshirt.jpg.png";
+import hoodieImage from "../assets/hoodie.jpg.png";
 import {
   IconShirt,
   IconShirtSport,
-  IconBackpack,
   IconJacket,
   IconHanger2,
   IconDeviceFloppy,
@@ -59,6 +61,38 @@ const TAG_ICONS = {
 const GARMENTS = [
   {
     id: 1,
+    name: "Denim",
+    Icon: IconHanger2,
+    image: denimImage,
+    price: 1600,
+    stock: 350,
+    popular: false,
+    category: "Casual",
+    fabrics: [
+      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 0 },
+      { id: "poly", label: "Polyester", tag: "Durable", delta: 100 },
+      { id: "denim", label: "Denim", tag: "Heavy", delta: 250 },
+    ],
+    colors: ["navy", "black", "gray", "white"],
+  },
+  {
+    id: 2,
+    name: "Shirt",
+    Icon: IconShirtSport,
+    image: shirtImage,
+    price: 1350,
+    stock: 300,
+    popular: false,
+    category: "Semi-Formal",
+    fabrics: [
+      { id: "cotton", label: "100% Cotton", tag: "Eco", delta: 0 },
+      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 80 },
+      { id: "poly", label: "Polyester", tag: "Durable", delta: 130 },
+    ],
+    colors: ["white", "navy", "black", "red", "green"],
+  },
+  {
+    id: 3,
     name: "T-Shirt",
     Icon: IconShirt,
     image: tshirtImage,
@@ -74,39 +108,10 @@ const GARMENTS = [
     colors: ["navy", "black", "gray", "white", "red", "green", "yellow"],
   },
   {
-    id: 2,
-    name: "Trouser",
-    Icon: IconHanger2,
-    price: 1600,
-    stock: 350,
-    popular: false,
-    category: "Formal",
-    fabrics: [
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 0 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 100 },
-      { id: "denim", label: "Denim", tag: "Heavy", delta: 250 },
-    ],
-    colors: ["navy", "black", "gray", "white"],
-  },
-  {
-    id: 3,
-    name: "School Uniform",
-    Icon: IconBackpack,
-    price: 1800,
-    stock: 200,
-    popular: true,
-    category: "Uniform",
-    fabrics: [
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 0 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 80 },
-      { id: "lycra", label: "Lycra", tag: "Premium", delta: 200 },
-    ],
-    colors: ["navy", "white", "yellow", "gray"],
-  },
-  {
     id: 4,
     name: "Hoodie",
     Icon: IconJacket,
+    image: hoodieImage,
     price: 2100,
     stock: 150,
     popular: true,
@@ -117,21 +122,6 @@ const GARMENTS = [
       { id: "fleece", label: "Fleece", tag: "Warm", delta: 220 },
     ],
     colors: ["black", "gray", "navy", "red"],
-  },
-  {
-    id: 5,
-    name: "Polo Shirt",
-    Icon: IconShirtSport,
-    price: 1350,
-    stock: 300,
-    popular: false,
-    category: "Semi-Formal",
-    fabrics: [
-      { id: "cotton", label: "100% Cotton", tag: "Eco", delta: 0 },
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 80 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 130 },
-    ],
-    colors: ["white", "navy", "black", "red", "green"],
   },
 ];
 
@@ -176,7 +166,7 @@ function GarmentModal({ garment, onCancel, onConfirm }) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.96, y: 6 }}
         transition={{ type: "spring", stiffness: 300, damping: 26 }}
-        className="card border-0"
+        className="card admin-content-card border-0"
         style={{
           borderRadius: 20,
           width: "100%",
@@ -425,14 +415,17 @@ function OrderStep1() {
   function handleNext() {
     if (!confirmed) return;
     setIsLoading(true);
-    const orderData = {
+    const existingDraft = JSON.parse(
+      localStorage.getItem("clothCoreOrderDraft") || "{}"
+    );
+    const draft = {
+      ...existingDraft,
       garment: confirmed.garment.name,
       fabric: confirmed.fabric.label,
       color: confirmed.color.label,
-      price: confirmed.unitPrice,
-      item: confirmed.garment,
+      unitPrice: confirmed.unitPrice,
     };
-    localStorage.setItem("orderStep1Data", JSON.stringify(orderData));
+    localStorage.setItem("clothCoreOrderDraft", JSON.stringify(draft));
 
     setTimeout(() => {
       setIsLoading(false);
@@ -441,10 +434,11 @@ function OrderStep1() {
   }
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", background: C.cream100 }}>
-      <Sidebar />
-      <div className="flex-grow-1" style={{ padding: "20px" }}>
-        <div className="container py-4">
+    <ShopOwnerLayout
+      shellStyle={{ background: C.cream100 }}
+      contentClassName="container py-4"
+      contentStyle={{ paddingLeft: "20px", paddingRight: "20px" }}
+    >
           {/* Header Section */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -497,7 +491,7 @@ function OrderStep1() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="card mb-4 border-0"
+                className="card admin-content-card mb-4 border-0"
                 style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(25,0,25,0.08)" }}
               >
                 <div className="card-body p-4">
@@ -521,97 +515,166 @@ function OrderStep1() {
                     <span className="ms-3 badge bg-light text-dark">Choose one</span>
                   </div>
 
-                  <div className="row">
+                  <div className="row g-3">
                     {GARMENTS.map((g) => {
                       const selected = confirmed?.garment.id === g.id;
                       return (
                         <motion.div
                           key={g.id}
-                          className="col-md-4 mb-3"
-                          whileHover={{ scale: 1.03 }}
+                          className="col-6"
+                          whileHover={{ y: -6 }}
                           transition={{ type: "spring", stiffness: 300 }}
                         >
                           <div
-                            className="card h-100"
+                            className="h-100"
                             style={{
                               cursor: "pointer",
-                              borderRadius: "16px",
-                              border: `3px solid ${selected ? C.plum700 : "#f0e3dd"}`,
-                              background: selected ? C.cream100 : "white",
-                              transition: "all 0.3s ease",
+                              borderRadius: "22px",
+                              border: `2px solid ${selected ? C.plum700 : "rgba(25,0,25,0.08)"}`,
+                              background: "white",
+                              transition: "box-shadow 0.3s ease, border-color 0.3s ease",
                               boxShadow: selected
-                                ? `0 8px 30px rgba(82,43,91,0.2)`
-                                : "none",
+                                ? `0 16px 40px rgba(82,43,91,0.28)`
+                                : "0 6px 20px rgba(25,0,25,0.07)",
                               position: "relative",
                               overflow: "hidden",
                             }}
                             onClick={() => setModalGarmentId(g.id)}
                           >
-                            {g.popular && (
+                            {/* Photo */}
+                            <div
+                              style={{
+                                position: "relative",
+                                width: "100%",
+                                aspectRatio: "4 / 5",
+                                overflow: "hidden",
+                                background: C.cream100,
+                              }}
+                            >
+                              {g.image ? (
+                                <img
+                                  src={g.image}
+                                  alt={g.name}
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                    objectPosition: "top center",
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  className="d-flex align-items-center justify-content-center"
+                                  style={{ width: "100%", height: "100%", color: C.mauve500 }}
+                                >
+                                  <g.Icon size={54} stroke={1.25} />
+                                </div>
+                              )}
+
+                              {/* Gradient wash so the label reads over any photo */}
                               <div
-                                className="d-flex align-items-center gap-1"
                                 style={{
                                   position: "absolute",
-                                  top: "10px",
-                                  right: "10px",
-                                  background: C.pink200,
-                                  color: C.plum800,
-                                  padding: "2px 10px",
-                                  borderRadius: "12px",
-                                  fontSize: "10px",
-                                  fontWeight: "bold",
+                                  inset: 0,
+                                  background:
+                                    "linear-gradient(to top, rgba(25,0,25,0.82) 0%, rgba(25,0,25,0.28) 40%, rgba(25,0,25,0) 62%)",
                                 }}
-                              >
-                                <IconFlame size={11} stroke={2} /> POPULAR
-                              </div>
-                            )}
-                            <div className="card-body text-center p-3">
-                              <div
-                                className="mx-auto d-flex align-items-center justify-content-center"
-                                style={{
-                                  width: 52,
-                                  height: 52,
-                                  borderRadius: "50%",
-                                  background: selected ? C.plum700 : C.cream100,
-                                  color: selected ? C.cream100 : C.mauve500,
-                                  marginBottom: 8,
-                                  overflow: "hidden",
-                                }}
-                              >
-                                {g.image ? (
-                                  <img
-                                    src={g.image}
-                                    alt={g.name}
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                  />
-                                ) : (
-                                  <g.Icon size={26} stroke={1.5} />
-                                )}
-                              </div>
-                              <h6 className="fw-bold mt-1 mb-1">{g.name}</h6>
-                              <span
-                                className="badge mb-2"
-                                style={{
-                                  background: "#e8f5e9",
-                                  color: "#1f7a44",
-                                  padding: "4px 12px",
-                                  borderRadius: "20px",
-                                  fontWeight: 600,
-                                }}
-                              >
-                                IN STOCK
-                              </span>
-                              <p
-                                className="mb-0"
-                                style={{ color: C.plum800, fontWeight: "bold", fontSize: "15px" }}
-                              >
-                                {formatPrice(g.price)} / unit
-                              </p>
+                              />
+
+                              {g.popular && (
+                                <div
+                                  className="d-flex align-items-center gap-1"
+                                  style={{
+                                    position: "absolute",
+                                    top: "12px",
+                                    right: "12px",
+                                    background: C.pink200,
+                                    color: C.plum800,
+                                    padding: "3px 11px",
+                                    borderRadius: "20px",
+                                    fontSize: "10.5px",
+                                    fontWeight: "bold",
+                                    letterSpacing: "0.03em",
+                                  }}
+                                >
+                                  <IconFlame size={11} stroke={2} /> POPULAR
+                                </div>
+                              )}
+
                               {selected && (
                                 <motion.div
                                   initial={{ scale: 0 }}
                                   animate={{ scale: 1 }}
-                                  className="mt-2 d-flex align-items-center justify-content-center gap-1"
+                                  className="d-flex align-items-center justify-content-center"
+                                  style={{
+                                    position: "absolute",
+                                    top: "12px",
+                                    left: "12px",
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: "50%",
+                                    background: C.plum700,
+                                    color: C.cream100,
+                                    boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                                  }}
+                                >
+                                  <IconCheck size={16} stroke={3} />
+                                </motion.div>
+                              )}
+
+                              <div
+                                style={{
+                                  position: "absolute",
+                                  left: 16,
+                                  right: 16,
+                                  bottom: 14,
+                                }}
+                              >
+                                <h5
+                                  className="fw-bold mb-0"
+                                  style={{
+                                    color: "#fff",
+                                    fontSize: "1.15rem",
+                                    letterSpacing: "0.01em",
+                                    textShadow: "0 2px 10px rgba(0,0,0,0.45)",
+                                  }}
+                                >
+                                  {g.name}
+                                </h5>
+                                <small style={{ color: C.pink200, fontSize: 11.5 }}>
+                                  {g.category}
+                                </small>
+                              </div>
+                            </div>
+
+                            {/* Info footer */}
+                            <div className="p-3">
+                              <div className="d-flex justify-content-between align-items-center">
+                                <span
+                                  className="badge"
+                                  style={{
+                                    background: "#e8f5e9",
+                                    color: "#1f7a44",
+                                    padding: "5px 12px",
+                                    borderRadius: "20px",
+                                    fontWeight: 600,
+                                    fontSize: 11,
+                                  }}
+                                >
+                                  IN STOCK
+                                </span>
+                                <strong style={{ color: C.plum800, fontSize: "16px" }}>
+                                  {formatPrice(g.price)}
+                                  <span style={{ color: C.mauve500, fontWeight: 500, fontSize: 12 }}>
+                                    {" "}/ unit
+                                  </span>
+                                </strong>
+                              </div>
+                              {selected && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="d-flex align-items-center gap-1 mt-2"
                                   style={{ color: C.plum700, fontWeight: 700, fontSize: 12 }}
                                 >
                                   <IconCheck size={14} stroke={2.5} /> Selected
@@ -636,7 +699,7 @@ function OrderStep1() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <div
-                  className="card border-0"
+                  className="card admin-content-card border-0"
                   style={{ borderRadius: "16px", boxShadow: "0 4px 20px rgba(25,0,25,0.06)" }}
                 >
                   <div className="card-body p-3">
@@ -698,7 +761,7 @@ function OrderStep1() {
                 style={{ top: "20px" }}
               >
                 <div
-                  className="card border-0"
+                  className="card admin-content-card border-0"
                   style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(25,0,25,0.12)", overflow: "hidden" }}
                 >
                   <div
@@ -813,8 +876,6 @@ function OrderStep1() {
               </motion.div>
             </div>
           </div>
-        </div>
-      </div>
 
       <AnimatePresence>
         {modalGarment && (
@@ -830,7 +891,7 @@ function OrderStep1() {
         .pms-spin { animation: pms-spin 0.8s linear infinite; }
         @keyframes pms-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </ShopOwnerLayout>
   );
 }
 

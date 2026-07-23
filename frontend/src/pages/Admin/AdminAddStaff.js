@@ -1,13 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Adminsidebar from "../../components/Adminsidebar";
-import Admintopbar from "../../components/Admintopbar";
+import AdminLayout from "../../components/AdminLayout";
 import axios from 'axios';
-import { 
-  PersonPlus,
-  Camera,
-  X,
-  ArrowLeft
+import {
+  PersonPlus
 } from 'react-bootstrap-icons';
 
 function AdminAddStaff() {
@@ -25,8 +21,6 @@ function AdminAddStaff() {
     emergencyContact: '',
     notes: ''
   });
-  const [profileImage, setProfileImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   const departments = [
@@ -62,27 +56,6 @@ function AdminAddStaff() {
       ...prev,
       [name]: value
     }));
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert('File size must be less than 2MB');
-        return;
-      }
-      setProfileImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setProfileImage(null);
-    setImagePreview(null);
   };
 
   const handleSubmit = async (e) => {
@@ -147,28 +120,20 @@ function AdminAddStaff() {
   };
 
   return (
-    <div className="d-flex" style={{ minHeight: "100vh", background: "#f0f0f5" }}>
-      <Adminsidebar />
-      
-      <div className="flex-grow-1">
-        <Admintopbar />
-        
-        <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0">
-            
+    <AdminLayout>
             {/* Breadcrumb */}
             <div style={{ marginBottom: '20px' }}>
-              <span style={{ color: '#6c757d', fontSize: '14px' }}>Dashboard</span>
-              <span style={{ color: '#6c757d', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: '#6c757d', fontSize: '14px' }}>Staff Management</span>
-              <span style={{ color: '#6c757d', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: '#0b3aa0', fontWeight: '600', fontSize: '14px' }}>Add Staff Member</span>
+              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Dashboard</span>
+              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
+              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Staff Management</span>
+              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
+              <span style={{ color: 'var(--clothcore-purple)', fontWeight: '600', fontSize: '14px' }}>Add Staff Member</span>
             </div>
 
             {/* Page Header */}
             <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
               <div>
-                <h2 className="fw-bold mb-0" style={{ color: "#1a1a2e", fontSize: "28px" }}>
+                <h2 className="fw-bold mb-0" style={{ color: "var(--clothcore-text)", fontSize: "28px" }}>
                   Add Staff Member
                 </h2>
                 <p className="text-muted mb-0" style={{ fontSize: "14px" }}>
@@ -178,22 +143,19 @@ function AdminAddStaff() {
             </div>
 
             {/* Form Card */}
-            <div className="card border-0" style={{ 
-              borderRadius: "16px", 
-              boxShadow: "0 2px 12px rgba(0,0,0,0.06)"
-            }}>
+            <div className="card admin-content-card">
               <div className="card-body p-4 p-xl-5">
                 <form onSubmit={handleSubmit}>
                   
                   {/* Staff Information Section */}
-                  <h6 className="fw-bold mb-4" style={{ color: "#1a1a2e", fontSize: "16px" }}>
+                  <h6 className="fw-bold mb-4" style={{ color: "var(--clothcore-text)", fontSize: "16px" }}>
                     Staff Information
                   </h6>
 
                   <div className="row g-4">
                     {/* Staff ID */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Staff ID
                       </label>
                       <input
@@ -205,7 +167,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -215,7 +177,7 @@ function AdminAddStaff() {
 
                     {/* Full Name */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Full Name
                       </label>
                       <input
@@ -227,7 +189,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -237,7 +199,7 @@ function AdminAddStaff() {
 
                     {/* Email Address */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Email Address
                       </label>
                       <input
@@ -249,7 +211,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -258,7 +220,7 @@ function AdminAddStaff() {
 
                     {/* Phone Number */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Phone Number
                       </label>
                       <input
@@ -270,7 +232,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -280,7 +242,7 @@ function AdminAddStaff() {
 
                     {/* Department */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Department
                       </label>
                       <select
@@ -290,7 +252,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -305,7 +267,7 @@ function AdminAddStaff() {
 
                     {/* Position */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Position
                       </label>
                       <select
@@ -315,7 +277,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -330,7 +292,7 @@ function AdminAddStaff() {
 
                     {/* Joining Date */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Joining Date
                       </label>
                       <input
@@ -341,7 +303,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -351,7 +313,7 @@ function AdminAddStaff() {
 
                     {/* Status */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Status
                       </label>
                       <select
@@ -361,7 +323,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -377,14 +339,14 @@ function AdminAddStaff() {
 
                   
                   {/* Additional Information Section */}
-                  <h6 className="fw-bold mb-4" style={{ color: "#1a1a2e", fontSize: "16px" }}>
+                  <h6 className="fw-bold mb-4" style={{ color: "var(--clothcore-text)", fontSize: "16px" }}>
                     Additional Information
                   </h6>
 
                   <div className="row g-4">
                     {/* Address */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Address
                       </label>
                       <input
@@ -396,7 +358,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -405,7 +367,7 @@ function AdminAddStaff() {
 
                     {/* Emergency Contact */}
                     <div className="col-md-6">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Emergency Contact
                       </label>
                       <input
@@ -417,7 +379,7 @@ function AdminAddStaff() {
                         onChange={handleChange}
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px"
                         }}
@@ -426,7 +388,7 @@ function AdminAddStaff() {
 
                     {/* Notes */}
                     <div className="col-12">
-                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "#1a1a2e" }}>
+                      <label className="form-label fw-semibold" style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
                         Notes
                       </label>
                       <textarea
@@ -438,7 +400,7 @@ function AdminAddStaff() {
                         rows="3"
                         style={{
                           borderRadius: "10px",
-                          border: "2px solid #e9ecef",
+                          border: "2px solid var(--clothcore-border)",
                           padding: "10px 14px",
                           fontSize: "14px",
                           resize: "vertical"
@@ -455,9 +417,9 @@ function AdminAddStaff() {
                       onClick={handleCancel}
                       style={{
                         borderRadius: "10px",
-                        border: "2px solid #e9ecef",
-                        background: "white",
-                        color: "#1a1a2e",
+                        border: "2px solid var(--clothcore-border)",
+                        background: "rgba(255,255,255,0.055)",
+                        color: "var(--clothcore-text)",
                         fontSize: "14px",
                         fontWeight: "500"
                       }}
@@ -469,9 +431,9 @@ function AdminAddStaff() {
                       className="btn px-5 py-2"
                       disabled={submitting}
                       style={{
-                        background: submitting 
-                          ? "linear-gradient(135deg, #a5a5a5, #7a7a7a)" 
-                          : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+                        background: submitting
+                          ? "linear-gradient(135deg, var(--clothcore-text-soft), var(--clothcore-text))"
+                          : "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
                         color: "white",
                         borderRadius: "10px",
                         border: "none",
@@ -493,16 +455,12 @@ function AdminAddStaff() {
               </div>
             </div>
 
-          </div>
-        </div>
-      </div>
-
       {/* CSS */}
       <style>
         {`
           .form-control:focus, .form-select:focus {
-            border-color: #6366f1;
-            box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+            border-color: var(--clothcore-purple);
+            box-shadow: 0 0 0 3px rgba(82, 43, 91, 0.1);
           }
           
           .border-dashed {
@@ -514,7 +472,7 @@ function AdminAddStaff() {
           }
         `}
       </style>
-    </div>
+    </AdminLayout>
   );
 }
 

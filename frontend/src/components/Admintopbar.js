@@ -1,67 +1,66 @@
 // src/components/Admintopbar.js
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import axios from "axios";
 import {
   Bell,
-  Search,
   PersonPlus,
   ExclamationTriangle,
   CartPlus,
   CreditCard,
   CheckCircle,
+  ChatDots,
   X,
 } from "react-bootstrap-icons";
+import UserAccountMenu from "./UserAccountMenu";
+
+const NOTIFICATIONS_API_URL = "http://localhost:5000/api/notifications";
+
+function formatRelativeTime(dateInput) {
+  if (!dateInput) return "";
+
+  const date = new Date(dateInput);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) {
+    return `${diffMinutes} minute${diffMinutes === 1 ? "" : "s"} ago`;
+  }
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) {
+    return `${diffHours} hour${diffHours === 1 ? "" : "s"} ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays} day${diffDays === 1 ? "" : "s"} ago`;
+}
 
 function Admintopbar() {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      title: "New user registered",
-      message: "A new user has created an account.",
-      time: "2 mins ago",
-      type: "user",
-      read: false,
-    },
-    {
-      id: 2,
-      title: "Low stock alert",
-      message: "Cotton Fabric stock is running low.",
-      time: "10 mins ago",
-      type: "stock",
-      read: false,
-    },
-    {
-      id: 3,
-      title: "New order received",
-      message: "Order #ORD-1056 has been placed.",
-      time: "25 mins ago",
-      type: "order",
-      read: false,
-    },
-    {
-      id: 4,
-      title: "Payment received",
-      message: "Payment for Order #ORD-1048 was received.",
-      time: "1 hour ago",
-      type: "payment",
-      read: false,
-    },
-    {
-      id: 5,
-      title: "System update",
-      message: "Daily backup completed successfully.",
-      time: "Today",
-      type: "system",
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const notificationRef = useRef(null);
 
   const unreadCount = notifications.filter(
-    (notification) => !notification.read
+    (notification) => !notification.isRead
   ).length;
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await axios.get(NOTIFICATIONS_API_URL);
+      setNotifications(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch notifications:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
@@ -84,12 +83,20 @@ function Admintopbar() {
     switch (type) {
       case "user":
         return <PersonPlus size={18} />;
-      case "stock":
+      case "staff":
+        return <PersonPlus size={18} />;
+      case "inventory":
         return <ExclamationTriangle size={18} />;
+      case "production":
+        return <CartPlus size={18} />;
       case "order":
         return <CartPlus size={18} />;
       case "payment":
         return <CreditCard size={18} />;
+      case "ticket":
+        return <ChatDots size={18} />;
+      case "system":
+        return <CheckCircle size={18} />;
       default:
         return <CheckCircle size={18} />;
     }
@@ -103,10 +110,22 @@ function Admintopbar() {
           color: "#2563eb",
         };
 
-      case "stock":
+      case "staff":
+        return {
+          backgroundColor: "#e0f2fe",
+          color: "#0369a1",
+        };
+
+      case "inventory":
         return {
           backgroundColor: "#fff3e0",
           color: "#e65100",
+        };
+
+      case "production":
+        return {
+          backgroundColor: "#f3e8ff",
+          color: "#9333ea",
         };
 
       case "order":
@@ -121,6 +140,18 @@ function Admintopbar() {
           color: "#2e7d32",
         };
 
+      case "ticket":
+        return {
+          backgroundColor: "#fce7f3",
+          color: "#be185d",
+        };
+
+      case "system":
+        return {
+          backgroundColor: "#eef2f7",
+          color: "#475569",
+        };
+
       default:
         return {
           backgroundColor: "#eef2f7",
@@ -129,46 +160,58 @@ function Admintopbar() {
     }
   };
 
-  const handleNotificationClick = (notificationId) => {
+  const handleNotificationClick = async (notificationId) => {
     setNotifications((previousNotifications) =>
       previousNotifications.map((notification) =>
-        notification.id === notificationId
+        notification._id === notificationId
           ? {
               ...notification,
-              read: true,
+              isRead: true,
             }
           : notification
       )
     );
+
+    try {
+      await axios.put(`${NOTIFICATIONS_API_URL}/${notificationId}/read`);
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+      fetchNotifications();
+    }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
     setNotifications((previousNotifications) =>
       previousNotifications.map((notification) => ({
         ...notification,
-        read: true,
+        isRead: true,
       }))
     );
+
+    try {
+      await axios.put(`${NOTIFICATIONS_API_URL}/read-all`);
+    } catch (error) {
+      console.error("Failed to mark all notifications as read:", error);
+      fetchNotifications();
+    }
   };
 
-  const handleClearNotifications = () => {
+  const handleClearNotifications = async () => {
     setNotifications([]);
     setShowNotifications(false);
+
+    try {
+      await axios.delete(NOTIFICATIONS_API_URL);
+    } catch (error) {
+      console.error("Failed to clear notifications:", error);
+      fetchNotifications();
+    }
   };
 
   return (
     <div
-      style={{
-        position: "relative",
-        zIndex: 100,
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        background: "white",
-        padding: "12px 20px",
-        borderRadius: "12px",
-        boxShadow: "0 2px 10px rgba(0,0,0,0.06)",
-      }}
+      className="admin-topbar"
+      style={{ position: "relative", zIndex: 100 }}
     >
       <div style={{ flex: 1 }}></div>
 
@@ -200,13 +243,13 @@ function Admintopbar() {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: showNotifications ? "#eef2ff" : "transparent",
+              backgroundColor: showNotifications ? "rgba(82,43,91,0.08)" : "transparent",
               border: "none",
               borderRadius: "50%",
               cursor: "pointer",
             }}
           >
-            <Bell size={20} color="#1e293b" />
+            <Bell size={20} color="var(--clothcore-blush)" />
 
             {unreadCount > 0 && (
               <span
@@ -242,8 +285,8 @@ function Admintopbar() {
                 right: "0",
                 width: "380px",
                 maxWidth: "90vw",
-                backgroundColor: "white",
-                border: "1px solid #e2e8f0",
+                backgroundColor: "var(--clothcore-card)",
+                border: "1px solid var(--clothcore-border-strong)",
                 borderRadius: "14px",
                 boxShadow: "0 15px 40px rgba(15,23,42,0.18)",
                 overflow: "hidden",
@@ -254,7 +297,7 @@ function Admintopbar() {
               <div
                 style={{
                   padding: "16px 18px",
-                  borderBottom: "1px solid #e2e8f0",
+                  borderBottom: "1px solid var(--clothcore-border)",
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
@@ -265,7 +308,7 @@ function Admintopbar() {
                     style={{
                       fontSize: "16px",
                       fontWeight: "700",
-                      color: "#0f172a",
+                      color: "var(--clothcore-text)",
                     }}
                   >
                     Notifications
@@ -275,7 +318,7 @@ function Admintopbar() {
                     style={{
                       marginTop: "2px",
                       fontSize: "12px",
-                      color: "#64748b",
+                      color: "var(--clothcore-text-soft)",
                     }}
                   >
                     {unreadCount} unread notification
@@ -293,7 +336,7 @@ function Admintopbar() {
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    backgroundColor: "#f1f5f9",
+                    backgroundColor: "rgba(255,255,255,0.08)",
                     border: "none",
                     borderRadius: "50%",
                     cursor: "pointer",
@@ -319,7 +362,7 @@ function Admintopbar() {
                   >
                     <Bell
                       size={38}
-                      color="#cbd5e1"
+                      color="var(--clothcore-text-muted)"
                       style={{
                         marginBottom: "12px",
                       }}
@@ -329,7 +372,7 @@ function Admintopbar() {
                       style={{
                         fontSize: "14px",
                         fontWeight: "600",
-                        color: "#475569",
+                        color: "var(--clothcore-text)",
                       }}
                     >
                       No notifications
@@ -339,7 +382,7 @@ function Admintopbar() {
                       style={{
                         marginTop: "4px",
                         fontSize: "12px",
-                        color: "#94a3b8",
+                        color: "var(--clothcore-text-muted)",
                       }}
                     >
                       New updates will appear here.
@@ -353,10 +396,10 @@ function Admintopbar() {
 
                     return (
                       <button
-                        key={notification.id}
+                        key={notification._id}
                         type="button"
                         onClick={() =>
-                          handleNotificationClick(notification.id)
+                          handleNotificationClick(notification._id)
                         }
                         style={{
                           width: "100%",
@@ -364,11 +407,11 @@ function Admintopbar() {
                           display: "flex",
                           gap: "12px",
                           textAlign: "left",
-                          backgroundColor: notification.read
-                            ? "white"
-                            : "#f8faff",
+                          backgroundColor: notification.isRead
+                            ? "transparent"
+                            : "rgba(133,79,108,0.1)",
                           border: "none",
-                          borderBottom: "1px solid #f1f5f9",
+                          borderBottom: "1px solid rgba(255,255,255,0.06)",
                           cursor: "pointer",
                         }}
                       >
@@ -405,14 +448,16 @@ function Admintopbar() {
                             <div
                               style={{
                                 fontSize: "13px",
-                                fontWeight: notification.read ? "600" : "700",
-                                color: "#0f172a",
+                                fontWeight: notification.isRead
+                                  ? "600"
+                                  : "700",
+                                color: "var(--clothcore-text)",
                               }}
                             >
                               {notification.title}
                             </div>
 
-                            {!notification.read && (
+                            {!notification.isRead && (
                               <span
                                 style={{
                                   width: "8px",
@@ -431,7 +476,7 @@ function Admintopbar() {
                               marginTop: "3px",
                               fontSize: "12px",
                               lineHeight: "1.5",
-                              color: "#64748b",
+                              color: "var(--clothcore-text-soft)",
                             }}
                           >
                             {notification.message}
@@ -441,10 +486,10 @@ function Admintopbar() {
                             style={{
                               marginTop: "6px",
                               fontSize: "11px",
-                              color: "#94a3b8",
+                              color: "var(--clothcore-text-muted)",
                             }}
                           >
-                            {notification.time}
+                            {formatRelativeTime(notification.createdAt)}
                           </div>
                         </div>
                       </button>
@@ -461,8 +506,8 @@ function Admintopbar() {
                     display: "flex",
                     justifyContent: "space-between",
                     gap: "10px",
-                    borderTop: "1px solid #e2e8f0",
-                    backgroundColor: "#f8fafc",
+                    borderTop: "1px solid var(--clothcore-border)",
+                    backgroundColor: "rgba(255,255,255,0.03)",
                   }}
                 >
                   <button
@@ -475,7 +520,7 @@ function Admintopbar() {
                       border: "none",
                       fontSize: "12px",
                       fontWeight: "600",
-                      color: unreadCount === 0 ? "#94a3b8" : "#2563eb",
+                      color: unreadCount === 0 ? "var(--clothcore-text-muted)" : "var(--clothcore-blush)",
                       cursor: unreadCount === 0 ? "not-allowed" : "pointer",
                     }}
                   >
@@ -503,39 +548,7 @@ function Admintopbar() {
           )}
         </div>
 
-        {/* ADMIN USER */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <div
-            style={{
-              width: "35px",
-              height: "35px",
-              borderRadius: "50%",
-              backgroundColor: "#0b3aa0",
-              color: "white",
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              fontWeight: "bold",
-            }}
-          >
-            A
-          </div>
-
-          <span
-            style={{
-              fontWeight: "bold",
-              color: "#0f172a",
-            }}
-          >
-            Admin User
-          </span>
-        </div>
+        <UserAccountMenu />
       </div>
     </div>
   );
