@@ -9,8 +9,8 @@ import { getUser } from "../utils/auth";
 
 function ShopOwnerLayout({
   children,
-  contentClassName = "container-fluid px-0",
-  contentStyle = { padding: "20px" },
+  contentClassName = "p-3 p-md-4",
+  contentStyle = { maxWidth: "1280px", margin: "0 auto" },
   shellStyle,
   topbarTitle,
 }) {
@@ -20,23 +20,14 @@ function ShopOwnerLayout({
   const isAdminPreview = getUser()?.role === "admin";
 
   return (
-    <div className="d-flex admin-shell" style={{ background: "linear-gradient(145deg, var(--clothcore-app-bg) 0%, var(--clothcore-bg-secondary) 50%, var(--clothcore-surface) 100%)", ...shellStyle }}>
+    <div className="d-flex admin-shell" style={shellStyle}>
       <Sidebar />
 
       <div className="flex-grow-1">
         <ShopTopbar title={topbarTitle} />
 
         {isAdminPreview && (
-          <div
-            style={{
-              padding: "8px 24px",
-              background: "rgba(217,131,36,0.08)",
-              borderBottom: "1px solid rgba(217,131,36,0.18)",
-              fontSize: "12px",
-              fontWeight: 600,
-              color: "var(--clothcore-warning, #d98324)",
-            }}
-          >
+          <div className="admin-preview-banner">
             Admin Preview — Viewing as Shop Owner
           </div>
         )}

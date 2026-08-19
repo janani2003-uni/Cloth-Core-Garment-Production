@@ -5,7 +5,7 @@ const API_URL = "http://localhost:5000/api/settings/business-rules";
 // Client-side-only fallback, used purely so the UI has something sane to
 // show if the request fails — the backend (backend/config/businessRules.js)
 // is always the real source of truth and enforces this independently.
-const FALLBACK = { minimumOrderQuantity: 100, advancePaymentPercentage: 30 };
+const FALLBACK = { minimumOrderQuantity: 100, advancePaymentPercentage: 50 };
 
 export async function getBusinessRules() {
   try {

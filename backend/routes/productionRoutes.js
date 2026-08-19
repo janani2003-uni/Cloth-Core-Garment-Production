@@ -21,6 +21,52 @@ const STAGE_PROGRESS_MAP = {
   Completed: 100,
 };
 
+// The Shop Owner's Orders page (and every other view that reads the Order
+// model directly — Dashboard, RoleOrdersView, AdminOrderDetails, etc.) shows
+// `order.progress`, but Supervisors only ever move `production.progress`
+// forward (via the stage buttons or a manual edit). Without this, those
+// pages stayed stuck at 0% forever regardless of how far production had
+// actually gotten. Called after every Production save so the two numbers
+// can never drift apart.
+async function syncOrderProgress(productionOrder) {
+  try {
+    await Order.updateOne(
+      { orderId: productionOrder.orderId },
+      { $set: { progress: productionOrder.progress } }
+    );
+  } catch (error) {
+    console.error("Sync Order Progress Error:", error);
+  }
+}
+
+// Called right after any production update that might have just reached
+// "Completed" — lets the shop owner know their order is ready to move to
+// delivery. Doesn't touch order.status itself: moving an order to
+// "In Delivery" is a distinct Admin/Supervisor action (creating and
+// dispatching a Delivery record — see deliveryRoutes.js), not automatic.
+// A simple `notified` snapshot on the Production doc's updatedAt vs a
+// re-check of Notification history isn't worth the complexity here, so this
+// relies on Production.pre("save") only ever setting status to "Completed"
+// once meaningfully (progress hits 100) — a second save while already
+// Completed would just mean re-confirming, not a fresh completion.
+async function notifyIfJustCompleted(productionOrder, wasAlreadyCompleted) {
+  if (productionOrder.status !== "Completed" || wasAlreadyCompleted) return;
+
+  const order = await Order.findOne({ orderId: productionOrder.orderId });
+  if (!order) return;
+
+  if (order.userId) {
+    await Notification.create({
+      title: "Production Completed",
+      message: `Production for your order ${order.orderId} is complete. It will be scheduled for delivery shortly.`,
+      type: "production",
+      relatedId: order._id,
+      relatedModel: "Order",
+      recipientId: order.userId,
+    });
+  }
+}
+
 router.use(verifyToken);
 
 // Admin and Supervisor can both view production data; only Admin can
@@ -255,6 +301,16 @@ router.post("/", canManage, async (req, res) => {
       });
     }
 
+    // Production can never start before the order is approved — the normal
+    // path to production (AdminOrders.js "Send to Production", which goes
+    // through orderRoutes.js) already enforces this; this is the same rule
+    // applied directly here since this endpoint is its own real, callable
+    // route.
+    const linkedOrder = await Order.findOne({ orderId: orderId.toUpperCase() });
+    if (linkedOrder && linkedOrder.approval?.status !== "Approved") {
+      return res.status(409).json({ success: false, message: "This order must be approved before production can start." });
+    }
+
     // Create new production order
     const newOrder = new Production({
       orderId: orderId.toUpperCase(),
@@ -269,6 +325,8 @@ router.post("/", canManage, async (req, res) => {
     });
 
     await newOrder.save();
+    await syncOrderProgress(newOrder);
+    await notifyIfJustCompleted(newOrder, false);
 
     res.status(201).json({ success: true,
       message: "Production order created successfully",
@@ -342,10 +400,13 @@ router.put("/:id", canManage, async (req, res) => {
     }
 
     const previousStage = order.stage;
+    const wasAlreadyCompleted = order.status === "Completed";
 
     // Apply updates
     Object.assign(order, updateData);
     await order.save();
+    await syncOrderProgress(order);
+    await notifyIfJustCompleted(order, wasAlreadyCompleted);
 
     // Let the shop owner know when their order's production stage actually
     // moves forward (Cutting -> Sewing -> ... -> Completed).
@@ -409,9 +470,12 @@ router.patch("/:id/stage", canUpdateStage, async (req, res) => {
     }
 
     const previousStage = order.stage;
+    const wasAlreadyCompleted = order.status === "Completed";
 
     order.progress = STAGE_PROGRESS_MAP[stage];
     await order.save();
+    await syncOrderProgress(order);
+    await notifyIfJustCompleted(order, wasAlreadyCompleted);
 
     if (order.stage !== previousStage) {
       const relatedOrder = await Order.findOne({ orderId: order.orderId });

@@ -3,7 +3,7 @@
 // override for a given environment — the values below are dev-only fallback
 // defaults used whenever those env vars are unset.
 const DEV_DEFAULT_MINIMUM_ORDER_QUANTITY = 100;
-const DEV_DEFAULT_ADVANCE_PAYMENT_PERCENTAGE = 30;
+const DEV_DEFAULT_ADVANCE_PAYMENT_PERCENTAGE = 50;
 
 function getMinimumOrderQuantity() {
   const fromEnv = Number(process.env.MINIMUM_ORDER_QUANTITY);

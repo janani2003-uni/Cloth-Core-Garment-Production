@@ -16,7 +16,9 @@ import {
   GraphUp,
   PlusCircle,
   People,
+  Eye,
 } from "react-bootstrap-icons";
+import OrderDetailsModal from "./OrderDetailsModal";
 
 const API_URL = "http://localhost:5000/api/production";
 const ORDERS_PER_PAGE = 6;
@@ -111,9 +113,11 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [assignError, setAssignError] = useState("");
 
+  const [viewingOrderId, setViewingOrderId] = useState(null);
+
   const totalForPercentage = stats.totalOrders || 1;
   const productionStatus = [
-    { label: "In Production", value: `${stats.inProduction} (${Math.round((stats.inProduction / totalForPercentage) * 1000) / 10}%)`, color: "var(--clothcore-blush)" },
+    { label: "In Production", value: `${stats.inProduction} (${Math.round((stats.inProduction / totalForPercentage) * 1000) / 10}%)`, color: "var(--clothcore-purple)" },
     { label: "Completed", value: `${stats.completed} (${Math.round((stats.completed / totalForPercentage) * 1000) / 10}%)`, color: "var(--clothcore-success)" },
     { label: "On Hold", value: `${stats.onHold} (${Math.round((stats.onHold / totalForPercentage) * 1000) / 10}%)`, color: "var(--clothcore-danger)" },
     { label: "Cancelled", value: `${stats.cancelled} (${Math.round((stats.cancelled / totalForPercentage) * 1000) / 10}%)`, color: "var(--clothcore-text-soft)" },
@@ -255,18 +259,16 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
     }
   };
 
-  const columnCount = 6 + (canAssign ? 1 : 0) + (canUpdateStage ? 1 : 0);
+  const columnCount = 7 + (canAssign ? 1 : 0) + (canUpdateStage ? 1 : 0);
 
   return (
     <>
       {/* Page Header */}
-      <div style={{ marginBottom: "24px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>
-          {heading}
-        </h2>
-        <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>
-          {subtitle}
-        </p>
+      <div className="admin-page-header">
+        <div>
+          <h2 className="admin-page-title">{heading}</h2>
+          <p className="admin-page-subtitle">{subtitle}</p>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -405,6 +407,7 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
                   {canUpdateStage && (
                     <th style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-text-soft)" }}>UPDATE STAGE</th>
                   )}
+                  <th style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-text-soft)" }}></th>
                 </tr>
               </thead>
               <tbody>
@@ -450,7 +453,7 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
 
                     return (
                       <tr key={order._id}>
-                        <td style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-blush)" }}>
+                        <td style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-purple)" }}>
                           {order.orderId}
                         </td>
                         <td style={{ padding: "8px 10px" }}>{order.product}</td>
@@ -523,7 +526,7 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
                                   borderRadius: "6px",
                                   border: "1px solid var(--clothcore-border-strong)",
                                   fontSize: "12px",
-                                  background: locked ? "var(--clothcore-bg)" : "rgba(255,255,255,0.055)",
+                                  background: locked ? "var(--clothcore-bg)" : "#fff",
                                   color: "var(--clothcore-text)",
                                 }}
                               >
@@ -556,6 +559,27 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
                             </div>
                           </td>
                         )}
+                        <td style={{ padding: "8px 10px" }}>
+                          <button
+                            onClick={() => setViewingOrderId(order.orderId)}
+                            title="View order details"
+                            style={{
+                              padding: "5px 10px",
+                              borderRadius: "6px",
+                              border: "1px solid var(--clothcore-border)",
+                              fontSize: "11px",
+                              fontWeight: "600",
+                              color: "var(--clothcore-purple)",
+                              background: "transparent",
+                              cursor: "pointer",
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "4px",
+                            }}
+                          >
+                            <Eye size={12} /> View
+                          </button>
+                        </td>
                       </tr>
                     );
                   })
@@ -573,7 +597,7 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
                 <button
                   onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
                   disabled={currentPage === 1}
-                  style={{ padding: "4px 10px", border: "1px solid var(--clothcore-border)", borderRadius: "6px", background: "rgba(255,255,255,0.055)", cursor: currentPage === 1 ? "not-allowed" : "pointer", color: currentPage === 1 ? "var(--clothcore-text-muted)" : "var(--clothcore-text)", fontSize: "13px" }}
+                  style={{ padding: "4px 10px", border: "1px solid var(--clothcore-border)", borderRadius: "6px", background: "#fff", cursor: currentPage === 1 ? "not-allowed" : "pointer", color: currentPage === 1 ? "var(--clothcore-text-muted)" : "var(--clothcore-text)", fontSize: "13px" }}
                 >
                   <ChevronLeft size={14} />
                 </button>
@@ -583,7 +607,7 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
                 <button
                   onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
                   disabled={currentPage === totalPages}
-                  style={{ padding: "4px 10px", border: "1px solid var(--clothcore-border)", borderRadius: "6px", background: "rgba(255,255,255,0.055)", cursor: currentPage === totalPages ? "not-allowed" : "pointer", color: currentPage === totalPages ? "var(--clothcore-text-muted)" : "var(--clothcore-text)", fontSize: "13px" }}
+                  style={{ padding: "4px 10px", border: "1px solid var(--clothcore-border)", borderRadius: "6px", background: "#fff", cursor: currentPage === totalPages ? "not-allowed" : "pointer", color: currentPage === totalPages ? "var(--clothcore-text-muted)" : "var(--clothcore-text)", fontSize: "13px" }}
                 >
                   <ChevronRight size={14} />
                 </button>
@@ -598,7 +622,7 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content" style={{ borderRadius: "16px", background: "var(--clothcore-card)", color: "var(--clothcore-text)" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                   Assign Staff — {assigning.orderId}
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setAssigning(null)} />
@@ -659,6 +683,8 @@ function ProductionOverviewDashboard({ heading, subtitle, canUpdateStage, canAss
           </div>
         </div>
       )}
+
+      <OrderDetailsModal orderId={viewingOrderId} onClose={() => setViewingOrderId(null)} />
     </>
   );
 }

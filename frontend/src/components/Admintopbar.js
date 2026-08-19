@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import {
   Bell,
   PersonPlus,
@@ -13,6 +14,7 @@ import {
   X,
 } from "react-bootstrap-icons";
 import UserAccountMenu from "./UserAccountMenu";
+import { getUser } from "../utils/auth";
 
 const NOTIFICATIONS_API_URL = "http://localhost:5000/api/notifications";
 
@@ -40,6 +42,7 @@ function formatRelativeTime(dateInput) {
 }
 
 function Admintopbar() {
+  const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
 
@@ -106,14 +109,14 @@ function Admintopbar() {
     switch (type) {
       case "user":
         return {
-          backgroundColor: "#e8f0fe",
-          color: "#2563eb",
+          backgroundColor: "rgba(82,43,91,0.12)",
+          color: "#522b5b",
         };
 
       case "staff":
         return {
-          backgroundColor: "#e0f2fe",
-          color: "#0369a1",
+          backgroundColor: "rgba(133,79,108,0.12)",
+          color: "#854f6c",
         };
 
       case "inventory":
@@ -160,15 +163,23 @@ function Admintopbar() {
     }
   };
 
-  const handleNotificationClick = async (notificationId) => {
+  // "Order Awaiting Approval" (and any other Order-related) notifications
+  // are only actionable from the approval queue — route there instead of
+  // just marking the notification read and leaving the admin/supervisor on
+  // whatever page they happened to be on. Admin always has access to both
+  // queues (see ProtectedRoute's hasAccess), but routes them to their own
+  // home queue by their real role so "View As" preview doesn't matter.
+  const handleNotificationClick = async (notification) => {
+    const notificationId = notification._id;
+
     setNotifications((previousNotifications) =>
-      previousNotifications.map((notification) =>
-        notification._id === notificationId
+      previousNotifications.map((item) =>
+        item._id === notificationId
           ? {
-              ...notification,
+              ...item,
               isRead: true,
             }
-          : notification
+          : item
       )
     );
 
@@ -177,6 +188,17 @@ function Admintopbar() {
     } catch (error) {
       console.error("Failed to mark notification as read:", error);
       fetchNotifications();
+    }
+
+    if (notification.relatedModel === "Order") {
+      setShowNotifications(false);
+      const role = getUser()?.role;
+      const basePath = role === "supervisor" ? "/supervisor/order-approvals" : "/admin/order-approvals";
+      // Deep-links straight into that order's detail view (see
+      // ApprovalQueueView.js's ?orderId= handling) instead of just the
+      // general queue, for both "new request" and approve/reject-decision
+      // notifications alike.
+      navigate(notification.relatedId ? `${basePath}?orderId=${notification.relatedId}` : basePath);
     }
   };
 
@@ -209,10 +231,7 @@ function Admintopbar() {
   };
 
   return (
-    <div
-      className="admin-topbar"
-      style={{ position: "relative", zIndex: 100 }}
-    >
+    <div className="admin-topbar">
       <div style={{ flex: 1 }}></div>
 
       {/* RIGHT SECTION */}
@@ -233,6 +252,7 @@ function Admintopbar() {
           <button
             type="button"
             aria-label="Open notifications"
+            className="cc-bell-btn"
             onClick={() =>
               setShowNotifications((previousValue) => !previousValue)
             }
@@ -243,16 +263,17 @@ function Admintopbar() {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              backgroundColor: showNotifications ? "rgba(82,43,91,0.08)" : "transparent",
+              backgroundColor: showNotifications ? "var(--sidebar-bg-secondary)" : "transparent",
               border: "none",
               borderRadius: "50%",
               cursor: "pointer",
             }}
           >
-            <Bell size={20} color="var(--clothcore-blush)" />
+            <Bell className="cc-bell-icon" size={20} color="var(--sidebar-accent)" />
 
             {unreadCount > 0 && (
               <span
+                className="cc-notif-badge"
                 style={{
                   position: "absolute",
                   top: "0px",
@@ -279,6 +300,7 @@ function Admintopbar() {
           {/* NOTIFICATION DROPDOWN */}
           {showNotifications && (
             <div
+              className="cc-notif-dropdown"
               style={{
                 position: "absolute",
                 top: "48px",
@@ -329,6 +351,7 @@ function Admintopbar() {
                 <button
                   type="button"
                   aria-label="Close notifications"
+                  className="cc-icon-btn"
                   onClick={() => setShowNotifications(false)}
                   style={{
                     width: "30px",
@@ -336,7 +359,7 @@ function Admintopbar() {
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    backgroundColor: "rgba(255,255,255,0.08)",
+                    backgroundColor: "rgba(82,43,91,0.08)",
                     border: "none",
                     borderRadius: "50%",
                     cursor: "pointer",
@@ -398,8 +421,9 @@ function Admintopbar() {
                       <button
                         key={notification._id}
                         type="button"
+                        className="cc-notif-item"
                         onClick={() =>
-                          handleNotificationClick(notification._id)
+                          handleNotificationClick(notification)
                         }
                         style={{
                           width: "100%",
@@ -411,7 +435,7 @@ function Admintopbar() {
                             ? "transparent"
                             : "rgba(133,79,108,0.1)",
                           border: "none",
-                          borderBottom: "1px solid rgba(255,255,255,0.06)",
+                          borderBottom: "1px solid rgba(82,43,91,0.08)",
                           cursor: "pointer",
                         }}
                       >
@@ -464,7 +488,7 @@ function Admintopbar() {
                                   height: "8px",
                                   marginTop: "5px",
                                   flexShrink: 0,
-                                  backgroundColor: "#2563eb",
+                                  backgroundColor: "#854f6c",
                                   borderRadius: "50%",
                                 }}
                               />
@@ -507,11 +531,12 @@ function Admintopbar() {
                     justifyContent: "space-between",
                     gap: "10px",
                     borderTop: "1px solid var(--clothcore-border)",
-                    backgroundColor: "rgba(255,255,255,0.03)",
+                    backgroundColor: "rgba(82,43,91,0.03)",
                   }}
                 >
                   <button
                     type="button"
+                    className="cc-text-btn"
                     onClick={handleMarkAllAsRead}
                     disabled={unreadCount === 0}
                     style={{
@@ -529,6 +554,7 @@ function Admintopbar() {
 
                   <button
                     type="button"
+                    className="cc-text-btn"
                     onClick={handleClearNotifications}
                     style={{
                       padding: "7px 12px",

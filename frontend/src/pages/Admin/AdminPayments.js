@@ -11,6 +11,8 @@ import {
   Wallet2,
 } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
+import ConfirmModal from "../../components/modals/ConfirmModal";
+import RejectOrderModal from "../../components/RejectOrderModal";
 
 const API_URL = "http://localhost:5000/api/payments";
 
@@ -21,6 +23,8 @@ function AdminPayments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All Status");
   const [busyId, setBusyId] = useState(null);
+  const [verifyTarget, setVerifyTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
 
   const fetchPayments = async () => {
     try {
@@ -40,11 +44,12 @@ function AdminPayments() {
     fetchPayments();
   }, []);
 
-  const handleVerify = async (payment) => {
-    if (!window.confirm(`Verify payment of Rs. ${payment.amount} for order ${payment.orderId?.orderId || ""}?`)) return;
+  const confirmVerify = async () => {
+    if (!verifyTarget) return;
     try {
-      setBusyId(payment._id);
-      await axios.put(`${API_URL}/${payment._id}/verify`);
+      setBusyId(verifyTarget._id);
+      await axios.put(`${API_URL}/${verifyTarget._id}/verify`);
+      setVerifyTarget(null);
       await fetchPayments();
     } catch (err) {
       alert(err.response?.data?.message || "Could not verify payment.");
@@ -53,12 +58,12 @@ function AdminPayments() {
     }
   };
 
-  const handleReject = async (payment) => {
-    const reason = window.prompt("Reason for rejecting this payment:");
-    if (reason === null) return;
+  const confirmReject = async (reason) => {
+    if (!rejectTarget) return;
     try {
-      setBusyId(payment._id);
-      await axios.put(`${API_URL}/${payment._id}/reject`, { reason });
+      setBusyId(rejectTarget._id);
+      await axios.put(`${API_URL}/${rejectTarget._id}/reject`, { reason });
+      setRejectTarget(null);
       await fetchPayments();
     } catch (err) {
       alert(err.response?.data?.message || "Could not reject payment.");
@@ -72,8 +77,7 @@ function AdminPayments() {
     const matchesSearch =
       !search ||
       (p.orderId?.orderId || "").toLowerCase().includes(search) ||
-      (p.orderId?.customerName || "").toLowerCase().includes(search) ||
-      (p.transactionReference || "").toLowerCase().includes(search);
+      (p.orderId?.customerName || "").toLowerCase().includes(search);
     const matchesStatus = selectedStatus === "All Status" || p.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
@@ -90,7 +94,7 @@ function AdminPayments() {
   const stats = [
     { label: "Verified (Total)", value: `LKR ${totalVerified.toLocaleString()}`, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
     { label: "Awaiting Verification", value: `LKR ${totalSubmitted.toLocaleString()}`, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-    { label: "Submitted Payments", value: submittedCount, icon: Wallet2, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
+    { label: "Submitted Payments", value: submittedCount, icon: Wallet2, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
     { label: "Rejected Payments", value: rejectedCount, icon: XCircle, color: "var(--clothcore-danger)", bg: "var(--clothcore-danger-bg)" },
   ];
 
@@ -136,7 +140,7 @@ function AdminPayments() {
                       <input
                         type="text"
                         className="form-control admin-select"
-                        placeholder="Search by Order ID, Customer or Reference..."
+                        placeholder="Search by Order ID or Customer..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={{ paddingLeft: "36px", height: "38px" }}
@@ -163,10 +167,10 @@ function AdminPayments() {
                       <tr>
                         <th>Order</th>
                         <th>Customer</th>
-                        <th>Type</th>
+                        <th>Stage</th>
                         <th>Method</th>
                         <th>Amount</th>
-                        <th>Reference</th>
+                        <th>Proof / Card</th>
                         <th>Status</th>
                         <th>Date</th>
                         <th style={{ textAlign: "center" }}>Actions</th>
@@ -187,12 +191,20 @@ function AdminPayments() {
                       ) : (
                         filteredPayments.map((p) => (
                           <tr key={p._id}>
-                            <td style={{ fontWeight: 600, color: "var(--clothcore-blush)" }}>{p.orderId?.orderId || "N/A"}</td>
+                            <td style={{ fontWeight: 600, color: "var(--clothcore-purple)" }}>{p.orderId?.orderId || "N/A"}</td>
                             <td>{p.orderId?.customerName || "N/A"}</td>
-                            <td>{p.paymentType}</td>
+                            <td>{p.stage || "N/A"}</td>
                             <td>{p.paymentMethod}</td>
                             <td style={{ fontWeight: 600 }}>LKR {Number(p.amount || 0).toLocaleString()}</td>
-                            <td style={{ color: "var(--clothcore-text-soft)" }}>{p.transactionReference || "N/A"}</td>
+                            <td style={{ color: "var(--clothcore-text-soft)" }}>
+                              {p.proofFile ? (
+                                <a href={`http://localhost:5000${p.proofFile}`} target="_blank" rel="noreferrer">View Proof</a>
+                              ) : p.cardLast4 ? (
+                                `Card •••• ${p.cardLast4}`
+                              ) : (
+                                "N/A"
+                              )}
+                            </td>
                             <td>
                               <span className={`admin-badge ${getStatusBadge(p.status)}`}>{p.status}</span>
                               {p.status === "Rejected" && p.rejectionReason && (
@@ -209,7 +221,7 @@ function AdminPayments() {
                                     className="btn btn-sm"
                                     style={{ background: "linear-gradient(135deg, #1a9c5f, #158a52)", color: "white", borderRadius: "8px", border: "none", fontWeight: 600 }}
                                     disabled={busyId === p._id}
-                                    onClick={() => handleVerify(p)}
+                                    onClick={() => setVerifyTarget(p)}
                                   >
                                     <Check size={13} /> Verify
                                   </button>
@@ -217,7 +229,7 @@ function AdminPayments() {
                                     className="btn btn-sm"
                                     style={{ background: "linear-gradient(135deg, #d1495b, #b83d4d)", color: "white", borderRadius: "8px", border: "none", fontWeight: 600 }}
                                     disabled={busyId === p._id}
-                                    onClick={() => handleReject(p)}
+                                    onClick={() => setRejectTarget(p)}
                                   >
                                     <X size={13} /> Reject
                                   </button>
@@ -236,6 +248,30 @@ function AdminPayments() {
                 </div>
               </div>
             </div>
+
+      <ConfirmModal
+        open={Boolean(verifyTarget)}
+        onCancel={() => setVerifyTarget(null)}
+        onConfirm={confirmVerify}
+        submitting={busyId === verifyTarget?._id}
+        title="Verify Payment?"
+        message={
+          verifyTarget
+            ? `Verify payment of Rs. ${Number(verifyTarget.amount).toLocaleString()} for order ${verifyTarget.orderId?.orderId || ""}? This confirms the payment has been received.`
+            : ""
+        }
+        confirmLabel="Verify Payment"
+      />
+
+      {rejectTarget && (
+        <RejectOrderModal
+          order={rejectTarget.orderId}
+          title={`Reject Payment — ${rejectTarget.orderId?.orderId || ""}`}
+          onCancel={() => setRejectTarget(null)}
+          onConfirm={confirmReject}
+          submitting={busyId === rejectTarget._id}
+        />
+      )}
     </AdminLayout>
   );
 }

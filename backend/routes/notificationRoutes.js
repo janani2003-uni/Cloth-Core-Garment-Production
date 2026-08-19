@@ -6,8 +6,11 @@ const { verifyToken, requireRole } = require("../middleware/authMiddleware");
 
 router.use(verifyToken);
 
-// GET all Admin-facing (global/broadcast) notifications
-router.get("/", requireRole("admin"), async (req, res) => {
+// GET all Admin/Supervisor-facing (global/broadcast) notifications — both
+// roles receive the same broadcasts (e.g. "Order Awaiting Approval"), so
+// both need read access here. This is what Admintopbar.js's bell polls,
+// and that component is shared by Admin and Supervisor alike.
+router.get("/", requireRole("admin", "supervisor"), async (req, res) => {
   try {
     const notifications = await Notification.find({ recipientId: null })
       .sort({ createdAt: -1 });
@@ -42,12 +45,12 @@ router.get("/mine", async (req, res) => {
   }
 });
 
-// GET unread count for the current user — Admins get the broadcast feed's
-// unread count, everyone else gets their own.
+// GET unread count for the current user — Admin/Supervisor get the
+// broadcast feed's unread count, everyone else gets their own.
 router.get("/unread-count", async (req, res) => {
   try {
     const filter =
-      req.user.role === "admin"
+      ["admin", "supervisor"].includes(req.user.role)
         ? { recipientId: null, isRead: false }
         : { recipientId: req.user.id, isRead: false };
 
@@ -79,7 +82,7 @@ router.put("/:id/read", async (req, res) => {
     const isOwnNotification =
       notification.recipientId &&
       String(notification.recipientId) === String(req.user.id);
-    const isAdminBroadcast = !notification.recipientId && req.user.role === "admin";
+    const isAdminBroadcast = !notification.recipientId && ["admin", "supervisor"].includes(req.user.role);
 
     if (!isOwnNotification && !isAdminBroadcast) {
       return res.status(403).json({ success: false,
@@ -104,12 +107,12 @@ router.put("/:id/read", async (req, res) => {
   }
 });
 
-// MARK all of the current user's notifications as read (Admin = broadcast
-// feed, everyone else = their own)
+// MARK all of the current user's notifications as read (Admin/Supervisor =
+// broadcast feed, everyone else = their own)
 router.put("/read-all", async (req, res) => {
   try {
     const filter =
-      req.user.role === "admin"
+      ["admin", "supervisor"].includes(req.user.role)
         ? { recipientId: null, isRead: false }
         : { recipientId: req.user.id, isRead: false };
 
@@ -128,7 +131,7 @@ router.put("/read-all", async (req, res) => {
   }
 });
 
-// DELETE one notification (owner, or Admin for a broadcast one)
+// DELETE one notification (owner, or Admin/Supervisor for a broadcast one)
 router.delete("/:id", async (req, res) => {
   try {
     const notification = await Notification.findById(req.params.id);
@@ -142,7 +145,7 @@ router.delete("/:id", async (req, res) => {
     const isOwnNotification =
       notification.recipientId &&
       String(notification.recipientId) === String(req.user.id);
-    const isAdminBroadcast = !notification.recipientId && req.user.role === "admin";
+    const isAdminBroadcast = !notification.recipientId && ["admin", "supervisor"].includes(req.user.role);
 
     if (!isOwnNotification && !isAdminBroadcast) {
       return res.status(403).json({ success: false,
@@ -165,12 +168,12 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-// DELETE all of the current user's notifications (Admin = broadcast feed,
-// everyone else = their own)
+// DELETE all of the current user's notifications (Admin/Supervisor =
+// broadcast feed, everyone else = their own)
 router.delete("/", async (req, res) => {
   try {
     const filter =
-      req.user.role === "admin" ? { recipientId: null } : { recipientId: req.user.id };
+      ["admin", "supervisor"].includes(req.user.role) ? { recipientId: null } : { recipientId: req.user.id };
 
     await Notification.deleteMany(filter);
 

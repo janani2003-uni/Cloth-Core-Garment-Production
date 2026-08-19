@@ -17,6 +17,7 @@ import {
 } from "react-bootstrap-icons";
 import { getUser, clearSession } from "../utils/auth";
 import { formatRoleLabel } from "../utils/roles";
+import LogoutConfirmModal from "./modals/LogoutConfirmModal";
 
 const DASHBOARD_VIEWS = [
   { key: "admin", label: "Admin Dashboard", path: "/admin-dashboard", icon: Shield },
@@ -24,7 +25,7 @@ const DASHBOARD_VIEWS = [
   { key: "supervisor", label: "Supervisor View", path: "/supervisor-dashboard", icon: Gear },
 ];
 
-const ADMIN_MANAGEMENT_PATHS = ["/users", "/staff", "/shops", "/production", "/inventory"];
+const ADMIN_MANAGEMENT_PATHS = ["/users", "/staff", "/production", "/inventory"];
 
 function detectViewFromPath(pathname) {
   if (pathname.startsWith("/supervisor-dashboard")) return "supervisor";
@@ -42,6 +43,7 @@ function UserAccountMenu({ user: userProp }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const ref = useRef(null);
 
   const user = userProp || getUser();
@@ -86,7 +88,11 @@ function UserAccountMenu({ user: userProp }) {
 
   const handleLogout = () => {
     setOpen(false);
-    if (!window.confirm("Are you sure you want to log out?")) return;
+    setLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setLogoutModalOpen(false);
     clearSession();
     navigate("/login", { replace: true });
   };
@@ -114,7 +120,7 @@ function UserAccountMenu({ user: userProp }) {
             width: "38px",
             height: "38px",
             borderRadius: "50%",
-            background: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
+            background: "linear-gradient(135deg, var(--sidebar-accent), var(--sidebar-accent-strong))",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -126,11 +132,13 @@ function UserAccountMenu({ user: userProp }) {
         >
           {initials}
         </div>
+        {/* Uses --sidebar-* tokens, not var(--clothcore-text*) — this button
+            sits on the dark topbar chrome, not the light content surface. */}
         <div className="d-none d-md-block text-start">
-          <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--clothcore-text)" }}>{displayName}</div>
-          <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)" }}>{roleLabel}</div>
+          <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--sidebar-text)" }}>{displayName}</div>
+          <div style={{ fontSize: "11px", color: "var(--sidebar-text-soft)" }}>{roleLabel}</div>
         </div>
-        <ChevronDown size={14} style={{ color: "var(--clothcore-text-soft)" }} />
+        <ChevronDown size={14} style={{ color: "var(--sidebar-text-soft)" }} />
       </button>
 
       {open && (
@@ -182,10 +190,10 @@ function UserAccountMenu({ user: userProp }) {
                     }}
                     onClick={() => goTo(dashboardView.path)}
                   >
-                    <Icon size={15} color={active ? "var(--clothcore-blush)" : "var(--clothcore-text-soft)"} />
+                    <Icon size={15} color={active ? "var(--clothcore-mauve)" : "var(--clothcore-text-soft)"} />
                     {dashboardView.label}
                     {active && (
-                      <span style={{ marginLeft: "auto", color: "var(--clothcore-blush)", fontWeight: 700 }}>
+                      <span style={{ marginLeft: "auto", color: "var(--clothcore-mauve)", fontWeight: 700 }}>
                         ✓
                       </span>
                     )}
@@ -230,6 +238,12 @@ function UserAccountMenu({ user: userProp }) {
           </button>
         </div>
       )}
+
+      <LogoutConfirmModal
+        open={logoutModalOpen}
+        onCancel={() => setLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 }

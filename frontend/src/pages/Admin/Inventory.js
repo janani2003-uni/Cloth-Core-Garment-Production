@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../../components/AdminLayout";
 import axios from "axios";
+import ProductCatalogPanel from "../../components/inventory/ProductCatalogPanel";
+import ConfirmModal from "../../components/modals/ConfirmModal";
 
 import {
   Search,
@@ -14,6 +16,7 @@ import {
   PlusCircle,
   Wallet2,
   Box,
+  Bag,
   Folder2Open,
   Palette,
   CircleFill,
@@ -22,9 +25,32 @@ import {
 } from "react-bootstrap-icons";
 
 const API_URL = "http://localhost:5000/api/inventory";
+const CATALOG_OPTIONS_URL = "http://localhost:5000/api/products/catalog-options";
+
+// Product Catalog used to be its own separate sidebar page
+// (AdminProductCatalog.js). It didn't overlap with what this page already
+// tracked (raw materials like fabric/thread/zipper stock, a different
+// concept from finished-garment types) — so it was folded in here as a tab
+// instead of being merged/deduped, giving Admin one place for both. Still
+// talks to its own original backend (/api/products) — only the navigation
+// entry point changed, not the data model or the order-placement flow that
+// depends on it.
+//
+// Garment Stock was also briefly a tab here (folded in the same way) but
+// has since been permanently removed per an explicit request — no page or
+// tab for it anywhere in the app anymore. The underlying GarmentSizeStock
+// data model and backend/routes/garmentStockRoutes.js are untouched (Order
+// approval's stock check reads that model directly, not through this UI),
+// but there is currently no admin screen to add/edit per-size stock levels
+// — ask before assuming that gap should stay closed.
+const TABS = [
+  { key: "materials", label: "Raw Materials", icon: BoxSeam },
+  { key: "catalog", label: "Product Catalog", icon: Bag },
+];
 
 // Main Inventory Management Component
 function InventoryManagement() {
+  const [activeTab, setActiveTab] = useState("materials");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedColor, setSelectedColor] = useState("All Colors");
@@ -42,6 +68,7 @@ function InventoryManagement() {
   const [savingItem, setSavingItem] = useState(false);
   const [updatingItem, setUpdatingItem] = useState(false);
   const [deletingItemId, setDeletingItemId] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   // Add Item form state
   const emptyInventoryForm = {
@@ -49,6 +76,7 @@ function InventoryManagement() {
     sku: "",
     category: "Fabrics",
     color: "White",
+    fabricType: "",
     stockQuantity: "",
     unit: "Meter",
     unitCost: "",
@@ -64,6 +92,7 @@ function InventoryManagement() {
     sku: "",
     category: "",
     color: "",
+    fabricType: "",
     stockQuantity: "",
     unit: "",
     unitCost: "",
@@ -73,18 +102,28 @@ function InventoryManagement() {
 
   const itemsPerPage = 7;
 
-  // Color options
-  const colorOptions = ["White", "Black", "Navy Blue", "Red", "Grey", "Yellow", "Green"];
-  
-  const colorHexMap = {
-    "White": "#FFFFFF",
-    "Black": "#1A1A1A",
-    "Navy Blue": "#1B2A4A",
-    "Red": "#DC3545",
-    "Grey": "#808080",
-    "Yellow": "#FFD700",
-    "Green": "#2E8B57",
-  };
+  // Colors and fabric types — fetched from the SAME Product catalog Order
+  // Step 1 reads from (GET /api/products/catalog-options), rather than a
+  // second, hand-maintained list that could drift out of sync. Falls back
+  // to a minimal safe default only if that request fails.
+  const [colorOptions, setColorOptions] = useState(["White", "Black", "Navy Blue"]);
+  const [colorHexMap, setColorHexMap] = useState({ White: "#FFFFFF", Black: "#1A1A1A", "Navy Blue": "#1B2A4A" });
+  const [fabricOptions, setFabricOptions] = useState([]);
+
+  useEffect(() => {
+    axios.get(CATALOG_OPTIONS_URL)
+      .then((res) => {
+        const { colors, fabrics } = res.data.data;
+        if (colors?.length) {
+          setColorOptions(colors.map((c) => c.label));
+          setColorHexMap(Object.fromEntries(colors.map((c) => [c.label, c.hex])));
+        }
+        if (fabrics?.length) {
+          setFabricOptions(fabrics.map((f) => f.label));
+        }
+      })
+      .catch((err) => console.error("Load Catalog Options Error:", err));
+  }, []);
 
   const statuses = ["In Stock", "Low Stock", "Out of Stock"];
 
@@ -203,6 +242,7 @@ function InventoryManagement() {
       sku: formData.sku.trim().toUpperCase(),
       category: formData.category,
       color: formData.color,
+      fabricType: formData.category === "Fabrics" ? formData.fabricType : "",
       stockQuantity: Number(formData.stockQuantity),
       unit: formData.unit,
       unitCost: Number(formData.unitCost),
@@ -245,6 +285,7 @@ function InventoryManagement() {
       sku: item.sku || "",
       category: item.category || "",
       color: item.color || "",
+      fabricType: item.fabricType || "",
       stockQuantity: item.stockQuantity ?? "",
       unit: item.unit || "",
       unitCost: item.unitCost ?? "",
@@ -299,6 +340,7 @@ function InventoryManagement() {
       sku: editFormData.sku.trim().toUpperCase(),
       category: editFormData.category,
       color: editFormData.color,
+      fabricType: editFormData.category === "Fabrics" ? editFormData.fabricType : "",
       stockQuantity: Number(editFormData.stockQuantity),
       unit: editFormData.unit,
       unitCost: Number(editFormData.unitCost),
@@ -321,15 +363,18 @@ function InventoryManagement() {
     }
   };
 
-  // Delete Item
-  const handleDelete = async (item) => {
-    const confirmed = window.confirm(`Are you sure you want to delete "${item.itemName}"?`);
-    if (!confirmed) return;
+  // Delete Item — requires explicit confirmation via ConfirmModal (see
+  // deleteTarget state) rather than deleting immediately on click.
+  const handleDelete = (item) => {
+    setDeleteTarget(item);
+  };
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      setDeletingItemId(item._id);
-      const response = await axios.delete(`${API_URL}/${item._id}`);
-      alert(response.data.message || "Item deleted successfully!");
+      setDeletingItemId(deleteTarget._id);
+      await axios.delete(`${API_URL}/${deleteTarget._id}`);
+      setDeleteTarget(null);
       await fetchInventory();
     } catch (err) {
       console.error("Delete Item Error:", err);
@@ -354,6 +399,48 @@ function InventoryManagement() {
 
   return (
     <AdminLayout shellStyle={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+          {/* Page Header + Tabs */}
+          <div className="admin-page-header">
+            <div>
+              <h2 className="admin-page-title">Inventory Management</h2>
+              <p className="admin-page-subtitle">
+                Raw materials, the product catalog and size-level garment stock — all in one place.
+              </p>
+            </div>
+          </div>
+          <div style={{ marginBottom: "20px" }}>
+            <div style={{ display: "flex", gap: "6px", borderBottom: "2px solid var(--clothcore-border)" }}>
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "6px",
+                    padding: "10px 18px",
+                    background: "transparent",
+                    border: "none",
+                    borderBottom: activeTab === tab.key ? "2px solid var(--clothcore-purple)" : "2px solid transparent",
+                    marginBottom: "-2px",
+                    color: activeTab === tab.key ? "var(--clothcore-purple)" : "var(--clothcore-text-soft)",
+                    fontWeight: activeTab === tab.key ? "700" : "500",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <tab.icon size={16} /> {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeTab === "catalog" && <ProductCatalogPanel />}
+
+          {activeTab === "materials" && (
+          <>
           {/* Loading State */}
           {loading ? (
             <div style={{ textAlign: "center", padding: "60px 20px" }}>
@@ -396,11 +483,11 @@ function InventoryManagement() {
                 marginBottom: "20px"
               }}>
                 {[
-                  { label: "Total Items", value: totalItems.toLocaleString(), icon: BoxSeam, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
+                  { label: "Total Items", value: totalItems.toLocaleString(), icon: BoxSeam, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
                   { label: "In Stock", value: inStockItems.toLocaleString(), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
                   { label: "Low Stock", value: lowStockItems.toLocaleString(), icon: ExclamationTriangle, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
                   { label: "Out of Stock", value: outOfStockItems.toLocaleString(), icon: XCircle, color: "var(--clothcore-danger)", bg: "var(--clothcore-danger-bg)" },
-                  { label: "Total Value", value: `Rs. ${totalValue.toLocaleString()}`, icon: Wallet2, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
+                  { label: "Total Value", value: `Rs. ${totalValue.toLocaleString()}`, icon: Wallet2, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
                 ].map((stat, index) => (
                   <div key={index} style={{
                     backgroundColor: "var(--clothcore-card)",
@@ -511,7 +598,7 @@ function InventoryManagement() {
                           onClick={() => setSelectedColor(color)}
                           style={{
                             padding: "4px 10px",
-                            backgroundColor: selectedColor === color ? "var(--clothcore-purple)" : "rgba(255,255,255,0.055)",
+                            backgroundColor: selectedColor === color ? "var(--clothcore-purple)" : "rgba(82,43,91,0.06)",
                             color: selectedColor === color ? "white" : "var(--clothcore-text-soft)",
                             border: selectedColor === color ? "none" : "1px solid var(--clothcore-border-strong)",
                             borderRadius: "4px",
@@ -532,7 +619,7 @@ function InventoryManagement() {
                 </div>
 
                 {/* Right Content */}
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                   {/* Search and Filters */}
                   <div style={{
                     backgroundColor: "var(--clothcore-card)",
@@ -729,7 +816,12 @@ function InventoryManagement() {
                                     <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)" }}>{item.description}</div>
                                   </td>
                                   <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "12px" }}>{item.sku}</td>
-                                  <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>{item.category}</td>
+                                  <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>
+                                    {item.category}
+                                    {item.fabricType && (
+                                      <div style={{ fontSize: "11px", color: "var(--clothcore-purple)", fontWeight: 600 }}>{item.fabricType}</div>
+                                    )}
+                                  </td>
                                   <td style={{ padding: "10px 14px" }}>
                                     <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
                                       <CircleFill size={11} color={colorHexMap[item.color] || "#000"} />
@@ -755,7 +847,7 @@ function InventoryManagement() {
                                     <Eye
                                       size={16}
                                       style={{ 
-                                        color: "var(--clothcore-blush)", 
+                                        color: "var(--clothcore-purple)", 
                                         cursor: "pointer", 
                                         marginRight: "8px",
                                         transition: "all 0.2s"
@@ -968,6 +1060,24 @@ function InventoryManagement() {
                     ))}
                   </select>
                 </div>
+                {formData.category === "Fabrics" && (
+                  <div>
+                    <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
+                      Fabric Type
+                    </label>
+                    <select
+                      name="fabricType"
+                      value={formData.fabricType}
+                      onChange={handleFormChange}
+                      style={{ width: "100%", padding: "8px 12px", border: "1px solid var(--clothcore-border)", borderRadius: "4px", fontSize: "14px", backgroundColor: "var(--clothcore-card)" }}
+                    >
+                      <option value="">Not specified</option>
+                      {fabricOptions.map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Stock Quantity *
@@ -1361,6 +1471,33 @@ function InventoryManagement() {
                   </select>
                 </div>
 
+                {editFormData.category === "Fabrics" && (
+                  <div>
+                    <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
+                      Fabric Type
+                    </label>
+                    <select
+                      name="fabricType"
+                      value={editFormData.fabricType}
+                      onChange={handleEditChange}
+                      style={{
+                        width: "100%",
+                        padding: "8px 12px",
+                        border: "1px solid var(--clothcore-border)",
+                        borderRadius: "4px",
+                        fontSize: "14px",
+                        backgroundColor: "var(--clothcore-card)",
+                        outline: "none"
+                      }}
+                    >
+                      <option value="">Not specified</option>
+                      {fabricOptions.map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
                 <div>
                   <label style={{ display: "block", marginBottom: "4px", fontSize: "13px", fontWeight: "500", color: "var(--clothcore-text)" }}>
                     Unit *
@@ -1519,6 +1656,20 @@ function InventoryManagement() {
           </div>
         </div>
       )}
+          </>
+          )}
+
+      <ConfirmModal
+        open={Boolean(deleteTarget)}
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Material?"
+        message={deleteTarget ? `Are you sure you want to delete "${deleteTarget.itemName}"? This cannot be undone.` : ""}
+        confirmLabel="Delete Material"
+        cancelLabel="Cancel"
+        danger
+        submitting={Boolean(deletingItemId)}
+      />
     </AdminLayout>
   );
 }

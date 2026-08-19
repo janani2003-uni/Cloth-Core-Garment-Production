@@ -9,9 +9,7 @@ import {
   XCircle,
   Clock,
   Calendar,
-  UpcScan,
   Box,
-  QuestionCircle
 } from "react-bootstrap-icons";
 import { getUser } from "../utils/auth";
 
@@ -54,21 +52,20 @@ function Deliveries() {
               orderDisplayId: order.orderId || order._id,
               orderItem: order.item || "N/A",
               hasRecord: true,
-              status: res.data?.status || "Not Scheduled",
-              trackingNumber: res.data?.trackingNumber || "",
+              status: res.data?.status || "Not Yet Delivered",
               scheduledDate: res.data?.scheduledDate || "",
               deliveryStaffName: res.data?.deliveryStaffName || "",
               notes: res.data?.notes || "",
             };
           } catch (err) {
             // 404 (or any other lookup failure) simply means no delivery
-            // record has been created for this order yet.
+            // record has been created for this order yet — shown the same
+            // as "Not Yet Delivered" since that's exactly what it is.
             return {
               orderDisplayId: order.orderId || order._id,
               orderItem: order.item || "N/A",
               hasRecord: false,
-              status: "Not yet processed",
-              trackingNumber: "",
+              status: "Not Yet Delivered",
               scheduledDate: "",
               deliveryStaffName: "",
               notes: "",
@@ -91,38 +88,25 @@ function Deliveries() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Exactly three shop-owner-facing statuses — Shop Owner can only ever
+  // view this, never change it (every write route in
+  // backend/routes/deliveryRoutes.js is Admin/Supervisor-only).
   const getStatusBadgeStyle = (status) => {
     const styles = {
       Delivered: {
         bg: "linear-gradient(135deg, var(--clothcore-success), #158a52)",
         icon: CheckCircle,
       },
-      Dispatched: {
+      "Delivery In Progress": {
         bg: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
         icon: Truck,
       },
-      "In Transit": {
-        bg: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
-        icon: Truck,
-      },
-      "Delivery Failed": {
-        bg: "linear-gradient(135deg, var(--clothcore-danger), #b83d4d)",
-        icon: XCircle,
-      },
-      Scheduled: {
+      "Not Yet Delivered": {
         bg: "linear-gradient(135deg, var(--clothcore-text-soft), #554a5c)",
         icon: Clock,
-      },
-      "Not Scheduled": {
-        bg: "linear-gradient(135deg, var(--clothcore-text-soft), #554a5c)",
-        icon: Clock,
-      },
-      "Not yet processed": {
-        bg: "linear-gradient(135deg, #a99ba8, var(--clothcore-text-soft))",
-        icon: QuestionCircle,
       },
     };
-    return styles[status] || styles["Not yet processed"];
+    return styles[status] || styles["Not Yet Delivered"];
   };
 
   if (loading) {
@@ -136,7 +120,7 @@ function Deliveries() {
               >
                 <span className="visually-hidden">Loading...</span>
               </div>
-              <h5 style={{ color: "var(--clothcore-blush)" }}>Loading Deliveries...</h5>
+              <h5 style={{ color: "var(--clothcore-purple)" }}>Loading Deliveries...</h5>
             </div>
       </ShopOwnerLayout>
     );
@@ -157,14 +141,17 @@ function Deliveries() {
   }
 
   return (
-    <ShopOwnerLayout>
+    <ShopOwnerLayout
+      contentClassName="p-3 p-md-4"
+      contentStyle={{ maxWidth: "1280px", margin: "0 auto" }}
+    >
           {/* Header */}
-          <div className="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center mb-4 gap-3">
+          <div className="admin-page-header">
             <div>
-              <h1 className="fw-bold" style={{ fontSize: "28px", color: "var(--clothcore-text)" }}>
+              <h1 className="admin-page-title" style={{ fontSize: "28px" }}>
                 My Deliveries
               </h1>
-              <p className="text-muted mb-0" style={{ fontSize: "15px" }}>
+              <p className="admin-page-subtitle" style={{ fontSize: "15px" }}>
                 Delivery status for all your orders
               </p>
             </div>
@@ -180,12 +167,12 @@ function Deliveries() {
                 <table className="table table-hover admin-table mb-0" style={{ fontSize: "14px" }}>
                   <thead
                     style={{
-                      background: "rgba(255,255,255,0.04)",
+                      background: "rgba(82,43,91,0.045)",
                       borderBottom: "2px solid var(--clothcore-border)",
                     }}
                   >
                     <tr>
-                      {["Order ID", "Item", "Delivery Status", "Tracking Number", "Scheduled Date"].map(
+                      {["Order ID", "Item", "Delivery Status", "Scheduled Date"].map(
                         (heading) => (
                           <th
                             key={heading}
@@ -206,7 +193,7 @@ function Deliveries() {
                   <tbody>
                     {!user ? (
                       <tr>
-                        <td colSpan="5" className="text-center py-5">
+                        <td colSpan="4" className="text-center py-5">
                           <div style={{ color: "var(--clothcore-text-soft)" }}>
                             <Person size={48} style={{ color: "var(--clothcore-text-soft)" }} />
                             <h5 className="mt-2">Please log in</h5>
@@ -218,7 +205,7 @@ function Deliveries() {
                       </tr>
                     ) : rows.length === 0 ? (
                       <tr>
-                        <td colSpan="5" className="text-center py-5">
+                        <td colSpan="4" className="text-center py-5">
                           <div style={{ color: "var(--clothcore-text-soft)" }}>
                             <Box size={48} style={{ color: "var(--clothcore-text-soft)" }} />
                             <h5 className="mt-2">No orders yet</h5>
@@ -235,7 +222,7 @@ function Deliveries() {
                         return (
                           <tr key={row.orderDisplayId} style={{ borderBottom: "1px solid var(--clothcore-border)" }}>
                             <td className="px-4 py-3">
-                              <span className="fw-bold" style={{ color: "var(--clothcore-blush)", fontSize: "13px" }}>
+                              <span className="fw-bold" style={{ color: "var(--clothcore-purple)", fontSize: "13px" }}>
                                 #{row.orderDisplayId}
                               </span>
                             </td>
@@ -257,12 +244,6 @@ function Deliveries() {
                                 <StatusIcon size={12} />
                                 {row.status}
                               </span>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="d-flex align-items-center">
-                                <UpcScan size={14} className="text-muted me-2" />
-                                {row.trackingNumber || "Not assigned yet"}
-                              </div>
                             </td>
                             <td className="px-4 py-3">
                               <div className="d-flex align-items-center">

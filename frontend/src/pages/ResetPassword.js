@@ -1,40 +1,85 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiLock, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiLock, FiEye, FiEyeOff, FiAlertCircle } from "react-icons/fi";
 import logo from "../assets/logo-new.png.jpeg";
+import {
+  PASSWORD_REGEX,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+  PASSWORD_REQUIREMENTS_LIST,
+} from "../utils/passwordPolicy";
 
 function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const navigate = useNavigate();
   const { state } = useLocation();
+  const email = state?.email;
+  const resetToken = state?.resetToken;
+
+  // The Reset Password step can never be reached with only an email — a
+  // verified reset token (issued by /verify-reset-otp) is required. If it's
+  // missing here (direct navigation, refresh after the in-memory router
+  // state was lost, expired flow), send the user back to start rather than
+  // rendering a form the backend will reject anyway.
+  useEffect(() => {
+    if (!email || !resetToken) {
+      navigate("/forgotpassword", { replace: true, state: { sessionExpired: true } });
+    }
+  }, [email, resetToken, navigate]);
+
+  if (!email || !resetToken) {
+    return null;
+  }
 
   const handleUpdate = async () => {
-    if (password !== confirm) {
-      alert("Passwords do not match");
+    setError("");
+
+    if (!password || !confirm) {
+      setError("Please fill in both password fields.");
       return;
     }
 
-    try {
-      const response = await axios.post(
-        "http://127.0.0.1:5000/api/auth/reset-password",
-        {
-          email: state.email,
-          otp: state.otp,
-          newPassword: password,
-        }
-      );
+    if (!PASSWORD_REGEX.test(password)) {
+      setError(PASSWORD_REQUIREMENTS_MESSAGE);
+      return;
+    }
 
-      alert(response.data.message);
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await axios.post("http://127.0.0.1:5000/api/auth/reset-password", {
+        email,
+        resetToken,
+        newPassword: password,
+        confirmPassword: confirm,
+      });
 
       navigate("/password-reset-success");
-    } catch (error) {
-      alert(error.response?.data?.message || error.message);
+    } catch (err) {
+      const message = err.response?.data?.message || "Something went wrong. Please try again.";
+
+      // The backend rejects an invalid/expired token the same way — treat
+      // it as the session ending and route back to the start with context.
+      if (err.response?.status === 400 && /reset session/i.test(message)) {
+        navigate("/forgotpassword", { replace: true, state: { sessionExpired: true } });
+        return;
+      }
+
+      setError(message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -93,11 +138,18 @@ function ResetPassword() {
                 <div className="card-body p-5">
                   <p className="fw-bold mb-2 auth-eyebrow">STEP 3</p>
 
-                  <h1 className="fw-bold mb-2 auth-title">Set New Password</h1>
+                  <h1 className="fw-bold mb-2 auth-title">Create New Password</h1>
 
                   <p className="mb-4 auth-subtitle">
                     Choose a new password for your ClothCore account.
                   </p>
+
+                  {error && (
+                    <div className="auth-banner is-error" role="alert">
+                      <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{error}</span>
+                    </div>
+                  )}
 
                   <div className="mb-3">
                     <label htmlFor="newPassword" className="form-label fw-semibold">
@@ -112,7 +164,10 @@ function ResetPassword() {
                         className="form-control form-control-lg auth-input"
                         placeholder="Enter New Password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setError("");
+                        }}
                         required
                       />
                       <button
@@ -124,6 +179,17 @@ function ResetPassword() {
                         {showPassword ? <FiEyeOff /> : <FiEye />}
                       </button>
                     </div>
+
+                    <small className="password-requirements">
+                      <strong>Password Requirements</strong>
+                      <br />
+                      {PASSWORD_REQUIREMENTS_LIST.map((rule) => (
+                        <span key={rule}>
+                          ✓ {rule}
+                          <br />
+                        </span>
+                      ))}
+                    </small>
                   </div>
 
                   <div className="mb-4">
@@ -139,7 +205,10 @@ function ResetPassword() {
                         className="form-control form-control-lg auth-input"
                         placeholder="Confirm New Password"
                         value={confirm}
-                        onChange={(e) => setConfirm(e.target.value)}
+                        onChange={(e) => {
+                          setConfirm(e.target.value);
+                          setError("");
+                        }}
                         required
                       />
                       <button
@@ -157,8 +226,9 @@ function ResetPassword() {
                     type="button"
                     className="auth-submit-btn"
                     onClick={handleUpdate}
+                    disabled={submitting}
                   >
-                    UPDATE PASSWORD
+                    {submitting ? "UPDATING..." : "UPDATE PASSWORD"}
                   </button>
                 </div>
               </div>

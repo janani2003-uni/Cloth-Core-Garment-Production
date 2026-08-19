@@ -22,9 +22,9 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
     },
 
-    factoryName: {
+    shopName: {
       type: String,
-      required: [true, "Factory name is required"],
+      required: [true, "Shop name is required"],
       trim: true,
     },
 
@@ -70,6 +70,25 @@ const userSchema = new mongoose.Schema(
       default: "Active",
     },
 
+    // Login gate, separate from `status` above (which is a general-purpose
+    // profile field already used elsewhere and not consistently enforced at
+    // login). isActive is the one authoritative flag login checks — Admin
+    // uses this to disable a Supervisor's access without deleting their
+    // Staff profile or User record.
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+
+    // Set only for Supervisor accounts created by an Admin from Staff
+    // Management — links back to the Staff HR profile this login belongs
+    // to. Null for every other role (Admin, Shop Owner, legacy "user").
+    staffId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      default: null,
+    },
+
     joinedDate: {
       type: Date,
       default: Date.now,
@@ -86,14 +105,25 @@ const userSchema = new mongoose.Schema(
       minlength: [8, "Password must contain at least 8 characters"],
     },
 
-    otp: {
-      type: String,
+    passwordChangedAt: {
+      type: Date,
       default: null,
     },
 
-    otpExpiry: {
-      type: Date,
-      default: null,
+    // Forgot-password state, grouped the same way Order.approval groups its
+    // own feature state. The OTP itself is never stored in plain text —
+    // only a bcrypt hash of it, mirroring how `password` is stored. A
+    // successful OTP verification consumes the OTP (otpHash cleared) and
+    // issues a short-lived reset token (also stored only as a hash) so
+    // reset-password can't be reached with just an email address.
+    passwordReset: {
+      otpHash: { type: String, default: null },
+      otpExpiresAt: { type: Date, default: null },
+      otpAttempts: { type: Number, default: 0 },
+      otpLastSentAt: { type: Date, default: null },
+      verified: { type: Boolean, default: false },
+      tokenHash: { type: String, default: null },
+      tokenExpiresAt: { type: Date, default: null },
     },
   },
   {

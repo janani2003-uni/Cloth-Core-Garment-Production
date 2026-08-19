@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiUser, FiMail, FiBriefcase, FiLock, FiEye, FiEyeOff } from "react-icons/fi";
+import { FiUser, FiMail, FiBriefcase, FiLock, FiEye, FiEyeOff, FiAlertCircle } from "react-icons/fi";
 import axios from "axios";
-
-const passwordRegex =
-  /^(?=(.*[!@#$%^&*(),.?":{}|<>]){2,})(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,20}$/;
+import { PASSWORD_REGEX, PASSWORD_REQUIREMENTS_MESSAGE } from "../utils/passwordPolicy";
+import SuccessModal from "./modals/SuccessModal";
 
 function RegisterForm() {
   const navigate = useNavigate();
@@ -13,7 +12,7 @@ function RegisterForm() {
     firstName: "",
     lastName: "",
     email: "",
-    factoryName: "",
+    shopName: "",
     password: "",
     confirmPassword: "",
     agree: false,
@@ -22,6 +21,9 @@ function RegisterForm() {
   const [passwordError, setPasswordError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [registered, setRegistered] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -38,11 +40,10 @@ function RegisterForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setServerError("");
 
-    if (!passwordRegex.test(formData.password)) {
-      setPasswordError(
-        "Password must be 8–20 characters and include at least 2 special characters, 1 uppercase letter, 1 lowercase letter and 1 number."
-      );
+    if (!PASSWORD_REGEX.test(formData.password)) {
+      setPasswordError(PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
 
@@ -51,22 +52,43 @@ function RegisterForm() {
       return;
     }
 
+    if (submitting) return; // guards against duplicate submits from a double-click
+
     try {
-      const res = await axios.post(
+      setSubmitting(true);
+
+      // Registration success is only ever shown once the backend actually
+      // confirms the account was created — this call either resolves (the
+      // account exists) or throws (nothing was created), there is no
+      // optimistic/fake success state in between.
+      await axios.post(
         "http://localhost:5000/api/auth/register",
         {
           firstName: formData.firstName,
           lastName: formData.lastName,
           email: formData.email,
-          factoryName: formData.factoryName,
+          shopName: formData.shopName,
           password: formData.password,
         }
       );
 
-      alert(res.data.message);
-      navigate("/login");
+      // The normal flow is Register -> Login (this project never
+      // auto-logs a new account in — see Login.js, which is the only place
+      // a session/token is ever set), so the success modal's action sends
+      // them there rather than assuming a different flow.
+      setRegistered(true);
     } catch (err) {
-      alert(err.response?.data?.message || err.message);
+      // Surface the backend's actual, specific message (e.g. "Email
+      // already exists", a password-policy message, a missing-field
+      // message) whenever one is available, rather than a generic
+      // "Something went wrong".
+      if (!err.response) {
+        setServerError("Cannot connect to the server. Please check your connection and try again.");
+      } else {
+        setServerError(err.response?.data?.message || "Registration failed. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -141,16 +163,16 @@ function RegisterForm() {
           </div>
 
           <div className="col-12 mb-4">
-            <label className="form-label fw-semibold">Factory Name</label>
+            <label className="form-label fw-semibold">Shop Name</label>
 
             <div className="auth-input-group">
               <FiBriefcase className="auth-input-icon" aria-hidden="true" />
               <input
                 type="text"
                 className="form-control form-control-lg auth-input"
-                name="factoryName"
-                placeholder="Enter Factory Name"
-                value={formData.factoryName}
+                name="shopName"
+                placeholder="Enter Shop Name"
+                value={formData.shopName}
                 onChange={handleChange}
                 required
               />
@@ -249,12 +271,29 @@ function RegisterForm() {
           </div>
         </div>
 
+        {serverError && (
+          <div className="col-12">
+            <div className="auth-banner is-error" role="alert">
+              <FiAlertCircle style={{ flexShrink: 0 }} /> {serverError}
+            </div>
+          </div>
+        )}
+
         <div className="col-12">
-          <button type="submit" className="auth-submit-btn auth-submit-lg">
-            CREATE MY ACCOUNT
+          <button type="submit" className="auth-submit-btn auth-submit-lg" disabled={submitting}>
+            {submitting ? "CREATING ACCOUNT..." : "CREATE MY ACCOUNT"}
           </button>
         </div>
       </form>
+
+      <SuccessModal
+        open={registered}
+        onClose={() => navigate("/login")}
+        title="Registration Successful!"
+        message={"Your ClothCore account has been created successfully.\nYou can now sign in to continue."}
+        primaryLabel="Go to Login"
+        onPrimary={() => navigate("/login")}
+      />
     </>
   );
 }

@@ -5,14 +5,15 @@ import {
   Truck,
   Clock,
   CheckCircle,
-  XCircle,
   Pencil,
   Box,
 } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
 
 const API_URL = "http://localhost:5000/api/deliveries";
-const DELIVERY_STATUSES = ["Not Scheduled", "Scheduled", "Dispatched", "In Transit", "Delivered", "Delivery Failed"];
+// Exactly three statuses — the backend enum (backend/models/Delivery.js)
+// only accepts these three now.
+const DELIVERY_STATUSES = ["Not Yet Delivered", "Delivery In Progress", "Delivered"];
 
 function AdminDeliveries() {
   const [deliveries, setDeliveries] = useState([]);
@@ -23,6 +24,7 @@ function AdminDeliveries() {
   const [editingDelivery, setEditingDelivery] = useState(null);
   const [editForm, setEditForm] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState("");
 
   const fetchDeliveries = async () => {
     try {
@@ -44,12 +46,19 @@ function AdminDeliveries() {
 
   const openEdit = (delivery) => {
     setEditingDelivery(delivery);
+    setEditError("");
     setEditForm({
       deliveryStaffName: delivery.deliveryStaffName || "",
-      trackingNumber: delivery.trackingNumber || "",
+      // Defaults to whatever the shop owner asked for at order placement
+      // (backend already fills this in when the delivery record is first
+      // created) — editable here. Tracking number, Delivery Method and
+      // Notes are no longer part of this popup at all — the system only
+      // ever uses Factory Delivery, tracking numbers have been removed
+      // everywhere in the UI, and this popup now focuses purely on the
+      // delivery-status update action.
+      address: delivery.address || delivery.orderId?.deliveryAddress || "",
       scheduledDate: delivery.scheduledDate ? delivery.scheduledDate.slice(0, 10) : "",
-      status: delivery.status || "Not Scheduled",
-      notes: delivery.notes || "",
+      status: delivery.status || "Not Yet Delivered",
     });
   };
 
@@ -57,11 +66,12 @@ function AdminDeliveries() {
     e.preventDefault();
     try {
       setSaving(true);
+      setEditError("");
       await axios.put(`${API_URL}/${editingDelivery._id}`, editForm);
       setEditingDelivery(null);
       await fetchDeliveries();
     } catch (err) {
-      alert(err.response?.data?.message || "Could not update delivery.");
+      setEditError(err.response?.data?.message || "Could not update delivery.");
     } finally {
       setSaving(false);
     }
@@ -72,29 +82,24 @@ function AdminDeliveries() {
     const matchesSearch =
       !search ||
       (d.orderId?.orderId || "").toLowerCase().includes(search) ||
-      (d.orderId?.customerName || "").toLowerCase().includes(search) ||
-      (d.trackingNumber || "").toLowerCase().includes(search);
+      (d.orderId?.customerName || "").toLowerCase().includes(search);
     const matchesStatus = selectedStatus === "All Status" || d.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
 
   const delivered = deliveries.filter((d) => d.status === "Delivered").length;
-  const inTransit = deliveries.filter((d) => d.status === "In Transit" || d.status === "Dispatched").length;
-  const failed = deliveries.filter((d) => d.status === "Delivery Failed").length;
-  const notScheduled = deliveries.filter((d) => d.status === "Not Scheduled").length;
+  const inProgress = deliveries.filter((d) => d.status === "Delivery In Progress").length;
+  const notYetDelivered = deliveries.filter((d) => d.status === "Not Yet Delivered").length;
 
   const stats = [
     { label: "Delivered", value: delivered, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
-    { label: "In Transit / Dispatched", value: inTransit, icon: Truck, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
-    { label: "Not Scheduled", value: notScheduled, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-    { label: "Delivery Failed", value: failed, icon: XCircle, color: "var(--clothcore-danger)", bg: "var(--clothcore-danger-bg)" },
+    { label: "Delivery In Progress", value: inProgress, icon: Truck, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
+    { label: "Not Yet Delivered", value: notYetDelivered, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
   ];
 
   const getStatusBadge = (status) => {
     if (status === "Delivered") return "admin-badge-success";
-    if (status === "Delivery Failed") return "admin-badge-danger";
-    if (status === "Dispatched" || status === "In Transit") return "admin-badge-accent";
-    if (status === "Scheduled") return "admin-badge-info";
+    if (status === "Delivery In Progress") return "admin-badge-accent";
     return "admin-badge-warning";
   };
 
@@ -160,9 +165,9 @@ function AdminDeliveries() {
                     <thead>
                       <tr>
                         <th>Order</th>
-                        <th>Customer</th>
+                        <th>Shop Owner</th>
+                        <th>Delivery Details</th>
                         <th>Staff</th>
-                        <th>Tracking Number</th>
                         <th>Scheduled Date</th>
                         <th>Status</th>
                         <th style={{ textAlign: "center" }}>Actions</th>
@@ -183,10 +188,13 @@ function AdminDeliveries() {
                       ) : (
                         filteredDeliveries.map((d) => (
                           <tr key={d._id}>
-                            <td style={{ fontWeight: 600, color: "var(--clothcore-blush)" }}>{d.orderId?.orderId || "N/A"}</td>
+                            <td style={{ fontWeight: 600, color: "var(--clothcore-purple)" }}>{d.orderId?.orderId || "N/A"}</td>
                             <td>{d.orderId?.customerName || "N/A"}</td>
+                            <td style={{ color: "var(--clothcore-text-soft)" }}>
+                              {d.orderId?.item || "—"}{d.orderId?.quantity ? ` · ${d.orderId.quantity} pcs` : ""}
+                              <div style={{ fontSize: "11px" }}>Factory Delivery</div>
+                            </td>
                             <td>{d.deliveryStaffName || "Not assigned"}</td>
-                            <td style={{ color: "var(--clothcore-text-soft)" }}>{d.trackingNumber || "N/A"}</td>
                             <td style={{ color: "var(--clothcore-text-soft)" }}>
                               {d.scheduledDate ? new Date(d.scheduledDate).toLocaleDateString() : "Not scheduled"}
                             </td>
@@ -194,7 +202,7 @@ function AdminDeliveries() {
                             <td style={{ textAlign: "center" }}>
                               <button
                                 className="btn btn-sm"
-                                style={{ background: "rgba(82,43,91,0.08)", borderRadius: "8px", border: "none", color: "var(--clothcore-blush)" }}
+                                style={{ background: "rgba(82,43,91,0.08)", borderRadius: "8px", border: "none", color: "var(--clothcore-purple)" }}
                                 onClick={() => openEdit(d)}
                               >
                                 <Pencil size={13} /> Update
@@ -215,12 +223,17 @@ function AdminDeliveries() {
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <form onSubmit={handleSave}>
                 <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                     Update Delivery — {editingDelivery.orderId?.orderId}
                   </h5>
-                  <button type="button" className="btn-close" onClick={() => setEditingDelivery(null)} />
+                  <button type="button" className="btn-close" onClick={() => { setEditingDelivery(null); setEditError(""); }} />
                 </div>
                 <div className="modal-body" style={{ padding: "24px" }}>
+                  {editError && (
+                    <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "10px", background: "var(--clothcore-danger-bg)", color: "var(--clothcore-danger)", fontSize: "13px", fontWeight: 600 }}>
+                      {editError}
+                    </div>
+                  )}
                   <div className="mb-3">
                     <label className="form-label fw-semibold">Delivery Staff Name</label>
                     <input
@@ -231,12 +244,12 @@ function AdminDeliveries() {
                     />
                   </div>
                   <div className="mb-3">
-                    <label className="form-label fw-semibold">Tracking Number</label>
-                    <input
-                      type="text"
+                    <label className="form-label fw-semibold">Delivery Address</label>
+                    <textarea
                       className="form-control"
-                      value={editForm.trackingNumber}
-                      onChange={(e) => setEditForm({ ...editForm, trackingNumber: e.target.value })}
+                      rows={2}
+                      value={editForm.address}
+                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
                     />
                   </div>
                   <div className="mb-3">
@@ -260,18 +273,9 @@ function AdminDeliveries() {
                       ))}
                     </select>
                   </div>
-                  <div className="mb-0">
-                    <label className="form-label fw-semibold">Notes</label>
-                    <textarea
-                      className="form-control"
-                      rows="2"
-                      value={editForm.notes}
-                      onChange={(e) => setEditForm({ ...editForm, notes: e.target.value })}
-                    />
-                  </div>
                 </div>
                 <div className="modal-footer border-0" style={{ padding: "0 24px 24px" }}>
-                  <button type="button" className="btn px-4" onClick={() => setEditingDelivery(null)} style={{ borderRadius: "10px", background: "var(--clothcore-peach)", color: "var(--clothcore-text-soft)" }}>
+                  <button type="button" className="btn px-4" onClick={() => { setEditingDelivery(null); setEditError(""); }} style={{ borderRadius: "10px", background: "var(--clothcore-peach)", color: "var(--clothcore-text-soft)" }}>
                     Cancel
                   </button>
                   <button type="submit" className="btn px-4" disabled={saving} style={{ borderRadius: "10px", background: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))", color: "white", border: "none" }}>

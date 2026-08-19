@@ -1,14 +1,26 @@
 // src/pages/Admin/AdminUserManagement.js
+// Shop Owner Management — scoped to shop owner accounts only. Reads from
+// /api/auth/shop-owners (joins the live Shop document onto each account), so
+// whatever a Shop Owner saves on their Shop Profile page shows up here
+// automatically. Account CRUD (create/edit/delete) still goes through the
+// generic /api/auth/users endpoints, but every account created/edited here
+// is always role "shopOwner" — Admin/Supervisor accounts are managed
+// elsewhere (Staff Management), not on this page.
+//
+// This page now also absorbs everything the old read-only "Shop Directory"
+// page (/shops, AdminShops.js — removed) used to show: shop logo, Shop ID,
+// owner, address, phone. All of that was already available here except the
+// logo, which is now rendered via <ShopLogo> in both the table row and the
+// "View Shop Profile" modal. Shop Directory itself has been deleted —
+// Admin's full read-only shop/owner picture lives here now.
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
 import AdminLayout from "../../components/AdminLayout";
-import { formatRoleLabel } from "../../utils/roles";
 
 import {
   People,
-  PersonPlus,
   Search,
   ArrowUp,
   ArrowDown,
@@ -19,16 +31,63 @@ import {
   CheckCircle,
   XCircle,
   Filter,
-  Download,
   ChevronLeft,
   ChevronRight,
+  Shop as ShopIcon,
+  Building,
 } from "react-bootstrap-icons";
 
-const API_URL = "http://localhost:5000/api/auth/users";
+const USERS_API_URL = "http://localhost:5000/api/auth/users";
+const SHOP_OWNERS_API_URL = "http://localhost:5000/api/auth/shop-owners";
+const UPLOAD_BASE_URL = "http://localhost:5000";
 const USERS_PER_PAGE = 8;
 
+function shopBadgeClass(shop) {
+  if (!shop) return "admin-badge-warning";
+  if (shop.approvalStatus === "Approved") return shop.isActive ? "admin-badge-success" : "admin-badge-danger";
+  if (shop.approvalStatus === "Rejected") return "admin-badge-danger";
+  return "admin-badge-warning";
+}
+
+function shopStatusLabel(shop) {
+  if (!shop) return "No shop profile yet";
+  if (shop.approvalStatus === "Approved") return shop.isActive ? "Approved · Active" : "Approved · Suspended";
+  return shop.approvalStatus;
+}
+
+// Shop logo thumbnail — absorbed from the now-removed Shop Directory page,
+// which was the only place a shop's logo was ever shown to Admin.
+function ShopLogo({ shop, size = 34 }) {
+  if (shop?.logoPath) {
+    return (
+      <img
+        src={`${UPLOAD_BASE_URL}${shop.logoPath}`}
+        alt={`${shop.shopName || "Shop"} logo`}
+        style={{ width: size, height: size, borderRadius: "8px", objectFit: "cover", flexShrink: 0 }}
+      />
+    );
+  }
+  return (
+    <div
+      style={{
+        width: size,
+        height: size,
+        borderRadius: "8px",
+        background: "rgba(133,79,108,0.14)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--clothcore-purple)",
+        flexShrink: 0,
+      }}
+    >
+      <Building size={Math.round(size * 0.45)} />
+    </div>
+  );
+}
+
 // ==========================
-// Convert backend user data
+// Convert backend user+shop data
 // ==========================
 const formatUser = (user) => {
   const firstName = user.firstName || "";
@@ -38,7 +97,7 @@ const formatUser = (user) => {
     id: user._id,
     firstName,
     lastName,
-    factoryName: user.factoryName || "",
+    shopName: user.shopName || "",
 
     initials: `${firstName.charAt(0)}${lastName.charAt(
       0
@@ -49,9 +108,10 @@ const formatUser = (user) => {
       "Unknown User",
 
     email: user.email || "No email",
-    role: user.role || "user",
+    role: user.role || "shopOwner",
     status: user.status || "Active",
 
+    // "Start Date" column — when the account was created.
     joinedDate: user.createdAt
       ? new Date(user.createdAt).toLocaleDateString()
       : "N/A",
@@ -61,6 +121,16 @@ const formatUser = (user) => {
       : "Not available",
 
     createdAt: user.createdAt || null,
+
+    // Order-activity, from GET /api/auth/shop-owners's Order aggregation —
+    // backs the "Active"/"Inactive" stat tiles (see AdminUserManagement's
+    // stats block below for exactly how).
+    orderCount: user.orderCount || 0,
+    hasOrderInLast3Months: Boolean(user.hasOrderInLast3Months),
+
+    // Live Shop Profile snapshot — null until the shop owner has saved a
+    // profile for the first time. Populated by GET /api/auth/shop-owners.
+    shop: user.shop || null,
   };
 };
 
@@ -68,9 +138,10 @@ function AdminUserManagement() {
   const [users, setUsers] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedRole, setSelectedRole] = useState("All Roles");
   const [selectedStatus, setSelectedStatus] =
     useState("All Status");
+  const [selectedShopStatus, setSelectedShopStatus] =
+    useState("All Shop Status");
   const [selectedPeriod, setSelectedPeriod] =
   useState("This Year");
   const [currentPage, setCurrentPage] = useState(1);
@@ -79,28 +150,29 @@ function AdminUserManagement() {
   const [error, setError] = useState("");
   const [deletingUserId, setDeletingUserId] =
     useState(null);
+  const [viewing, setViewing] = useState(null);
 
   // ==========================
-  // Load users from backend
+  // Load shop owners (with joined shop data) from backend
   // ==========================
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(API_URL);
+      const response = await axios.get(SHOP_OWNERS_API_URL);
 
-      const formattedUsers = Array.isArray(response.data)
-        ? response.data.map(formatUser)
+      const formattedUsers = Array.isArray(response.data?.data)
+        ? response.data.data.map(formatUser)
         : [];
 
       setUsers(formattedUsers);
     } catch (err) {
-      console.error("Error loading users:", err);
+      console.error("Error loading shop owners:", err);
 
       setError(
         err.response?.data?.message ||
-          "Could not load users. Make sure the backend is running."
+          "Could not load shop owners. Make sure the backend is running."
       );
     } finally {
       setLoading(false);
@@ -112,151 +184,16 @@ function AdminUserManagement() {
   }, [fetchUsers]);
 
   // ==========================
-  // Create user
+  // View shop owner + their saved Shop Profile
   // ==========================
-  const handleAddUser = async () => {
-    const firstName = window.prompt("Enter first name:");
-
-    if (firstName === null) {
-      return;
-    }
-
-    const lastName = window.prompt("Enter last name:");
-
-    if (lastName === null) {
-      return;
-    }
-
-    const email = window.prompt("Enter email address:");
-
-    if (email === null) {
-      return;
-    }
-
-    const factoryName = window.prompt(
-      "Enter factory name:"
-    );
-
-    if (factoryName === null) {
-      return;
-    }
-
-    const password = window.prompt(
-      "Enter a temporary password:"
-    );
-
-    if (password === null) {
-      return;
-    }
-
-    const role = window.prompt(
-      "Enter role: admin, shopOwner, supervisor or user",
-      "user"
-    );
-
-    if (role === null) {
-      return;
-    }
-
-    const status = window.prompt(
-      "Enter status: Active or Inactive",
-      "Active"
-    );
-
-    if (status === null) {
-      return;
-    }
-
-    if (
-      !firstName.trim() ||
-      !lastName.trim() ||
-      !email.trim() ||
-      !factoryName.trim() ||
-      !password.trim()
-    ) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-
-    try {
-      const response = await axios.post(API_URL, {
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        email: email.trim().toLowerCase(),
-        factoryName: factoryName.trim(),
-        password: password.trim(),
-        role: role.trim() || "user",
-        status: status.trim() || "Active",
-      });
-
-      const createdUser = formatUser(
-        response.data.user
-      );
-
-      setUsers((currentUsers) => [
-        createdUser,
-        ...currentUsers,
-      ]);
-
-      setCurrentPage(1);
-
-      alert("User created successfully.");
-    } catch (err) {
-      console.error("Create User Error:", err);
-
-      alert(
-        err.response?.data?.message ||
-          "Could not create the user."
-      );
-    }
+  const handleViewUser = (user) => {
+    setViewing(user);
   };
 
   // ==========================
-  // View one user
-  // ==========================
-  const handleViewUser = async (user) => {
-    try {
-      const response = await axios.get(
-        `${API_URL}/${user.id}`
-      );
-
-      const selectedUser = response.data;
-
-      const fullName = `${
-        selectedUser.firstName || ""
-      } ${selectedUser.lastName || ""}`.trim();
-
-      alert(
-        `USER PROFILE\n\n` +
-          `Name: ${fullName || "N/A"}\n` +
-          `Email: ${selectedUser.email || "N/A"}\n` +
-          `Factory: ${
-            selectedUser.factoryName || "N/A"
-          }\n` +
-          `Role: ${formatRoleLabel(selectedUser.role)}\n` +
-          `Status: ${
-            selectedUser.status || "Active"
-          }\n` +
-          `Last Login: ${
-            selectedUser.lastLogin
-              ? new Date(
-                  selectedUser.lastLogin
-                ).toLocaleString()
-              : "Not available"
-          }`
-      );
-    } catch (err) {
-      console.error("View User Error:", err);
-
-      alert(
-        err.response?.data?.message ||
-          "Could not load the user profile."
-      );
-    }
-  };
-
-  // ==========================
-  // Update user
+  // Update shop owner account (account fields only — role is always
+  // shopOwner here; shop profile fields are edited by the owner themselves
+  // on their own Shop Profile page, not from this admin table).
   // ==========================
   const handleEditUser = async (user) => {
     const firstName = window.prompt(
@@ -286,21 +223,15 @@ function AdminUserManagement() {
       return;
     }
 
-    const factoryName = window.prompt(
-      "Enter factory name:",
-      user.factoryName
+    // Prompts for the account's registered shop name (User.shopName) — not
+    // the full Shop Profile shown in the "Shop" column, which is a separate
+    // record the shop owner manages themselves and isn't editable here.
+    const shopName = window.prompt(
+      "Enter registered shop name:",
+      user.shopName
     );
 
-    if (factoryName === null) {
-      return;
-    }
-
-    const role = window.prompt(
-      "Enter role: admin, shopOwner, supervisor or user",
-      user.role
-    );
-
-    if (role === null) {
+    if (shopName === null) {
       return;
     }
 
@@ -326,20 +257,21 @@ function AdminUserManagement() {
 
     try {
       const response = await axios.put(
-        `${API_URL}/${user.id}`,
+        `${USERS_API_URL}/${user.id}`,
         {
           firstName: firstName.trim(),
           lastName: lastName.trim(),
           email: email.trim().toLowerCase(),
-          factoryName: factoryName.trim(),
-          role: role.trim() || "user",
+          shopName: shopName.trim(),
+          role: "shopOwner",
           status: status.trim() || "Active",
         }
       );
 
-      const updatedUser = formatUser(
-        response.data.user
-      );
+      const updatedUser = formatUser({
+        ...response.data.user,
+        shop: user.shop,
+      });
 
       setUsers((currentUsers) =>
         currentUsers.map((currentUser) =>
@@ -349,19 +281,19 @@ function AdminUserManagement() {
         )
       );
 
-      alert("User updated successfully.");
+      alert("Account updated successfully.");
     } catch (err) {
       console.error("Update User Error:", err);
 
       alert(
         err.response?.data?.message ||
-          "Could not update the user."
+          "Could not update the account."
       );
     }
   };
 
   // ==========================
-  // Delete user
+  // Delete shop owner account
   // ==========================
   const handleDeleteUser = async (user) => {
     const confirmed = window.confirm(
@@ -375,7 +307,7 @@ function AdminUserManagement() {
     try {
       setDeletingUserId(user.id);
 
-      await axios.delete(`${API_URL}/${user.id}`);
+      await axios.delete(`${USERS_API_URL}/${user.id}`);
 
       setUsers((currentUsers) =>
         currentUsers.filter(
@@ -384,13 +316,13 @@ function AdminUserManagement() {
         )
       );
 
-      alert("User deleted successfully.");
+      alert("Account deleted successfully.");
     } catch (err) {
       console.error("Delete User Error:", err);
 
       alert(
         err.response?.data?.message ||
-          "Could not delete the user."
+          "Could not delete the account."
       );
     } finally {
       setDeletingUserId(null);
@@ -400,16 +332,29 @@ function AdminUserManagement() {
   // ==========================
   // Dynamic statistics
   // ==========================
+  // Total Shop Owners: every registered shop-owner account, shop profile
+  // saved or not — this is exactly what GET /api/auth/shop-owners already
+  // returns (role: "shopOwner"), so no extra filtering needed here.
+  const totalShopOwnersCount = users.length;
+
+  // Active: has placed at least one order, ever.
   const activeUsersCount = users.filter(
-    (user) => user.status === "Active"
+    (user) => user.orderCount > 0
   ).length;
 
+  // Inactive: no orders in the last 3 months — this also covers shop
+  // owners who have never placed an order at all, not just ones who've
+  // gone quiet after ordering before.
   const inactiveUsersCount = users.filter(
-    (user) => user.status === "Inactive"
+    (user) => !user.hasOrderInLast3Months
   ).length;
 
-  const adminUsersCount = users.filter(
-    (user) => user.role === "admin"
+  // Pending Shop Approval: strictly shops actually sitting in the Shop
+  // Approvals queue awaiting an Admin/Supervisor decision — not shop
+  // owners who simply haven't registered a shop yet (those never entered
+  // the approval queue in the first place).
+  const pendingApprovalCount = users.filter(
+    (user) => user.shop?.approvalStatus === "Pending"
   ).length;
 
   const newUsersThisMonthCount = users.filter(
@@ -432,37 +377,37 @@ function AdminUserManagement() {
 
   const stats = [
     {
-      label: "Total Users",
-      value: users.length,
-      change: `${users.length} records`,
+      label: "Total Shop Owners",
+      value: totalShopOwnersCount,
+      change: `${totalShopOwnersCount} registered`,
       trend: "up",
-      color: "var(--clothcore-blush)",
+      color: "var(--clothcore-purple)",
     },
     {
-      label: "Active Users",
+      label: "Active Shop Owners",
       value: activeUsersCount,
-      change: `${activeUsersCount} active`,
+      change: `${activeUsersCount} with an order`,
       trend: "up",
       color: "var(--clothcore-success)",
     },
     {
-      label: "Inactive Users",
+      label: "Inactive Shop Owners",
       value: inactiveUsersCount,
-      change: `${inactiveUsersCount} inactive`,
+      change: `${inactiveUsersCount} quiet 3+ months`,
       trend: "down",
       color: "var(--clothcore-danger)",
     },
     {
-      label: "Admins",
-      value: adminUsersCount,
-      change: `${adminUsersCount} administrators`,
-      trend: "up",
-      color: "var(--clothcore-blush)",
+      label: "Pending Shop Approval",
+      value: pendingApprovalCount,
+      change: `${pendingApprovalCount} awaiting`,
+      trend: pendingApprovalCount > 0 ? "down" : "up",
+      color: "var(--clothcore-warning, #D98324)",
     },
     {
-      label: "New This Month",
+      label: "New Users",
       value: newUsersThisMonthCount,
-      change: `${newUsersThisMonthCount} new users`,
+      change: `${newUsersThisMonthCount} this month`,
       trend: "up",
       color: "var(--clothcore-mauve)",
     },
@@ -536,33 +481,34 @@ function AdminUserManagement() {
         String(user.email || "")
           .toLowerCase()
           .includes(normalizedSearch) ||
-        String(user.role || "")
+        String(user.shop?.shopName || "")
           .toLowerCase()
           .includes(normalizedSearch);
-
-      const matchesRole =
-        selectedRole === "All Roles" ||
-        user.role === selectedRole;
 
       const matchesStatus =
         selectedStatus === "All Status" ||
         user.status === selectedStatus;
+
+      const matchesShopStatus =
+        selectedShopStatus === "All Shop Status" ||
+        (selectedShopStatus === "No Shop Yet" && !user.shop) ||
+        user.shop?.approvalStatus === selectedShopStatus;
 
       const matchesPeriod =
         matchesSelectedPeriod(user);
 
       return (
         matchesSearch &&
-        matchesRole &&
         matchesStatus &&
+        matchesShopStatus &&
         matchesPeriod
       );
     });
   }, [
     users,
     searchTerm,
-    selectedRole,
     selectedStatus,
+    selectedShopStatus,
     matchesSelectedPeriod,
   ]);
 
@@ -605,175 +551,48 @@ function AdminUserManagement() {
   // ==========================
   // Filter values
   // ==========================
-  const roles = [
-    "All Roles",
-    ...new Set(
-      users
-        .map((user) => user.role)
-        .filter(Boolean)
-    ),
-  ];
-
   const statuses = [
     "All Status",
     "Active",
     "Inactive",
   ];
 
-  const getRoleBadgeStyle = (role) => {
-    const colors = {
-      admin: {
-        bg: "rgba(43,18,76,0.12)",
-        color: "var(--clothcore-blush)",
-      },
-      supervisor: {
-        bg: "rgba(217,131,36,0.14)",
-        color: "var(--clothcore-warning)",
-      },
-      shopOwner: {
-        bg: "rgba(26,156,95,0.12)",
-        color: "var(--clothcore-success)",
-      },
-      user: {
-        bg: "rgba(82,43,91,0.12)",
-        color: "var(--clothcore-blush)",
-      },
-    };
+  const shopStatuses = [
+    "All Shop Status",
+    "No Shop Yet",
+    "Pending",
+    "Approved",
+    "Rejected",
+  ];
 
-    return (
-      colors[role] || {
-        bg: "rgba(107,91,115,0.12)",
-        color: "var(--clothcore-text-soft)",
-      }
-    );
-  };
-
-  // ==========================
-  // Export users as CSV
-  // ==========================
-  const handleExport = () => {
-    if (filteredUsers.length === 0) {
-      alert("There are no users to export.");
-      return;
-    }
-
-    const headings = [
-      "Name",
-      "Email",
-      "Factory",
-      "Role",
-      "Status",
-      "Joined Date",
-      "Last Login",
-    ];
-
-    const rows = filteredUsers.map((user) => [
-      user.name,
-      user.email,
-      user.factoryName,
-      user.role,
-      user.status,
-      user.joinedDate,
-      user.lastLogin,
-    ]);
-
-    const csvContent = [headings, ...rows]
-      .map((row) =>
-        row
-          .map(
-            (value) =>
-              `"${String(value || "").replaceAll(
-                '"',
-                '""'
-              )}"`
-          )
-          .join(",")
-      )
-      .join("\n");
-
-    const blob = new Blob([csvContent], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const fileUrl = URL.createObjectURL(blob);
-
-    const downloadLink =
-      document.createElement("a");
-
-    downloadLink.href = fileUrl;
-
-    downloadLink.setAttribute(
-      "download",
-      "clothcore-users.csv"
-    );
-
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-
-    URL.revokeObjectURL(fileUrl);
-  };
 
   return (
     <AdminLayout>
             {/* Page Header */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div className="admin-page-header">
               <div>
                 <div className="d-flex align-items-center gap-2 mb-1">
-                  <h2
-                    className="fw-bold mb-0"
-                    style={{
-                      color: "var(--clothcore-text)",
-                      fontSize: "28px",
-                    }}
-                  >
-                    Shop Owner Management
-                  </h2>
+                  <h2 className="admin-page-title mb-0">Shop Owner Management</h2>
 
                   <span
                     className="badge"
                     style={{
-                      background:
-                        "rgba(82,43,91,0.1)",
-                      color: "var(--clothcore-blush)",
+                      background: "rgba(255,255,255,0.18)",
+                      color: "#fff",
                       padding: "4px 12px",
                       borderRadius: "20px",
                       fontSize: "13px",
                       fontWeight: "500",
                     }}
                   >
-                    {filteredUsers.length} Users
+                    {filteredUsers.length} Shop Owners
                   </span>
                 </div>
 
-                <p
-                  className="text-muted mb-0"
-                  style={{ fontSize: "14px" }}
-                >
-                  Manage shop owner accounts (and other account roles) and permissions
+                <p className="admin-page-subtitle">
+                  Shop owner accounts and the live Shop Profile details they've saved
                 </p>
               </div>
-
-              <button
-                type="button"
-                className="btn px-4 py-2"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
-                  color: "white",
-                  borderRadius: "10px",
-                  border: "none",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
-                onClick={handleAddUser}
-              >
-                <PersonPlus size={18} />
-                Add User
-              </button>
             </div>
 
             {/* Statistics Cards */}
@@ -899,7 +718,7 @@ function AdminUserManagement() {
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="Search users by name, email or role..."
+                        placeholder="Search by name, email or shop..."
                         value={searchTerm}
                         onChange={(event) => {
                           setSearchTerm(
@@ -921,9 +740,9 @@ function AdminUserManagement() {
                                     <div className="col-lg-2">
                     <select
                       className="form-select"
-                      value={selectedRole}
+                      value={selectedShopStatus}
                       onChange={(event) => {
-                        setSelectedRole(event.target.value);
+                        setSelectedShopStatus(event.target.value);
                         setCurrentPage(1);
                       }}
                       style={{
@@ -933,9 +752,9 @@ function AdminUserManagement() {
                         height: "42px",
                       }}
                     >
-                      {roles.map((role) => (
-                        <option key={role} value={role}>
-                          {role}
+                      {shopStatuses.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
                         </option>
                       ))}
                     </select>
@@ -1000,7 +819,7 @@ function AdminUserManagement() {
                         alignItems: "center",
                         justifyContent: "center",
                         gap: "6px",
-                        background: "rgba(255,255,255,0.055)",
+                        background: "rgba(82,43,91,0.06)",
                         color: "var(--clothcore-text)",
                       }}
                     >
@@ -1056,19 +875,19 @@ function AdminUserManagement() {
                         </th>
 
                         <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
-                          Role
+                          Shop
                         </th>
 
                         <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
-                          Status
+                          Shop Status
                         </th>
 
                         <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
-                          Joined Date
+                          Account Status
                         </th>
 
                         <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
-                          Last Login
+                          Start Date
                         </th>
 
                         <th className="px-4 py-3 small text-uppercase text-muted fw-bold text-center">
@@ -1094,15 +913,12 @@ function AdminUserManagement() {
                             </div>
 
                             <p className="text-muted mt-3 mb-0">
-                              Loading users...
+                              Loading shop owners...
                             </p>
                           </td>
                         </tr>
                       ) : currentUsers.length > 0 ? (
                         currentUsers.map((user, index) => {
-                          const roleStyle =
-                            getRoleBadgeStyle(user.role);
-
                           return (
                             <tr key={user.id}>
                               <td
@@ -1158,19 +974,26 @@ function AdminUserManagement() {
                                 {user.email}
                               </td>
 
+                              <td
+                                className="px-4 py-3"
+                                style={{
+                                  fontSize: "13px",
+                                  color: "var(--clothcore-text)",
+                                }}
+                              >
+                                {user.shop ? (
+                                  <div className="d-flex align-items-center gap-2">
+                                    <ShopLogo shop={user.shop} size={28} />
+                                    {user.shop.shopName || "—"}
+                                  </div>
+                                ) : (
+                                  "—"
+                                )}
+                              </td>
+
                               <td className="px-4 py-3">
-                                <span
-                                  className="badge"
-                                  style={{
-                                    background: roleStyle.bg,
-                                    color: roleStyle.color,
-                                    padding: "5px 12px",
-                                    borderRadius: "20px",
-                                    fontSize: "12px",
-                                    fontWeight: "500",
-                                  }}
-                                >
-                                  {formatRoleLabel(user.role)}
+                                <span className={`admin-badge ${shopBadgeClass(user.shop)}`}>
+                                  {shopStatusLabel(user.shop)}
                                 </span>
                               </td>
 
@@ -1206,28 +1029,14 @@ function AdminUserManagement() {
                               </td>
 
                               <td
-  className="px-4 py-3"
-  style={{
-    fontSize: "13px",
-    color: "var(--clothcore-text-soft)",
-  }}
->
-  {user.joinedDate
-    ? new Date(user.joinedDate).toLocaleDateString()
-    : "N/A"}
-</td>
-
-<td
-  className="px-4 py-3"
-  style={{
-    fontSize: "13px",
-    color: "var(--clothcore-text-soft)",
-  }}
->
-  {user.lastLogin
-    ? new Date(user.lastLogin).toLocaleString()
-    : "Not available"}
-</td>
+                                className="px-4 py-3"
+                                style={{
+                                  fontSize: "13px",
+                                  color: "var(--clothcore-text-soft)",
+                                }}
+                              >
+                                {user.joinedDate}
+                              </td>
 
                               <td className="px-4 py-3 text-center">
                                 <div className="dropdown">
@@ -1268,7 +1077,7 @@ function AdminUserManagement() {
                                         }}
                                       >
                                         <Eye size={14} />
-                                        View Profile
+                                        View Shop Profile
                                       </button>
                                     </li>
 
@@ -1285,7 +1094,7 @@ function AdminUserManagement() {
                                         }}
                                       >
                                         <Pencil size={14} />
-                                        Edit User
+                                        Edit Account
                                       </button>
                                     </li>
 
@@ -1312,7 +1121,7 @@ function AdminUserManagement() {
 
                                         {deletingUserId === user.id
                                           ? "Deleting..."
-                                          : "Delete User"}
+                                          : "Delete Account"}
                                       </button>
                                     </li>
                                   </ul>
@@ -1335,7 +1144,7 @@ function AdminUserManagement() {
                               />
 
                               <p className="mb-0">
-                                No users found matching your filters
+                                No shop owners found matching your filters
                               </p>
                             </div>
                           </td>
@@ -1360,7 +1169,7 @@ function AdminUserManagement() {
                       indexOfLastUser,
                       filteredUsers.length
                     )}{" "}
-                    of {filteredUsers.length} users
+                    of {filteredUsers.length} shop owners
                   </div>
 
                   <nav aria-label="User pagination">
@@ -1460,27 +1269,76 @@ function AdminUserManagement() {
                       </li>
                     </ul>
                   </nav>
-
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    onClick={handleExport}
-                    style={{
-                      borderRadius: "8px",
-                      border: "1px solid var(--clothcore-border)",
-                      fontSize: "13px",
-                      color: "var(--clothcore-text-soft)",
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "6px",
-                    }}
-                  >
-                    <Download size={14} />
-                    Export
-                  </button>
                 </div>
               )}
             </div>
+
+            {/* Shop Profile detail modal — mirrors exactly what the shop
+                owner sees/edits on their own Shop Profile page. */}
+            {viewing && (
+              <div
+                className="modal show d-block"
+                style={{ backgroundColor: "rgba(0,0,0,0.5)", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1050 }}
+                onClick={() => setViewing(null)}
+              >
+                <div className="modal-dialog modal-dialog-centered modal-lg" onClick={(e) => e.stopPropagation()}>
+                  <div className="modal-content" style={{ borderRadius: "16px" }}>
+                    <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
+                      <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)", display: "flex", alignItems: "center", gap: "10px" }}>
+                        {viewing.shop ? <ShopLogo shop={viewing.shop} size={32} /> : <ShopIcon size={16} />}
+                        {viewing.shop?.shopName || `${viewing.name}'s Shop`}
+                      </h5>
+                      <button type="button" className="btn-close" onClick={() => setViewing(null)} />
+                    </div>
+
+                    <div className="modal-body" style={{ padding: "20px 24px" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--clothcore-text-soft)", textTransform: "uppercase", marginBottom: "10px" }}>
+                        Owner Account
+                      </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", fontSize: "13px", marginBottom: "20px" }}>
+                        <div><div style={{ color: "var(--clothcore-text-muted)" }}>Name</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.name}</div></div>
+                        <div><div style={{ color: "var(--clothcore-text-muted)" }}>Email</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.email}</div></div>
+                        <div><div style={{ color: "var(--clothcore-text-muted)" }}>Account Status</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.status}</div></div>
+                        <div><div style={{ color: "var(--clothcore-text-muted)" }}>Start Date</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.joinedDate}</div></div>
+                      </div>
+
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--clothcore-text-soft)", textTransform: "uppercase", marginBottom: "10px", borderTop: "1px solid var(--clothcore-border)", paddingTop: "16px" }}>
+                        Shop Profile
+                      </div>
+
+                      {viewing.shop ? (
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", fontSize: "13px" }}>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Shop Name</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.shopName || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Shop Code</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.shopCode || "Not assigned"}</div></div>
+                          <div style={{ gridColumn: "1 / -1" }}><div style={{ color: "var(--clothcore-text-muted)" }}>Address</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.shopAddress || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Phone</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.phone || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Email</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.email || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>City</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.city || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>District</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.district || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Postal Code</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.postalCode || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Business Type</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.businessType || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Business Reg. No.</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.businessRegistrationNumber || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Garment Categories</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.garmentCategories || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Est. Monthly Volume</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.estimatedMonthlyVolume || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Preferred Payment</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.preferredPaymentMethod || "—"}</div></div>
+                          <div><div style={{ color: "var(--clothcore-text-muted)" }}>Approval Status</div><div><span className={`admin-badge ${shopBadgeClass(viewing.shop)}`}>{shopStatusLabel(viewing.shop)}</span></div></div>
+                          <div style={{ gridColumn: "1 / -1" }}><div style={{ color: "var(--clothcore-text-muted)" }}>Delivery Instructions</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.deliveryInstructions || "—"}</div></div>
+                          <div style={{ gridColumn: "1 / -1" }}><div style={{ color: "var(--clothcore-text-muted)" }}>Description</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.businessDescription || "—"}</div></div>
+                        </div>
+                      ) : (
+                        <div className="text-muted" style={{ fontSize: "13px" }}>
+                          This shop owner hasn't set up their Shop Profile yet.
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="modal-footer border-0" style={{ padding: "0 24px 24px" }}>
+                      <button type="button" className="admin-btn-secondary" onClick={() => setViewing(null)}>Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
     </AdminLayout>
   );
 }

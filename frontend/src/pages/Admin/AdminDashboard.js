@@ -15,13 +15,15 @@ import {
   CreditCard,
   GraphUp,
 } from 'react-bootstrap-icons';
-import { Line } from 'react-chartjs-2';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -34,6 +36,8 @@ ChartJS.register(
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
+  ArcElement,
   Title,
   Tooltip,
   Legend,
@@ -41,30 +45,21 @@ ChartJS.register(
 );
 
 const DASHBOARD_URL = "http://localhost:5000/api/dashboard";
-const NOTIFICATIONS_URL = "http://localhost:5000/api/notifications";
 const ORDER_STATS_URL = "http://localhost:5000/api/orders/stats";
 const PRODUCTION_STATS_URL = "http://localhost:5000/api/production/stats";
 const INVENTORY_URL = "http://localhost:5000/api/inventory";
 const SALES_REPORT_URL = "http://localhost:5000/api/reports/sales";
 
-const ROLE_COLORS = [
-  'var(--clothcore-purple)',
-  'var(--clothcore-mauve)',
-  'var(--clothcore-success)',
-  'var(--clothcore-deep)',
-  'var(--clothcore-warning)',
-  'var(--clothcore-danger)',
-];
-
-const NOTIFICATION_ICONS = {
-  user: { icon: '👤', color: '#522b5b' },
-  staff: { icon: '🧑‍🔧', color: '#854f6c' },
-  inventory: { icon: '📦', color: '#2b124c' },
-  production: { icon: '🏭', color: '#854f6c' },
-  order: { icon: '🧾', color: '#d98324' },
-  payment: { icon: '💳', color: '#1a9c5f' },
-  ticket: { icon: '💬', color: '#be185d' },
-  system: { icon: '⚙️', color: '#6b5b73' },
+// Fixed order so the Production by Stage chart always reads left-to-right
+// through the real workflow, regardless of aggregation order from Mongo.
+const PRODUCTION_STAGE_ORDER = ["Not Started", "Cutting", "Sewing", "Quality Assurance", "Packing", "Completed"];
+const PRODUCTION_STAGE_COLORS = {
+  "Not Started": "#c9b8be",
+  Cutting: "#d98324",
+  Sewing: "#854F6C",
+  "Quality Assurance": "#522B5B",
+  Packing: "#a3600e",
+  Completed: "#1f7a44",
 };
 
 const CHART_RANGES = [
@@ -72,22 +67,6 @@ const CHART_RANGES = [
   { key: '30d', label: '30D', days: 30 },
   { key: '90d', label: '90D', days: 90 },
 ];
-
-function formatRelativeTime(dateString) {
-  if (!dateString) return "";
-
-  const diffMs = Date.now() - new Date(dateString).getTime();
-  const minutes = Math.floor(diffMs / 60000);
-
-  if (minutes < 1) return "Just now";
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
 
 function rangeToDates(days) {
   const to = new Date();
@@ -115,12 +94,12 @@ function AdminDashboard() {
     paymentTotals: { verified: 0, submitted: 0, rejected: 0 },
     recentOrders: [],
     topProducts: [],
-    roleDistribution: [],
+    orderStatusBreakdown: [],
+    productionStageBreakdown: [],
   });
   const [orderStats, setOrderStats] = useState({ pending: 0, inProduction: 0 });
   const [productionStats, setProductionStats] = useState(null);
   const [inventoryItems, setInventoryItems] = useState([]);
-  const [activities, setActivities] = useState([]);
 
   const [chartRange, setChartRange] = useState('7d');
   const [salesReport, setSalesReport] = useState(null);
@@ -142,7 +121,8 @@ function AdminDashboard() {
         paymentTotals: response.data.paymentTotals,
         recentOrders: response.data.recentOrders || [],
         topProducts: response.data.topProducts || [],
-        roleDistribution: response.data.roleDistribution || [],
+        orderStatusBreakdown: response.data.orderStatusBreakdown || [],
+        productionStageBreakdown: response.data.productionStageBreakdown || [],
       });
     } catch (err) {
       console.error("Dashboard Fetch Error:", err);
@@ -175,28 +155,6 @@ function AdminDashboard() {
     }
   }, []);
 
-  const fetchActivity = useCallback(async () => {
-    try {
-      const response = await axios.get(NOTIFICATIONS_URL);
-      const recent = (response.data || []).slice(0, 5);
-
-      setActivities(
-        recent.map((notification) => {
-          const iconInfo = NOTIFICATION_ICONS[notification.type] || NOTIFICATION_ICONS.system;
-
-          return {
-            icon: iconInfo.icon,
-            color: iconInfo.color,
-            text: notification.title,
-            time: formatRelativeTime(notification.createdAt),
-          };
-        })
-      );
-    } catch (err) {
-      console.error("Activity Fetch Error:", err);
-    }
-  }, []);
-
   const fetchSalesReport = useCallback(async (rangeKey) => {
     try {
       setChartLoading(true);
@@ -216,8 +174,7 @@ function AdminDashboard() {
   useEffect(() => {
     fetchDashboardData();
     fetchSupplementaryData();
-    fetchActivity();
-  }, [fetchDashboardData, fetchSupplementaryData, fetchActivity]);
+  }, [fetchDashboardData, fetchSupplementaryData]);
 
   useEffect(() => {
     fetchSalesReport(chartRange);
@@ -241,7 +198,7 @@ function AdminDashboard() {
       change: trendLabel(dashboardData.trends.totalOrders),
       trend: dashboardData.trends.totalOrders >= 0 ? "up" : "down",
       icon: Clipboard,
-      color: "var(--clothcore-blush)",
+      color: "var(--clothcore-purple)",
       bg: "rgba(223,182,178,0.32)",
     },
     {
@@ -258,7 +215,7 @@ function AdminDashboard() {
       value: dashboardData.stats.products.toLocaleString(),
       secondaryLabel: "Active products",
       icon: Box,
-      color: "var(--clothcore-blush)",
+      color: "var(--clothcore-purple)",
       bg: "rgba(82,43,91,0.08)",
     },
     {
@@ -283,16 +240,16 @@ function AdminDashboard() {
   const getOrderStatusColor = (status) => {
     // Literal hex (not CSS vars) because these get an alpha suffix appended
     // below (e.g. `${statusColor}20`) to build translucent badge backgrounds.
-    // Brightened for readability as text on a dark card background.
+    // Darkened for readability as text on the light card background.
     const colors = {
-      Pending: "#ffc07a",
-      Approved: "#dfb6b2",
-      Production: "#e4b6d1",
-      Delivered: "#8eddb3",
-      Cancelled: "#ff9ba5",
+      Pending: "#a3600e",
+      Approved: "#854F6C",
+      Production: "#522B5B",
+      Delivered: "#1f7a44",
+      Cancelled: "#b3261e",
     };
 
-    return colors[status] || "#cdbdca";
+    return colors[status] || "#854F6C";
   };
 
   const formatOrderDate = (date) => {
@@ -320,13 +277,6 @@ function AdminDashboard() {
     revenue: `LKR ${Number(product.revenue || 0).toLocaleString()}`,
   }));
 
-  const roles = dashboardData.roleDistribution.map((role, index) => ({
-    name: role.name,
-    count: role.count,
-    percentage: role.percentage,
-    color: ROLE_COLORS[index % ROLE_COLORS.length],
-  }));
-
   const lowStockList = inventoryItems
     .filter((item) => item.status === "Low Stock" || item.status === "Out of Stock")
     .sort((a, b) => Number(a.stockQuantity || 0) - Number(b.stockQuantity || 0))
@@ -351,13 +301,13 @@ function AdminDashboard() {
           {
             label: "Revenue (LKR)",
             data: salesReport.dailyRevenue.map((d) => d.revenue),
-            borderColor: "#dfb6b2",
+            borderColor: "#854F6C",
             backgroundColor: "rgba(133,79,108,0.22)",
             fill: true,
             tension: 0.35,
             pointRadius: 0,
             pointHoverRadius: 4,
-            pointBackgroundColor: "#dfb6b2",
+            pointBackgroundColor: "#854F6C",
             borderWidth: 2,
           },
         ],
@@ -382,12 +332,12 @@ function AdminDashboard() {
       },
     },
     scales: {
-      x: { grid: { display: false }, ticks: { color: "#cdbdca", font: { size: 11 } } },
+      x: { grid: { display: false }, ticks: { color: "#854F6C", font: { size: 11 } } },
       y: {
         beginAtZero: true,
-        grid: { color: "rgba(255,255,255,0.06)" },
+        grid: { color: "rgba(82,43,91,0.08)" },
         ticks: {
-          color: "#cdbdca",
+          color: "#854F6C",
           font: { size: 11 },
           callback: (v) => (v >= 1000 ? `${v / 1000}k` : v),
         },
@@ -397,6 +347,80 @@ function AdminDashboard() {
 
   const hasRevenue = salesReport && salesReport.dailyRevenue.some((d) => d.revenue > 0);
   const activeRangeLabel = CHART_RANGES.find((r) => r.key === chartRange)?.label || "7D";
+
+  // Order Status Distribution — real counts straight from Order.status,
+  // one slice per status that actually has orders.
+  const orderStatusDoughnutData = {
+    labels: dashboardData.orderStatusBreakdown.map((s) => s.status),
+    datasets: [
+      {
+        data: dashboardData.orderStatusBreakdown.map((s) => s.count),
+        backgroundColor: dashboardData.orderStatusBreakdown.map((s) => getOrderStatusColor(s.status)),
+        borderColor: "#fff",
+        borderWidth: 2,
+      },
+    ],
+  };
+  const orderStatusDoughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: "bottom",
+        labels: { color: "#522B5B", boxWidth: 10, padding: 12, font: { size: 11 } },
+      },
+      tooltip: {
+        backgroundColor: "#3a2141",
+        titleColor: "#fbe4d8",
+        bodyColor: "#fff",
+        padding: 10,
+        cornerRadius: 8,
+      },
+    },
+  };
+  const hasOrderStatusData = dashboardData.orderStatusBreakdown.some((s) => s.count > 0);
+
+  // Production by Stage — real counts from Production.stage, ordered to
+  // follow the actual workflow (Cutting -> Sewing -> QA -> Packing -> Completed).
+  const stageCountMap = {};
+  dashboardData.productionStageBreakdown.forEach((s) => { stageCountMap[s.stage] = s.count; });
+  const orderedStages = PRODUCTION_STAGE_ORDER.filter((label) => stageCountMap[label] > 0);
+  const productionStageBarData = {
+    labels: orderedStages,
+    datasets: [
+      {
+        label: "Production Orders",
+        data: orderedStages.map((label) => stageCountMap[label]),
+        backgroundColor: orderedStages.map((label) => PRODUCTION_STAGE_COLORS[label] || "#854F6C"),
+        borderRadius: 6,
+        maxBarThickness: 44,
+      },
+    ],
+  };
+  const productionStageBarOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#3a2141",
+        titleColor: "#fbe4d8",
+        bodyColor: "#fff",
+        padding: 10,
+        cornerRadius: 8,
+        displayColors: false,
+      },
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: "#854F6C", font: { size: 11 } } },
+      y: {
+        beginAtZero: true,
+        ticks: { color: "#854F6C", font: { size: 11 }, precision: 0 },
+        grid: { color: "rgba(82,43,91,0.08)" },
+      },
+    },
+  };
+  const hasProductionStageData = orderedStages.length > 0;
 
   return (
     <AdminLayout contentClassName="dashboard-page">
@@ -497,7 +521,7 @@ function AdminDashboard() {
                     <div style={{ height: "280px" }}>
                       {chartLoading ? (
                         <div className="dashboard-chart-empty">
-                          <div className="spinner-border" style={{ color: "var(--clothcore-blush)" }} role="status">
+                          <div className="spinner-border" style={{ color: "var(--clothcore-purple)" }} role="status">
                             <span className="visually-hidden">Loading...</span>
                           </div>
                         </div>
@@ -592,7 +616,7 @@ function AdminDashboard() {
                           ) : recentOrders.map((order, index) => (
                             <tr key={index}>
                               <td>
-                                <span className="fw-bold" style={{ color: "var(--clothcore-blush)", fontSize: "13px" }}>
+                                <span className="fw-bold" style={{ color: "var(--clothcore-purple)", fontSize: "13px" }}>
                                   {order.id}
                                 </span>
                               </td>
@@ -717,63 +741,45 @@ function AdminDashboard() {
               </div>
 
               <div className="col-lg-4">
-                <div className="card admin-content-card">
+                <div className="card admin-content-card" style={{ height: "100%" }}>
                   <div className="card-header">
-                    <h5 className="admin-content-card-title">User Role Distribution</h5>
+                    <h5 className="admin-content-card-title">Order Status Distribution</h5>
                   </div>
                   <div className="card-body p-4">
-                    {roles.length === 0 ? (
-                      <p className="dashboard-card-subtitle mb-0">No users yet.</p>
-                    ) : roles.map((role, index) => (
-                      <div key={index} className="mb-3">
-                        <div className="d-flex justify-content-between mb-1">
-                          <span style={{ fontSize: "13px", color: "var(--clothcore-text)" }}>{role.name}</span>
-                          <span className="fw-bold" style={{ fontSize: "13px", color: "var(--clothcore-text)" }}>
-                            {role.count} <span className="dashboard-card-subtitle">({role.percentage}%)</span>
-                          </span>
+                    <div style={{ height: "220px" }}>
+                      {hasOrderStatusData ? (
+                        <Doughnut data={orderStatusDoughnutData} options={orderStatusDoughnutOptions} />
+                      ) : (
+                        <div className="dashboard-chart-empty">
+                          <p className="mb-0 dashboard-card-subtitle">No orders yet.</p>
                         </div>
-                        <div className="dashboard-progress-track">
-                          <div
-                            className="dashboard-progress-fill"
-                            style={{ width: `${role.percentage}%`, background: role.color }}
-                          />
-                        </div>
-                      </div>
-                    ))}
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* System Activity */}
+            {/* Production by Stage */}
             <div className="row g-3 mt-3">
               <div className="col-12">
                 <div className="card admin-content-card">
-                  <div className="card-header">
-                    <h5 className="admin-content-card-title">System Activity</h5>
+                  <div className="card-header d-flex justify-content-between align-items-center">
+                    <h5 className="admin-content-card-title">Production by Stage</h5>
+                    <button className="btn btn-sm admin-link-btn" onClick={() => navigate('/production')}>
+                      View All <ChevronRight size={14} />
+                    </button>
                   </div>
                   <div className="card-body p-4">
-                    {activities.length === 0 ? (
-                      <p className="dashboard-card-subtitle mb-0">No recent activity.</p>
-                    ) : (
-                      <div className="row g-3">
-                        {activities.map((activity, index) => (
-                          <div key={index} className="col-md-6 col-lg-4 col-xl">
-                            <div className="d-flex align-items-start">
-                              <div className="dashboard-activity-icon" style={{ background: `${activity.color}15` }}>
-                                {activity.icon}
-                              </div>
-                              <div style={{ flex: 1, minWidth: 0 }}>
-                                <div style={{ fontSize: "13px", color: "var(--clothcore-text)" }}>
-                                  {activity.text}
-                                </div>
-                                <div className="dashboard-card-subtitle">{activity.time}</div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <div style={{ height: "260px" }}>
+                      {hasProductionStageData ? (
+                        <Bar data={productionStageBarData} options={productionStageBarOptions} />
+                      ) : (
+                        <div className="dashboard-chart-empty">
+                          <p className="mb-0 dashboard-card-subtitle">No production orders yet.</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -8,8 +8,7 @@ import ResetPassword from "./pages/ResetPassword";
 import PasswordResetSuccess from "./pages/PasswordResetSuccess";
 import Dashboard from "./pages/Dashboard.js";
 import SupervisorDashboard from "./pages/SupervisorDashboard";
-import SupervisorOrders from "./pages/SupervisorOrders";
-import SupervisorStaffManagement from "./pages/SupervisorStaffManagement";
+import SupervisorOrderApprovals from "./pages/SupervisorOrderApprovals";
 import SupervisorShopOwners from "./pages/SupervisorShopOwners";
 import SupervisorDeliveries from "./pages/SupervisorDeliveries";
 import SupervisorPayments from "./pages/SupervisorPayments";
@@ -24,18 +23,22 @@ import OrderStep2 from "./pages/OrderStep2";
 import OrderStep3 from "./pages/OrderStep3";
 import OrderStep4 from "./pages/OrderStep4";
 import OrderDelivery from "./pages/OrderDelivery";
+import OrderApproval from "./pages/OrderApproval";
 import OrderStep5 from "./pages/OrderStep5";
 import OrderStep6 from "./pages/OrderStep6";
 
 import AdminDashboard from "./pages/Admin/AdminDashboard";
 import AdminUserManagement from "./pages/Admin/AdminUserManagement";
+import AdminAddShopOwner from "./pages/Admin/AdminAddShopOwner";
 import AdminStaffManagement from "./pages/Admin/AdminStaffManagement";
 import Inventory from "./pages/Admin/Inventory";
 import AdminAddStaff from "./pages/Admin/AdminAddStaff";
+import AdminCreateStaffAccount from "./pages/Admin/AdminCreateStaffAccount";
+import ShopProfileGuard from "./components/order/ShopProfileGuard";
 import AdminProduction from "./pages/Admin/AdminProduction";
 import AdminOrders from "./pages/Admin/AdminOrders";
+import AdminOrderApprovals from "./pages/Admin/AdminOrderApprovals";
 import AdminOrderDetails from "./pages/Admin/AdminOrderDetails";
-import AdminShops from "./pages/Admin/AdminShops";
 import AdminPayments from "./pages/Admin/AdminPayments";
 import AdminDeliveries from "./pages/Admin/AdminDeliveries";
 import AdminReports from "./pages/Admin/AdminReports";
@@ -110,6 +113,14 @@ function App() {
           }
         />
         <Route
+          path="/admin/shop-owners/add"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminAddShopOwner />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/staff"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
@@ -118,18 +129,18 @@ function App() {
           }
         />
         <Route
-          path="/admin/orders"
+          path="/admin/staff/:staffId/create-account"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminOrders />
+              <AdminCreateStaffAccount />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/shops"
+          path="/admin/orders"
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
-              <AdminShops />
+              <AdminOrders />
             </ProtectedRoute>
           }
         />
@@ -197,6 +208,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/order-approvals"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminOrderApprovals />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Supervisor-only routes */}
         <Route
@@ -204,22 +223,6 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["supervisor"]}>
               <SupervisorDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/supervisor/orders"
-          element={
-            <ProtectedRoute allowedRoles={["supervisor"]}>
-              <SupervisorOrders />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/supervisor/staff"
-          element={
-            <ProtectedRoute allowedRoles={["supervisor"]}>
-              <SupervisorStaffManagement />
             </ProtectedRoute>
           }
         />
@@ -268,6 +271,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["supervisor"]}>
               <SupervisorAccount />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supervisor/order-approvals"
+          element={
+            <ProtectedRoute allowedRoles={["supervisor"]}>
+              <SupervisorOrderApprovals />
             </ProtectedRoute>
           }
         />
@@ -343,7 +354,9 @@ function App() {
           path="/step1"
           element={
             <ProtectedRoute>
-              <OrderStep1 />
+              <ShopProfileGuard>
+                <OrderStep1 />
+              </ShopProfileGuard>
             </ProtectedRoute>
           }
         />
@@ -351,7 +364,9 @@ function App() {
           path="/step2"
           element={
             <ProtectedRoute>
-              <OrderStep2 />
+              <ShopProfileGuard>
+                <OrderStep2 />
+              </ShopProfileGuard>
             </ProtectedRoute>
           }
         />
@@ -359,7 +374,9 @@ function App() {
           path="/step3"
           element={
             <ProtectedRoute>
-              <OrderStep3 />
+              <ShopProfileGuard>
+                <OrderStep3 />
+              </ShopProfileGuard>
             </ProtectedRoute>
           }
         />
@@ -367,7 +384,9 @@ function App() {
           path="/step4"
           element={
             <ProtectedRoute>
-              <OrderStep4 />
+              <ShopProfileGuard>
+                <OrderStep4 />
+              </ShopProfileGuard>
             </ProtectedRoute>
           }
         />
@@ -375,7 +394,19 @@ function App() {
           path="/order-delivery"
           element={
             <ProtectedRoute>
-              <OrderDelivery />
+              <ShopProfileGuard>
+                <OrderDelivery />
+              </ShopProfileGuard>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/order-approval"
+          element={
+            <ProtectedRoute>
+              <ShopProfileGuard>
+                <OrderApproval />
+              </ShopProfileGuard>
             </ProtectedRoute>
           }
         />
@@ -383,7 +414,9 @@ function App() {
           path="/step5"
           element={
             <ProtectedRoute>
-              <OrderStep5 />
+              <ShopProfileGuard>
+                <OrderStep5 />
+              </ShopProfileGuard>
             </ProtectedRoute>
           }
         />

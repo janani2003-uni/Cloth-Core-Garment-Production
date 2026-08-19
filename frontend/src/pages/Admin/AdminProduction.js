@@ -276,13 +276,13 @@ function AdminProduction() {
             </div>
 
             {/* Page Header */}
-            <div style={{ marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--clothcore-text)', marginBottom: '4px' }}>
-                Production Management
-              </h2>
-              <p style={{ fontSize: '14px', color: 'var(--clothcore-text-soft)', marginBottom: '0' }}>
-                Monitor and manage garment production from start to finish
-              </p>
+            <div className="admin-page-header">
+              <div>
+                <h2 className="admin-page-title">Production Management</h2>
+                <p className="admin-page-subtitle">
+                  Monitor and manage garment production from start to finish
+                </p>
+              </div>
             </div>
 
             {/* Stats Cards - 5 in a row - Connected to Backend */}
@@ -569,7 +569,7 @@ function AdminProduction() {
                               <td style={{ padding: "8px 10px", color: "var(--clothcore-text-soft)" }}>
                                 {((currentPage - 1) * ordersPerPage) + index + 1}
                               </td>
-                              <td style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-blush)" }}>
+                              <td style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-purple)" }}>
                                 {order.orderId}
                               </td>
                               <td style={{ padding: "8px 10px" }}>{order.product}</td>
@@ -645,8 +645,8 @@ function AdminProduction() {
                                     padding: "4px 12px",
                                     borderRadius: "6px",
                                     border: "1px solid var(--clothcore-border-strong)",
-                                    background: "rgba(255,255,255,0.055)",
-                                    color: "var(--clothcore-blush)",
+                                    background: "rgba(82,43,91,0.06)",
+                                    color: "var(--clothcore-purple)",
                                     fontSize: "12px",
                                     fontWeight: "600",
                                     cursor: "pointer",
@@ -678,7 +678,7 @@ function AdminProduction() {
                           padding: "4px 10px",
                           border: "1px solid var(--clothcore-border)",
                           borderRadius: "6px",
-                          background: "rgba(255,255,255,0.055)",
+                          background: "rgba(82,43,91,0.06)",
                           cursor: currentPage === 1 ? "not-allowed" : "pointer",
                           color: currentPage === 1 ? "#ccc" : "var(--clothcore-text)",
                           fontSize: "13px"
@@ -697,7 +697,7 @@ function AdminProduction() {
                               padding: "4px 12px",
                               border: currentPage === pageNum ? "none" : "1px solid var(--clothcore-border)",
                               borderRadius: "6px",
-                              background: currentPage === pageNum ? "var(--clothcore-purple)" : "rgba(255,255,255,0.055)",
+                              background: currentPage === pageNum ? "var(--clothcore-purple)" : "rgba(82,43,91,0.06)",
                               color: currentPage === pageNum ? "white" : "var(--clothcore-text)",
                               fontWeight: currentPage === pageNum ? "600" : "400",
                               cursor: "pointer",
@@ -717,7 +717,7 @@ function AdminProduction() {
                               padding: "4px 12px",
                               border: currentPage === totalPages ? "none" : "1px solid var(--clothcore-border)",
                               borderRadius: "6px",
-                              background: currentPage === totalPages ? "var(--clothcore-purple)" : "rgba(255,255,255,0.055)",
+                              background: currentPage === totalPages ? "var(--clothcore-purple)" : "rgba(82,43,91,0.06)",
                               color: currentPage === totalPages ? "white" : "var(--clothcore-text)",
                               fontWeight: currentPage === totalPages ? "600" : "400",
                               cursor: "pointer",
@@ -735,7 +735,7 @@ function AdminProduction() {
                           padding: "4px 10px",
                           border: "1px solid var(--clothcore-border)",
                           borderRadius: "6px",
-                          background: "rgba(255,255,255,0.055)",
+                          background: "rgba(82,43,91,0.06)",
                           cursor: currentPage === totalPages ? "not-allowed" : "pointer",
                           color: currentPage === totalPages ? "#ccc" : "var(--clothcore-text)",
                           fontSize: "13px"
@@ -758,7 +758,7 @@ function AdminProduction() {
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
                 <div>
-                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>Manage Production</h5>
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>Manage Production</h5>
                   <p className="mb-0 text-muted" style={{ fontSize: "13px" }}>{managing.orderId} — {managing.product}</p>
                 </div>
                 <button type="button" className="btn-close" onClick={() => !savingManage && setManaging(null)} />

@@ -36,8 +36,8 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-const VALID_STATUS = ["Pending", "Approved", "Production", "Delivered", "Cancelled"];
-const VALID_PAYMENT_STATUS = ["Pending", "Partial", "Paid"];
+const VALID_STATUS = ["Pending", "Approved", "Production", "In Delivery", "Delivered", "Cancelled"];
+const VALID_PAYMENT_STATUS = ["Pending", "Advance Paid", "Full Paid"];
 
 function buildNotes(doc) {
   const parts = [];

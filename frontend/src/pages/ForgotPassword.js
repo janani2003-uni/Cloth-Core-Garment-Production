@@ -1,18 +1,33 @@
 import { useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FiMail, FiArrowLeft } from "react-icons/fi";
+import { FiMail, FiArrowLeft, FiAlertCircle, FiCheckCircle } from "react-icons/fi";
 import logo from "../assets/logo-new.png.jpeg";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const navigate = useNavigate();
+  const { state } = useLocation();
+
+  // Reached here after ResetPassword.js or VerifyCode.js detected a
+  // missing/expired reset session — show a helpful message instead of
+  // silently dropping the user back at the start.
+  const sessionExpiredMessage = state?.sessionExpired
+    ? "Your reset session has expired. Please request a new verification code."
+    : "";
 
   const handleVerify = async () => {
-    if (!email.trim()) {
-      alert("Please enter your email.");
+    setError("");
+    setInfo("");
+
+    if (!email.trim() || !EMAIL_REGEX.test(email.trim())) {
+      setError("Please enter a valid email address.");
       return;
     }
 
@@ -21,21 +36,19 @@ function ForgotPassword() {
 
       const response = await axios.post(
         "http://127.0.0.1:5000/api/auth/forgot-password",
-        {
-          email,
-        }
+        { email: email.trim() }
       );
 
-      alert(response.data.message);
+      setInfo(response.data.message);
 
       navigate("/verify-code", {
-        state: { email },
+        state: { email: email.trim().toLowerCase() },
       });
-    } catch (error) {
-      console.log(error);
-      console.log(error.response);
-
-      alert(error.response?.data?.message || error.message);
+    } catch (err) {
+      setError(
+        err.response?.data?.message ||
+          "Unable to send the verification code. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -99,9 +112,30 @@ function ForgotPassword() {
                   <h1 className="fw-bold mb-2 auth-title">Find Your Account</h1>
 
                   <p className="mb-4 auth-subtitle">
-                    Enter your registered email and we'll send you a verification
-                    code to reset your password.
+                    Enter the email associated with your ClothCore account.
+                    We'll send you a verification code.
                   </p>
+
+                  {sessionExpiredMessage && (
+                    <div className="auth-banner is-info" role="alert">
+                      <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{sessionExpiredMessage}</span>
+                    </div>
+                  )}
+
+                  {error && (
+                    <div className="auth-banner is-error" role="alert">
+                      <FiAlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{error}</span>
+                    </div>
+                  )}
+
+                  {info && (
+                    <div className="auth-banner is-success" role="status">
+                      <FiCheckCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{info}</span>
+                    </div>
+                  )}
 
                   <div className="mb-4">
                     <label htmlFor="forgotEmail" className="form-label fw-semibold">
@@ -113,10 +147,13 @@ function ForgotPassword() {
                       <input
                         id="forgotEmail"
                         type="email"
-                        className="form-control form-control-lg auth-input"
+                        className={`form-control form-control-lg auth-input ${error ? "is-invalid" : ""}`}
                         placeholder="Enter Email Address"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
+                        onChange={(e) => {
+                          setEmail(e.target.value);
+                          setError("");
+                        }}
                         autoComplete="email"
                         required
                       />

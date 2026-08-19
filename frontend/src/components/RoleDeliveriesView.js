@@ -7,17 +7,16 @@ import axios from "axios";
 import { Search, TruckFront, X } from "react-bootstrap-icons";
 
 const API_URL = "http://localhost:5000/api/deliveries";
-const ALL_STATUSES = ["Not Scheduled", "Scheduled", "Dispatched", "In Transit", "Delivered", "Delivery Failed"];
-const STAFF_STATUSES = ["Dispatched", "In Transit", "Delivered", "Delivery Failed"];
+// Exactly three statuses — the backend enum (backend/models/Delivery.js)
+// only accepts these three now.
+const ALL_STATUSES = ["Not Yet Delivered", "Delivery In Progress", "Delivered"];
+const STAFF_STATUSES = ["Not Yet Delivered", "Delivery In Progress", "Delivered"];
 
 function getStatusBadgeClass(status) {
   const map = {
-    "Not Scheduled": "admin-badge-info",
-    Scheduled: "admin-badge-warning",
-    Dispatched: "admin-badge-info",
-    "In Transit": "admin-badge-warning",
+    "Not Yet Delivered": "admin-badge-warning",
+    "Delivery In Progress": "admin-badge-info",
     Delivered: "admin-badge-success",
-    "Delivery Failed": "admin-badge-danger",
   };
   return map[status] || "admin-badge-info";
 }
@@ -66,8 +65,7 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
     const matchesSearch =
       !term ||
       d.orderId?.orderId?.toLowerCase().includes(term) ||
-      d.orderId?.customerName?.toLowerCase().includes(term) ||
-      d.trackingNumber?.toLowerCase().includes(term);
+      d.orderId?.customerName?.toLowerCase().includes(term);
     const matchesStatus = statusFilter === "All Status" || d.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -77,10 +75,14 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
     setEditing(delivery);
     setForm({
       deliveryStaffName: delivery.deliveryStaffName || "",
-      trackingNumber: delivery.trackingNumber || "",
+      // Defaults to whatever the shop owner asked for at order placement
+      // (backend already fills this in when the delivery record is first
+      // created) — editable here. Tracking number, Delivery Method and
+      // Notes are no longer part of this popup — it now focuses purely on
+      // the delivery-status update action, matching the Admin version.
+      address: delivery.address || delivery.orderId?.deliveryAddress || "",
       scheduledDate: delivery.scheduledDate ? delivery.scheduledDate.slice(0, 10) : "",
       status: delivery.status,
-      notes: delivery.notes || "",
     });
   };
 
@@ -110,9 +112,11 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
 
   return (
     <>
-      <div style={{ marginBottom: "24px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>{heading}</h2>
-        <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>{subtitle}</p>
+      <div className="admin-page-header">
+        <div>
+          <h2 className="admin-page-title">{heading}</h2>
+          <p className="admin-page-subtitle">{subtitle}</p>
+        </div>
       </div>
 
       {actionError && (
@@ -153,11 +157,10 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
             <thead>
               <tr>
                 <th>Order</th>
-                <th>Shop / Customer</th>
+                <th>Shop Owner</th>
                 <th>Garment</th>
                 <th>Scheduled</th>
                 <th>Assigned Staff</th>
-                <th>Tracking #</th>
                 <th>Status</th>
                 <th>Payment</th>
                 <th>Last Update</th>
@@ -166,12 +169,12 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="text-center py-5"><div className="spinner-border" role="status" style={{ color: "var(--clothcore-mauve)" }} /></td></tr>
+                <tr><td colSpan={9} className="text-center py-5"><div className="spinner-border" role="status" style={{ color: "var(--clothcore-mauve)" }} /></td></tr>
               ) : error ? (
-                <tr><td colSpan={10} className="text-center py-5"><div style={{ color: "var(--clothcore-danger)", marginBottom: "10px" }}>{error}</div><button className="admin-btn-secondary" onClick={fetchDeliveries}>Retry</button></td></tr>
+                <tr><td colSpan={9} className="text-center py-5"><div style={{ color: "var(--clothcore-danger)", marginBottom: "10px" }}>{error}</div><button className="admin-btn-secondary" onClick={fetchDeliveries}>Retry</button></td></tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-0">
+                  <td colSpan={9} className="p-0">
                     <div className="admin-empty-state" style={{ border: "none", borderRadius: 0 }}>
                       <TruckFront size={36} className="admin-empty-state-icon" />
                       <div className="admin-empty-state-title">No deliveries found</div>
@@ -184,12 +187,11 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
               ) : (
                 filtered.map((d) => (
                   <tr key={d._id}>
-                    <td style={{ fontWeight: 600, color: "var(--clothcore-blush)" }}>{d.orderId?.orderId || "N/A"}</td>
+                    <td style={{ fontWeight: 600, color: "var(--clothcore-purple)" }}>{d.orderId?.orderId || "N/A"}</td>
                     <td>{d.orderId?.customerName || "N/A"}</td>
                     <td>{d.orderId?.item || "N/A"}{d.orderId?.quantity ? ` (${d.orderId.quantity})` : ""}</td>
                     <td>{formatDate(d.scheduledDate)}</td>
                     <td>{d.deliveryStaffName || "Unassigned"}</td>
-                    <td>{d.trackingNumber || "—"}</td>
                     <td><span className={`admin-badge ${getStatusBadgeClass(d.status)}`}>{d.status}</span></td>
                     <td><span className={`admin-badge ${d.orderId?.paymentStatus === "Paid" ? "admin-badge-success" : "admin-badge-warning"}`}>{d.orderId?.paymentStatus || "N/A"}</span></td>
                     <td style={{ color: "var(--clothcore-text-soft)" }}>{formatDate(d.updatedAt)}</td>
@@ -238,8 +240,8 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
                 <input className="form-control admin-select" value={form.deliveryStaffName} onChange={(e) => setForm((f) => ({ ...f, deliveryStaffName: e.target.value }))} />
               </div>
               <div>
-                <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Tracking Number</label>
-                <input className="form-control admin-select" value={form.trackingNumber} onChange={(e) => setForm((f) => ({ ...f, trackingNumber: e.target.value }))} />
+                <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Delivery Address</label>
+                <textarea className="form-control admin-select" rows={2} value={form.address} onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))} />
               </div>
               <div>
                 <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Scheduled Date</label>
@@ -252,10 +254,6 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Notes</label>
-                <textarea className="form-control admin-select" rows={3} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} />
               </div>
             </div>
 

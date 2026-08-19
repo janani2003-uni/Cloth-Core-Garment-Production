@@ -8,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Bell, CheckCircle, ExclamationTriangle, CartPlus, CreditCard, ChatDots, Truck } from "react-bootstrap-icons";
 
 const API_URL = "http://localhost:5000/api/notifications";
+const ORDERS_API_URL = "http://localhost:5000/api/orders";
 
 const TYPE_ICON = {
   production: CartPlus,
@@ -32,7 +33,15 @@ function formatRelativeTime(dateString) {
   return `${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-function RoleNotificationsView({ heading, subtitle, dashboardPath, feedPath = "/mine" }) {
+function RoleNotificationsView({
+  heading,
+  subtitle,
+  dashboardPath,
+  feedPath = "/mine",
+  orderApprovedPath,
+  orderStatusPath,
+  orderQueuePath,
+}) {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,11 +70,66 @@ function RoleNotificationsView({ heading, subtitle, dashboardPath, feedPath = "/
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const visible = filter === "unread" ? notifications.filter((n) => !n.isRead) : notifications;
 
+  // For an Order notification:
+  //  - Admin/Supervisor (orderQueuePath set) always land on the approval
+  //    queue — that's the only actionable place for them, whether the
+  //    notification is a new request, an approval, or a rejection.
+  //  - Shop owner (orderApprovedPath set) routes based on the order's
+  //    *live* approval status (never the notification's own wording, which
+  //    can be stale by the time it's clicked): Approved goes straight to
+  //    Step 7 Payment, anything else (Pending/Rejected) goes to the Admin
+  //    Approval status page so a rejection reason is always visible.
+  //  The notification's relatedId (the order's Mongo _id) is written into
+  //  the order draft so those pages can load the order even on a fresh
+  //  session/device with no prior local state.
+  const DELIVERY_NOTIFICATION_TITLES = ["Delivery Scheduled", "Delivery In Progress", "Order Delivered"];
+
+  const routeForOrderNotification = async (notification) => {
+    if (notification.relatedModel !== "Order" || !notification.relatedId) {
+      if (notification.relatedModel === "Production") navigate(dashboardPath);
+      return;
+    }
+
+    // Delivery-lifecycle updates aren't about the approval gate — re-deriving
+    // a destination from approval status here would just bounce the shop
+    // owner back toward Payment. Send them to Deliveries instead.
+    if (orderApprovedPath && DELIVERY_NOTIFICATION_TITLES.includes(notification.title)) {
+      navigate("/deliveries");
+      return;
+    }
+
+    if (orderQueuePath) {
+      // Deep-links straight into that order's detail view (see
+      // ApprovalQueueView.js's ?orderId= handling) instead of just the
+      // general queue.
+      navigate(`${orderQueuePath}?orderId=${notification.relatedId}`);
+      return;
+    }
+
+    if (orderApprovedPath) {
+      try {
+        const res = await axios.get(`${ORDERS_API_URL}/${notification.relatedId}/approval-status`);
+        const status = res.data?.data?.approval?.status;
+        if (status) {
+          const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
+          localStorage.setItem(
+            "clothCoreOrderDraft",
+            JSON.stringify({ ...draft, orderId: notification.relatedId })
+          );
+          navigate(status === "Approved" ? orderApprovedPath : (orderStatusPath || dashboardPath));
+          return;
+        }
+      } catch (err) {
+        // Fall through to the generic dashboard navigation below.
+      }
+    }
+
+    navigate(dashboardPath);
+  };
+
   const markAsRead = async (notification) => {
     if (notification.isRead) {
-      if (notification.relatedModel === "Production" || notification.relatedModel === "Order") {
-        navigate(dashboardPath);
-      }
+      routeForOrderNotification(notification);
       return;
     }
     setNotifications((prev) => prev.map((n) => (n._id === notification._id ? { ...n, isRead: true } : n)));
@@ -75,9 +139,7 @@ function RoleNotificationsView({ heading, subtitle, dashboardPath, feedPath = "/
       console.error("Mark Read Error:", err);
       fetchNotifications();
     }
-    if (notification.relatedModel === "Production" || notification.relatedModel === "Order") {
-      navigate(dashboardPath);
-    }
+    routeForOrderNotification(notification);
   };
 
   const markAllAsRead = async () => {
@@ -92,12 +154,12 @@ function RoleNotificationsView({ heading, subtitle, dashboardPath, feedPath = "/
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
+      <div className="admin-page-header">
         <div>
-          <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>{heading}</h2>
-          <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>{subtitle}</p>
+          <h2 className="admin-page-title">{heading}</h2>
+          <p className="admin-page-subtitle">{subtitle}</p>
         </div>
-        <button className="admin-btn-secondary" onClick={markAllAsRead} disabled={unreadCount === 0}>
+        <button className="admin-hero-btn" onClick={markAllAsRead} disabled={unreadCount === 0}>
           Mark all as read
         </button>
       </div>
@@ -112,7 +174,7 @@ function RoleNotificationsView({ heading, subtitle, dashboardPath, feedPath = "/
               style={{
                 padding: "6px 16px",
                 fontSize: "13px",
-                background: filter === key ? "var(--clothcore-mauve)" : "rgba(255,255,255,0.055)",
+                background: filter === key ? "var(--clothcore-mauve)" : "rgba(82,43,91,0.06)",
                 color: filter === key ? "#fff" : "var(--clothcore-text)",
                 border: filter === key ? "1px solid var(--clothcore-mauve)" : "1px solid var(--clothcore-border-strong)",
               }}
@@ -147,14 +209,14 @@ function RoleNotificationsView({ heading, subtitle, dashboardPath, feedPath = "/
                     display: "flex",
                     gap: "12px",
                     padding: "14px 8px",
-                    borderBottom: "1px solid rgba(255,255,255,0.06)",
+                    borderBottom: "1px solid rgba(82,43,91,0.07)",
                     cursor: "pointer",
                     background: n.isRead ? "transparent" : "rgba(133,79,108,0.08)",
                     borderRadius: "10px",
                   }}
                 >
                   <div style={{ width: "36px", height: "36px", borderRadius: "10px", background: "rgba(133,79,108,0.2)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    <Icon size={16} style={{ color: "var(--clothcore-blush)" }} />
+                    <Icon size={16} style={{ color: "var(--clothcore-purple)" }} />
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: "10px" }}>

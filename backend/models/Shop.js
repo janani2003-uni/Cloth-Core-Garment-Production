@@ -136,6 +136,33 @@ const shopSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+
+    // Shop Logo — a real disk-backed upload (see backend/middleware/upload.js
+    // and POST /api/shops/logo below), not a base64 string. Only the
+    // relative web path is stored here; the file itself lives under
+    // backend/uploads/logos/ and is served via /uploads/logos/<file>.
+    logoPath: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    logoOriginalName: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    logoMimeType: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    logoUploadedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true,

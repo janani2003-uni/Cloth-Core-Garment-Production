@@ -29,7 +29,7 @@ function ReadOnlyField({ label, value }) {
 function RoleAccountView({ settingsPath }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", factoryName: "" });
+  const [form, setForm] = useState({ firstName: "", lastName: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
@@ -43,7 +43,6 @@ function RoleAccountView({ settingsPath }) {
         firstName: res.data.firstName || "",
         lastName: res.data.lastName || "",
         phone: res.data.phone || "",
-        factoryName: res.data.factoryName || "",
       });
     } catch (err) {
       console.error("Fetch Me Error:", err);
@@ -93,9 +92,11 @@ function RoleAccountView({ settingsPath }) {
 
   return (
     <>
-      <div style={{ marginBottom: "24px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>My Account</h2>
-        <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>View and update your profile information.</p>
+      <div className="admin-page-header">
+        <div>
+          <h2 className="admin-page-title">My Account</h2>
+          <p className="admin-page-subtitle">View and update your profile information.</p>
+        </div>
       </div>
 
       <div className="row g-3">
@@ -141,10 +142,6 @@ function RoleAccountView({ settingsPath }) {
                 <div className="col-md-6">
                   <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Phone Number</label>
                   <input className="form-control admin-select" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} placeholder="e.g. 077 123 4567" />
-                </div>
-                <div className="col-md-12">
-                  <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Factory / Site</label>
-                  <input className="form-control admin-select" value={form.factoryName} onChange={(e) => setForm((f) => ({ ...f, factoryName: e.target.value }))} />
                 </div>
               </div>
 

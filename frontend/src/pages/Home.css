@@ -892,23 +892,6 @@
   z-index: 1;
 }
 
-.workflow-timeline::before {
-  content: "";
-  position: absolute;
-  top: 62px;
-  left: 6%;
-  right: 6%;
-  height: 1.5px;
-  background: linear-gradient(
-    90deg,
-    rgba(82, 43, 91, 0.22),
-    rgba(133, 79, 108, 0.4),
-    rgba(82, 43, 91, 0.22)
-  );
-  opacity: 1;
-  z-index: 0;
-}
-
 .workflow-step {
   position: relative;
   display: flex;
@@ -946,6 +929,18 @@
 }
 
 .workflow-step-icon.cc-icon-badge::before {
+  content: none;
+}
+
+/* Same calmer treatment as the workflow/why-choose/contact icon badges —
+   the shared .cc-icon-badge pulsing blur halo read as too loud/glowy on
+   this many cards at once, so it's dropped here too. */
+.feature-card-icon.cc-icon-badge {
+  background: linear-gradient(135deg, #522b5b, #854f6c);
+  box-shadow: 0 8px 20px rgba(43, 18, 76, 0.16);
+}
+
+.feature-card-icon.cc-icon-badge::before {
   content: none;
 }
 
@@ -1327,10 +1322,10 @@
   inset: -20px;
 }
 
-.material-image-frame-cotton::before { background: radial-gradient(circle, #f5d98c, transparent 70%); }
-.material-image-frame-silk::before { background: radial-gradient(circle, var(--mat-mauve), transparent 70%); }
+.material-image-frame-shirt::before { background: radial-gradient(circle, var(--mat-pink), transparent 70%); }
+.material-image-frame-tshirt::before { background: radial-gradient(circle, var(--mat-mauve), transparent 70%); }
+.material-image-frame-hoodie::before { background: radial-gradient(circle, var(--mat-purple), transparent 70%); }
 .material-image-frame-denim::before { background: radial-gradient(circle, #6a5fa8, transparent 70%); }
-.material-image-frame-linen::before { background: radial-gradient(circle, #e9c9a3, transparent 70%); }
 
 .material-frame-dot {
   position: absolute;
@@ -1345,25 +1340,11 @@
 .material-frame-dot-2 { width: 5px; height: 5px; bottom: 10%; left: 2%; }
 .material-frame-dot-3 { width: 6px; height: 6px; top: 55%; right: -4%; }
 
-.material-stock-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 16px;
-  border-radius: 999px;
-  background: rgba(82, 43, 91, 0.08);
+.material-desc {
   color: var(--cc-text-soft);
-  font-size: 0.85rem;
-}
-
-.material-stock-pill svg {
-  color: var(--mat-purple);
-  font-size: 0.9rem;
-}
-
-.material-stock-pill strong {
-  color: var(--mat-pink);
-  font-weight: 800;
+  font-size: 0.92rem;
+  margin: 0;
+  line-height: 1.4;
 }
 
 @keyframes materialFloat {
@@ -1498,6 +1479,16 @@
 
 .inquiry-field {
   margin-bottom: 18px;
+}
+
+.inquiry-field-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.inquiry-field-row .inquiry-field {
+  flex: 1 1 180px;
 }
 
 .inquiry-field label {

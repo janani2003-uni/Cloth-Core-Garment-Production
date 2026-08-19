@@ -33,45 +33,50 @@ html {
   --cc-transition-base: 0.45s cubic-bezier(0.16, 1, 0.3, 1);
 
   /* ClothCore dashboard design system (Admin / Shop Owner / Supervisor / Staff
-     app shell) — dark-purple palette. Home.js and its own --cc-* tokens above
-     are intentionally untouched by this block; the Home page keeps its
-     current light look. */
-  --clothcore-darkest: #241130;
-  --clothcore-deep: #38195c;
-  --clothcore-purple: #5c3266;
-  --clothcore-mauve: #8f5977;
-  --clothcore-blush: #e3c0bd;
-  --clothcore-peach: #fbe4d8;
+     app shell) — light peach/cream/plum palette, matching Order Step 1's own
+     palette (frontend/src/utils/orderTheme.js) so the whole authenticated app
+     reads as one system. Home.js and its own --cc-* tokens above are
+     intentionally untouched; Home keeps its current light look.
+     --clothcore-darkest/-deep are deliberately kept dark — -darkest is the
+     sidebar background (chrome stays dark plum by design) and -deep only
+     feeds the Login/Register glow backdrop (.auth-page below), which must
+     stay exactly as it is. */
+  --clothcore-darkest: #190019;
+  --clothcore-deep: #241328;
+  --clothcore-purple: #522B5B;
+  --clothcore-mauve: #854F6C;
+  --clothcore-blush: #DFB6B2;
+  --clothcore-peach: #FBE4D8;
 
-  --clothcore-app-bg: #2a1830;
-  --clothcore-bg-secondary: #321c3a;
-  --clothcore-surface: #3a2145;
-  --clothcore-card: #43264d;
-  --clothcore-surface-strong: #4d2d59;
+  --clothcore-app-bg: #FBE4D8;
+  --clothcore-bg-secondary: #FDF0E7;
+  --clothcore-surface: #FFFFFF;
+  --clothcore-card: #FFFFFF;
+  --clothcore-surface-strong: #FBE4D8;
 
-  --clothcore-text: #fff7fb;
-  --clothcore-text-soft: #d6c8d4;
-  --clothcore-text-muted: #b4a0b3;
-  --clothcore-bg: #2a1830;
-  --clothcore-border: rgba(227, 192, 189, 0.14);
-  --clothcore-border-strong: rgba(227, 192, 189, 0.24);
+  --clothcore-text: #190019;
+  --clothcore-text-soft: #522B5B;
+  --clothcore-text-muted: #854F6C;
+  --clothcore-bg: #FBE4D8;
+  --clothcore-border: rgba(82, 43, 91, 0.12);
+  --clothcore-border-strong: rgba(82, 43, 91, 0.22);
 
   --clothcore-transition-smooth: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 
-  --clothcore-success: #8eddb3;
-  --clothcore-success-bg: rgba(60, 190, 130, 0.26);
-  --clothcore-warning: #ffc884;
-  --clothcore-warning-bg: rgba(255, 166, 76, 0.24);
-  --clothcore-danger: #ffaab3;
-  --clothcore-danger-bg: rgba(220, 90, 100, 0.28);
-  --clothcore-info: #edc7de;
-  --clothcore-info-bg: rgba(133, 79, 108, 0.34);
+  --clothcore-success: #1f7a44;
+  --clothcore-success-bg: rgba(31, 122, 68, 0.12);
+  --clothcore-warning: #a3600e;
+  --clothcore-warning-bg: rgba(217, 131, 36, 0.15);
+  --clothcore-danger: #b3261e;
+  --clothcore-danger-bg: rgba(179, 38, 30, 0.1);
+  --clothcore-info: #522B5B;
+  --clothcore-info-bg: rgba(82, 43, 91, 0.1);
 
   --clothcore-radius-sm: 10px;
   --clothcore-radius: 16px;
   --clothcore-radius-lg: 22px;
-  --clothcore-shadow: 0 10px 26px rgba(24, 10, 28, 0.28);
-  --clothcore-shadow-hover: 0 16px 32px rgba(24, 10, 28, 0.36);
+  --clothcore-shadow: 0 10px 30px rgba(25, 0, 25, 0.08);
+  --clothcore-shadow-hover: 0 16px 40px rgba(25, 0, 25, 0.14);
   --clothcore-spacing: 20px;
   --clothcore-input-height: 44px;
   --clothcore-sidebar-width: 250px;
@@ -128,7 +133,7 @@ code {
 
 .form-check-input:focus {
   border-color: var(--clothcore-mauve);
-  box-shadow: 0 0 0 0.25rem rgba(143, 89, 119, 0.25);
+  box-shadow: 0 0 0 0.25rem rgba(197, 139, 168, 0.25);
 }
 
 /* Shared buttons */
@@ -233,9 +238,12 @@ code {
 }
 
 /* Shared auth page chrome (Login / Register / Forgot / Verify / Reset).
-   Deliberately uses --clothcore-* (dark) rather than --cc-* — the --cc-*
-   tokens above are reserved for the Home page, which keeps its current
-   light look unchanged. */
+   Uses --clothcore-* (now the light peach/cream/plum content theme) rather
+   than --cc-* — the --cc-* tokens above are reserved for the Home page,
+   which keeps its current light look unchanged. The page background/card/
+   navbar surfaces below are deliberately hardcoded rather than tied to
+   --clothcore-* so this page's look stays frozen if the dashboard palette
+   is retuned again later. */
 
 .auth-page {
   position: relative;
@@ -243,17 +251,19 @@ code {
   isolation: isolate;
 }
 
-/* Abstract glowing-purple backdrop (pure CSS, no image asset) — the
-   blurred color pools are what the glass card shows through. */
+/* Soft peach/cream/lilac backdrop (pure CSS, no image asset) — the
+   blurred color pools are what the glass card shows through. Deliberately
+   hardcoded (not var(--clothcore-*)) so the Login/Register look is frozen
+   and never drifts when the dashboard palette is retuned elsewhere. */
 .auth-page::before {
   content: "";
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 900px 700px at 12% 12%, rgba(143, 89, 119, 0.5), transparent 60%),
-    radial-gradient(ellipse 800px 800px at 88% 22%, rgba(92, 50, 102, 0.55), transparent 55%),
-    radial-gradient(ellipse 900px 900px at 50% 95%, rgba(56, 25, 92, 0.6), transparent 60%),
-    linear-gradient(160deg, var(--clothcore-darkest) 0%, var(--clothcore-deep) 55%, var(--clothcore-purple) 100%);
+    radial-gradient(ellipse 900px 700px at 12% 12%, rgba(223, 182, 178, 0.4), transparent 60%),
+    radial-gradient(ellipse 800px 800px at 88% 22%, rgba(197, 139, 168, 0.28), transparent 55%),
+    radial-gradient(ellipse 900px 900px at 50% 95%, rgba(251, 228, 216, 0.7), transparent 60%),
+    linear-gradient(160deg, #FBE4D8 0%, #FDF3EC 50%, #F3E4EE 100%);
   z-index: -2;
 }
 
@@ -261,7 +271,7 @@ code {
   content: "";
   position: fixed;
   inset: 0;
-  background: rgba(15, 8, 20, 0.18);
+  background: rgba(255, 255, 255, 0.06);
   z-index: -1;
 }
 
@@ -272,9 +282,11 @@ code {
    with Home's for specificity and could lose the cascade depending on
    bundle order — the compound selector always wins regardless of order. */
 .navbar.auth-navbar {
-  background: rgb(58, 33, 69);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid rgba(82, 43, 91, 0.12);
+  box-shadow: 0 8px 24px rgba(25, 0, 25, 0.08);
   position: relative;
   z-index: 1;
 }
@@ -310,7 +322,7 @@ code {
 }
 
 .auth-navbar .nav-link:hover {
-  color: var(--clothcore-blush);
+  color: var(--clothcore-purple);
 }
 
 .auth-card-wrap {
@@ -328,17 +340,17 @@ code {
 
 .auth-card {
   position: relative;
-  background: rgba(67, 38, 77, 0.38);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  border-radius: 32px;
-  box-shadow: 0 30px 80px rgba(8, 4, 12, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(82, 43, 91, 0.14);
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgba(82, 43, 91, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(26px) saturate(1.4);
   -webkit-backdrop-filter: blur(26px) saturate(1.4);
   overflow: hidden;
 }
 
 .auth-eyebrow {
-  color: var(--clothcore-blush);
+  color: var(--clothcore-mauve);
   font-weight: 700;
   letter-spacing: 2.5px;
   font-size: 0.85rem;
@@ -353,7 +365,7 @@ code {
 }
 
 .auth-link {
-  color: var(--clothcore-blush);
+  color: var(--clothcore-mauve);
   position: relative;
   transition: color 0.3s ease;
 }
@@ -370,7 +382,7 @@ code {
 }
 
 .auth-link:hover {
-  color: var(--clothcore-peach);
+  color: var(--clothcore-purple);
 }
 
 .auth-link:hover::after {
@@ -386,8 +398,8 @@ code {
   padding: 7px 14px;
   border: 1.5px solid var(--clothcore-border-strong);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.055);
-  color: var(--clothcore-blush);
+  background: rgba(82, 43, 91, 0.06);
+  color: var(--clothcore-mauve);
   font-weight: 600;
   font-size: 12.5px;
   cursor: pointer;
@@ -414,9 +426,9 @@ code {
 }
 
 .admin-register-link:hover {
-  color: var(--clothcore-peach);
-  border-color: var(--clothcore-blush);
-  background: rgba(255, 255, 255, 0.09);
+  color: var(--clothcore-purple);
+  border-color: var(--clothcore-mauve);
+  background: rgba(82, 43, 91, 0.1);
   transform: translateY(-2px);
 }
 
@@ -432,7 +444,7 @@ code {
 .admin-register-notice {
   font-size: 13px;
   color: var(--clothcore-text-soft);
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(82, 43, 91, 0.04);
   border: 1px solid var(--clothcore-border);
   border-radius: var(--clothcore-radius-sm);
   padding: 12px 16px;
@@ -479,33 +491,39 @@ code {
 
 .auth-password-toggle:hover {
   color: var(--clothcore-text);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(82, 43, 91, 0.08);
 }
 
 /* Scoped under .auth-page: Home.js's own contact-inquiry form also reuses
    the bare .auth-input class name for its (unrelated, light-themed) inputs,
    so these dark rules must not apply outside an actual auth page. */
 .auth-page .auth-input {
-  background: rgba(255, 255, 255, 0.08);
+  background: #FFFFFF;
   color: var(--clothcore-text);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1.5px solid rgba(82, 43, 91, 0.2);
   border-radius: 14px;
+  /* Bootstrap's .form-control-lg (used on every auth field) sets a large
+     ~1.25rem font by default — override it down to a normal input size so
+     typed text isn't oversized relative to the labels around it. */
+  font-size: 14px;
   transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease;
 }
 
 .auth-page .auth-input::placeholder {
   color: var(--clothcore-text-muted);
+  opacity: 0.85;
+  font-size: 14px;
 }
 
 .auth-page .auth-input:focus {
-  background: rgba(255, 255, 255, 0.12);
+  background: #FFFFFF;
   color: var(--clothcore-text);
-  border-color: var(--clothcore-blush);
-  box-shadow: 0 0 0 3px rgba(227, 192, 189, 0.18);
+  border-color: var(--clothcore-mauve);
+  box-shadow: 0 0 0 3px rgba(223, 182, 178, 0.35);
 }
 
-/* Neutralize the browser's default light autofill background so filled
-   fields don't flash white on a dark form. */
+/* Keep the browser's autofill background matching this form's own white
+   input fill instead of Chrome's default pale-yellow tint. */
 .auth-page .auth-input:-webkit-autofill,
 .auth-page .auth-input:-webkit-autofill:hover,
 .auth-page .auth-input:-webkit-autofill:focus {
@@ -547,13 +565,13 @@ code {
   font-size: 15px;
   letter-spacing: 0.03em;
   cursor: pointer;
-  box-shadow: 0 12px 30px rgba(92, 50, 102, 0.5);
+  box-shadow: 0 12px 30px rgba(82, 43, 91, 0.35);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-submit-btn:hover:not(:disabled) {
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 0 18px 40px rgba(143, 89, 119, 0.55);
+  box-shadow: 0 18px 40px rgba(133, 79, 108, 0.4);
 }
 
 .auth-submit-btn:disabled {
@@ -586,6 +604,59 @@ code {
   background: rgba(255, 255, 255, 0.055);
   border: 1px solid var(--clothcore-border-strong);
   border-radius: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-otp-input.is-invalid {
+  border-color: var(--clothcore-danger);
+}
+
+.auth-otp-input:focus {
+  outline: none;
+  border-color: var(--clothcore-mauve);
+  box-shadow: 0 0 0 3px rgba(223, 182, 178, 0.35);
+}
+
+/* Inline feedback banner used across the Forgot Password / Verify OTP /
+   Reset Password flow instead of alert() popups. */
+.auth-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.auth-banner.is-error {
+  background: var(--clothcore-danger-bg);
+  color: var(--clothcore-danger);
+  border: 1px solid rgba(179, 38, 30, 0.25);
+}
+
+.auth-banner.is-success {
+  background: var(--clothcore-success-bg);
+  color: var(--clothcore-success);
+  border: 1px solid rgba(31, 122, 68, 0.25);
+}
+
+.auth-banner.is-info {
+  background: var(--clothcore-warning-bg);
+  color: var(--clothcore-warning);
+  border: 1px solid rgba(217, 131, 36, 0.25);
+}
+
+/* Also used by ResetPassword.js — kept here (rather than only in
+   Register.css) since it's now shared across two pages. */
+.password-requirements {
+  font-size: 12px;
+  line-height: 1.5;
+  display: block;
+  margin-top: 8px;
+  color: var(--clothcore-text-soft);
 }
 
 .auth-step-indicator {

@@ -14,14 +14,22 @@ import {
   Pencil,
   Trash,
   CheckCircle,
-  XCircle,
   Clock,
   Filter,
-  Download,
   PersonPlus,
   ArrowUp,
   ArrowDown,
+  ShieldLock,
+  ShieldCheck,
+  ShieldSlash,
+  Key,
 } from "react-bootstrap-icons";
+
+import {
+  PASSWORD_REGEX,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+  PASSWORD_REQUIREMENTS_LIST,
+} from "../../utils/passwordPolicy";
 
 const API_URL = "http://localhost:5000/api/staff";
 
@@ -40,12 +48,18 @@ function AdminStaffManagement() {
   const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState("");
 
+  const [resetTarget, setResetTarget] = useState(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirm, setResetConfirm] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetSaving, setResetSaving] = useState(false);
+
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedDepartment, setSelectedDepartment] =
-    useState("All Departments");
-  const [selectedStatus, setSelectedStatus] =
-    useState("All Status");
+  // Single work-status filter — "All" (default, everyone), "On Leave" or
+  // "On Duty". Replaces the old Department / Status / Account-view
+  // dropdowns with the two toggle buttons above the table.
+  const [statusFilter, setStatusFilter] = useState("All");
 
   const staffPerPage = 8;
 
@@ -81,23 +95,9 @@ function AdminStaffManagement() {
   // Statistics from real MongoDB data
   const totalStaff = staff.length;
 
-  const presentToday = staff.filter(
-    (member) => member.attendance === "Present"
+  const onLeaveCount = staff.filter(
+    (member) => member.status === "On Leave"
   ).length;
-
-  const absentToday = staff.filter(
-    (member) => member.attendance === "Absent"
-  ).length;
-
-  const onLeave = staff.filter(
-    (member) => member.attendance === "On Leave"
-  ).length;
-
-  const departmentsCount = new Set(
-    staff
-      .map((member) => member.department)
-      .filter(Boolean)
-  ).size;
 
   const getPercentage = (value) => {
     if (totalStaff === 0) {
@@ -118,56 +118,16 @@ function AdminStaffManagement() {
       change: `${totalStaff} staff records`,
       trend: "up",
       icon: "👥",
-      color: "#522b5b",
-    },
-    {
-      label: "Present Today",
-      value: presentToday,
-      change: getPercentage(presentToday),
-      trend: "up",
-      icon: "✅",
-      color: "#1a9c5f",
-    },
-    {
-      label: "Absent Today",
-      value: absentToday,
-      change: getPercentage(absentToday),
-      trend: "down",
-      icon: "❌",
-      color: "#d1495b",
+      color: "#854f6c",
     },
     {
       label: "On Leave",
-      value: onLeave,
-      change: getPercentage(onLeave),
+      value: onLeaveCount,
+      change: getPercentage(onLeaveCount),
       trend: "down",
       icon: "🏖️",
       color: "#d98324",
     },
-    {
-      label: "Departments",
-      value: departmentsCount,
-      change: "Active departments",
-      trend: "up",
-      icon: "🏢",
-      color: "#854f6c",
-    },
-  ];
-
-  // Department dropdown values
-  const departments = [
-    "All Departments",
-    ...new Set(
-      staff
-        .map((member) => member.department)
-        .filter(Boolean)
-    ),
-  ];
-
-  const statuses = [
-    "All Status",
-    "Active",
-    "Inactive",
   ];
 
   // Search and filtering
@@ -193,19 +153,11 @@ function AdminStaffManagement() {
       staffId.includes(searchValue) ||
       department.includes(searchValue);
 
-    const matchesDepartment =
-      selectedDepartment === "All Departments" ||
-      member.department === selectedDepartment;
-
     const matchesStatus =
-      selectedStatus === "All Status" ||
-      member.status === selectedStatus;
+      statusFilter === "All" ||
+      member.status === statusFilter;
 
-    return (
-      matchesSearch &&
-      matchesDepartment &&
-      matchesStatus
-    );
+    return matchesSearch && matchesStatus;
   });
 
   // Pagination
@@ -236,42 +188,13 @@ function AdminStaffManagement() {
     }
   };
 
-  // Attendance badge styling
-  const getAttendanceStyle = (attendance) => {
-    const styles = {
-      Present: {
-        background: "var(--clothcore-success-bg)",
-        color: "var(--clothcore-success)",
-        icon: <CheckCircle size={12} />,
-      },
-
-      Absent: {
-        background: "var(--clothcore-danger-bg)",
-        color: "var(--clothcore-danger)",
-        icon: <XCircle size={12} />,
-      },
-
-      "On Leave": {
+  // Status badge styling — On Leave (amber) / On Duty (green).
+  const getStatusStyle = (status) => {
+    if (status === "On Leave") {
+      return {
         background: "var(--clothcore-warning-bg)",
         color: "var(--clothcore-warning)",
         icon: <Clock size={12} />,
-      },
-    };
-
-    return (
-      styles[attendance] ||
-      styles.Present
-    );
-  };
-
-  // Status badge styling
-  const getStatusStyle = (status) => {
-    if (status === "Inactive") {
-      return {
-        background:
-          "var(--clothcore-danger-bg)",
-        color: "var(--clothcore-danger)",
-        icon: <XCircle size={12} />,
       };
     }
 
@@ -308,7 +231,7 @@ function AdminStaffManagement() {
       department: member.department || "",
       position: member.position || "",
       phone: member.phone || "",
-      status: member.status || "Active",
+      status: member.status || "On Duty",
     });
     setShowEditModal(true);
   };
@@ -340,44 +263,8 @@ function AdminStaffManagement() {
     }
   };
 
-  // 3. Mark as On Leave
-  const handleMarkOnLeave = async (member) => {
-    if (!window.confirm(`Mark ${member.name} as On Leave?`)) return;
-
-    try {
-      setActionStaffId(member._id);
-      await axios.put(`${API_URL}/${member._id}`, {
-        status: "On Leave",
-        attendance: "On Leave"
-      });
-      alert("Staff member marked as On Leave successfully!");
-      await fetchStaff();
-    } catch (err) {
-      console.error("Mark On Leave Error:", err);
-      alert(err.response?.data?.message || "Could not update staff status.");
-    } finally {
-      setActionStaffId(null);
-    }
-  };
-
-  // 4. Mark as Inactive
-  const handleMarkInactive = async (member) => {
-    if (!window.confirm(`Mark ${member.name} as Inactive?`)) return;
-
-    try {
-      setActionStaffId(member._id);
-      await axios.put(`${API_URL}/${member._id}`, {
-        status: "Inactive"
-      });
-      alert("Staff member marked as Inactive successfully!");
-      await fetchStaff();
-    } catch (err) {
-      console.error("Mark Inactive Error:", err);
-      alert(err.response?.data?.message || "Could not update staff status.");
-    } finally {
-      setActionStaffId(null);
-    }
-  };
+  // Status (On Duty / On Leave) is changed via the Edit Staff modal now —
+  // no separate quick-action buttons for it.
 
   // 5. Delete Staff
   const handleDelete = async (member) => {
@@ -402,77 +289,72 @@ function AdminStaffManagement() {
     }
   };
 
-  // Export currently filtered staff
-  const handleExport = () => {
-    if (filteredStaff.length === 0) {
-      alert(
-        "There are no staff records to export."
-      );
+  // 6. Create Login (navigates to the dedicated Create Supervisor Account page)
+  const handleCreateLogin = (member) => {
+    navigate(`/admin/staff/${member._id}/create-account`);
+  };
+
+  // 7. Reset Password — small inline modal, same pattern as Edit Staff
+  const openResetPassword = (member) => {
+    setResetError("");
+    setResetPassword("");
+    setResetConfirm("");
+    setResetTarget(member);
+  };
+
+  const handleSaveResetPassword = async () => {
+    if (!resetPassword) {
+      setResetError("Please enter a new password.");
+      return;
+    }
+    if (!PASSWORD_REGEX.test(resetPassword)) {
+      setResetError(PASSWORD_REQUIREMENTS_MESSAGE);
+      return;
+    }
+    if (resetPassword !== resetConfirm) {
+      setResetError("Passwords do not match.");
       return;
     }
 
-    const headings = [
-      "Staff ID",
-      "Name",
-      "Department",
-      "Position",
-      "Phone",
-      "Attendance",
-      "Status",
-    ];
+    try {
+      setResetSaving(true);
+      setResetError("");
+      await axios.patch(`${API_URL}/${resetTarget._id}/reset-password`, {
+        newPassword: resetPassword,
+        confirmPassword: resetConfirm,
+      });
+      alert("Password reset successfully.");
+      setResetTarget(null);
+    } catch (err) {
+      console.error("Reset Password Error:", err);
+      setResetError(err.response?.data?.message || "Could not reset the password.");
+    } finally {
+      setResetSaving(false);
+    }
+  };
 
-    const rows = filteredStaff.map(
-      (member) => [
-        member.staffId,
-        member.name,
-        member.department,
-        member.position,
-        member.phone,
-        member.attendance,
-        member.status,
-      ]
-    );
+  // 8. Disable / Enable the linked login account (Staff profile is never deleted)
+  const handleToggleAccount = async (member) => {
+    const isCurrentlyActive = member.userId?.isActive !== false;
+    const confirmMessage = isCurrentlyActive
+      ? `Disable the login account for ${member.name}? They will not be able to sign in until re-enabled.`
+      : `Re-enable the login account for ${member.name}?`;
 
-    const csvContent = [
-      headings,
-      ...rows,
-    ]
-      .map((row) =>
-        row
-          .map(
-            (value) =>
-              `"${String(
-                value || ""
-              ).replaceAll('"', '""')}"`
-          )
-          .join(",")
-      )
-      .join("\n");
+    if (!window.confirm(confirmMessage)) return;
 
-    const blob = new Blob(
-      [csvContent],
-      {
-        type: "text/csv;charset=utf-8;",
-      }
-    );
-
-    const url =
-      URL.createObjectURL(blob);
-
-    const link =
-      document.createElement("a");
-
-    link.href = url;
-    link.setAttribute(
-      "download",
-      "clothcore-staff.csv"
-    );
-
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    URL.revokeObjectURL(url);
+    try {
+      setActionStaffId(member._id);
+      await axios.patch(`${API_URL}/${member._id}/disable-account`, {
+        isActive: !isCurrentlyActive,
+      });
+      alert(isCurrentlyActive ? "Account disabled." : "Account enabled.");
+      await fetchStaff();
+    } catch (err) {
+      console.error("Toggle Account Error:", err);
+      alert(err.response?.data?.message || "Could not update the account.");
+    } finally {
+      setActionStaffId(null);
+    }
   };
 
   return (
@@ -503,7 +385,7 @@ function AdminStaffManagement() {
 
               <span
                 style={{
-                  color: "var(--clothcore-blush)",
+                  color: "var(--clothcore-purple)",
                   fontWeight: "600",
                   fontSize: "14px",
                 }}
@@ -513,44 +395,17 @@ function AdminStaffManagement() {
             </div>
 
             {/* Header */}
-            <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+            <div className="admin-page-header">
               <div>
-                <h2
-                  className="fw-bold mb-0"
-                  style={{
-                    color: "var(--clothcore-text)",
-                    fontSize: "28px",
-                  }}
-                >
-                  Staff Management
-                </h2>
-
-                <p
-                  className="text-muted mb-0"
-                  style={{
-                    fontSize: "14px",
-                  }}
-                >
-                  Manage staff, attendance,
-                  and departments
+                <h2 className="admin-page-title">Staff Management</h2>
+                <p className="admin-page-subtitle">
+                  All staff members — filter by On Leave or On Duty below
                 </p>
               </div>
 
               <button
                 type="button"
-                className="btn px-4 py-2"
-                style={{
-                  background:
-                    "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
-                  color: "white",
-                  borderRadius: "10px",
-                  border: "none",
-                  fontSize: "14px",
-                  fontWeight: "600",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                }}
+                className="admin-hero-btn"
                 onClick={() =>
                   navigate("/staff/add")
                 }
@@ -663,7 +518,7 @@ function AdminStaffManagement() {
             >
               <div className="card-body p-4">
                 <div className="row g-3 align-items-center">
-                  <div className="col-lg-5">
+                  <div className="col-lg-4">
                     <div className="position-relative">
                       <Search
                         size={18}
@@ -701,71 +556,42 @@ function AdminStaffManagement() {
                     </div>
                   </div>
 
-                  <div className="col-lg-2">
-                    <select
-                      className="form-select"
-                      value={
-                        selectedDepartment
-                      }
-                      onChange={(event) => {
-                        setSelectedDepartment(
-                          event.target.value
-                        );
-                        setCurrentPage(1);
-                      }}
-                      style={{
-                        borderRadius: "10px",
-                        border:
-                          "1.5px solid var(--clothcore-border)",
-                        fontSize: "14px",
-                        height: "42px",
-                      }}
-                    >
-                      {departments.map(
-                        (department) => (
-                          <option
-                            key={department}
-                            value={department}
+                  <div className="col-lg-4">
+                    <div className="d-flex gap-2">
+                      {["On Leave", "On Duty"].map((option) => {
+                        const isActive = statusFilter === option;
+                        return (
+                          <button
+                            key={option}
+                            type="button"
+                            className="btn"
+                            onClick={() => {
+                              setStatusFilter(isActive ? "All" : option);
+                              setCurrentPage(1);
+                            }}
+                            style={{
+                              borderRadius: "10px",
+                              border: isActive
+                                ? "1.5px solid var(--clothcore-purple)"
+                                : "1.5px solid var(--clothcore-border)",
+                              fontSize: "14px",
+                              fontWeight: isActive ? "700" : "500",
+                              height: "42px",
+                              flex: 1,
+                              background: isActive
+                                ? "var(--clothcore-purple)"
+                                : "rgba(82,43,91,0.06)",
+                              color: isActive ? "#fff" : "var(--clothcore-text)",
+                            }}
                           >
-                            {department}
-                          </option>
-                        )
-                      )}
-                    </select>
+                            {option}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
 
                   <div className="col-lg-2">
-                    <select
-                      className="form-select"
-                      value={selectedStatus}
-                      onChange={(event) => {
-                        setSelectedStatus(
-                          event.target.value
-                        );
-                        setCurrentPage(1);
-                      }}
-                      style={{
-                        borderRadius: "10px",
-                        border:
-                          "1.5px solid var(--clothcore-border)",
-                        fontSize: "14px",
-                        height: "42px",
-                      }}
-                    >
-                      {statuses.map(
-                        (status) => (
-                          <option
-                            key={status}
-                            value={status}
-                          >
-                            {status}
-                          </option>
-                        )
-                      )}
-                    </select>
-                  </div>
-
-                  <div className="col-lg-3">
                     <div className="d-flex gap-2">
                       <button
                         type="button"
@@ -782,31 +608,13 @@ function AdminStaffManagement() {
                           justifyContent:
                             "center",
                           gap: "6px",
-                          background: "rgba(255,255,255,0.055)",
+                          background: "rgba(82,43,91,0.06)",
                           color: "var(--clothcore-text)",
                           flex: 1,
                         }}
                       >
                         <Filter size={16} />
                         Refresh
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn"
-                        onClick={handleExport}
-                        style={{
-                          borderRadius: "10px",
-                          border:
-                            "1.5px solid var(--clothcore-border)",
-                          fontSize: "14px",
-                          height: "42px",
-                          background: "rgba(255,255,255,0.055)",
-                          color: "var(--clothcore-text)",
-                          padding: "0 16px",
-                        }}
-                      >
-                        <Download size={16} />
                       </button>
                     </div>
                   </div>
@@ -853,9 +661,6 @@ function AdminStaffManagement() {
                           Phone
                         </th>
                         <th className="px-4 py-3">
-                          Attendance
-                        </th>
-                        <th className="px-4 py-3">
                           Status
                         </th>
                         <th className="px-4 py-3 text-center">
@@ -868,7 +673,7 @@ function AdminStaffManagement() {
                       {loading ? (
                         <tr>
                           <td
-                            colSpan="9"
+                            colSpan="8"
                             className="text-center py-5"
                           >
                             Loading staff
@@ -879,15 +684,13 @@ function AdminStaffManagement() {
                         0 ? (
                         currentStaff.map(
                           (member, index) => {
-                            const attendanceStyle =
-                              getAttendanceStyle(
-                                member.attendance
-                              );
-
                             const statusStyle =
                               getStatusStyle(
                                 member.status
                               );
+
+                            const hasAccount = Boolean(member.userId);
+                            const isAccountActive = member.userId?.isActive !== false;
 
                             const isActionLoading = actionStaffId === member._id;
 
@@ -924,34 +727,6 @@ function AdminStaffManagement() {
 
                                 <td className="px-4 py-3">
                                   {member.phone}
-                                </td>
-
-                                <td className="px-4 py-3">
-                                  <span
-                                    className="badge"
-                                    style={{
-                                      background:
-                                        attendanceStyle.background,
-                                      color:
-                                        attendanceStyle.color,
-                                      padding:
-                                        "5px 12px",
-                                      borderRadius:
-                                        "20px",
-                                      display:
-                                        "inline-flex",
-                                      alignItems:
-                                        "center",
-                                      gap: "4px",
-                                    }}
-                                  >
-                                    {
-                                      attendanceStyle.icon
-                                    }
-                                    {
-                                      member.attendance
-                                    }
-                                  </span>
                                 </td>
 
                                 <td className="px-4 py-3">
@@ -1029,29 +804,44 @@ function AdminStaffManagement() {
                                         <hr className="dropdown-divider" />
                                       </li>
 
-                                      <li>
-                                        <button
-                                          type="button"
-                                          className="dropdown-item d-flex align-items-center gap-2"
-                                          onClick={() => handleMarkOnLeave(member)}
-                                          disabled={isActionLoading}
-                                        >
-                                          <Clock size={14} />
-                                          Mark On Leave
-                                        </button>
-                                      </li>
-
-                                      <li>
-                                        <button
-                                          type="button"
-                                          className="dropdown-item d-flex align-items-center gap-2"
-                                          onClick={() => handleMarkInactive(member)}
-                                          disabled={isActionLoading}
-                                        >
-                                          <XCircle size={14} />
-                                          Mark Inactive
-                                        </button>
-                                      </li>
+                                      {!hasAccount ? (
+                                        <li>
+                                          <button
+                                            type="button"
+                                            className="dropdown-item d-flex align-items-center gap-2"
+                                            onClick={() => handleCreateLogin(member)}
+                                            disabled={isActionLoading}
+                                          >
+                                            <ShieldLock size={14} />
+                                            Create Login
+                                          </button>
+                                        </li>
+                                      ) : (
+                                        <>
+                                          <li>
+                                            <button
+                                              type="button"
+                                              className="dropdown-item d-flex align-items-center gap-2"
+                                              onClick={() => openResetPassword(member)}
+                                              disabled={isActionLoading}
+                                            >
+                                              <Key size={14} />
+                                              Reset Password
+                                            </button>
+                                          </li>
+                                          <li>
+                                            <button
+                                              type="button"
+                                              className={`dropdown-item d-flex align-items-center gap-2${isAccountActive ? " text-danger" : ""}`}
+                                              onClick={() => handleToggleAccount(member)}
+                                              disabled={isActionLoading}
+                                            >
+                                              {isAccountActive ? <ShieldSlash size={14} /> : <ShieldCheck size={14} />}
+                                              {isAccountActive ? "Disable Account" : "Enable Account"}
+                                            </button>
+                                          </li>
+                                        </>
+                                      )}
 
                                       <li>
                                         <hr className="dropdown-divider" />
@@ -1078,7 +868,7 @@ function AdminStaffManagement() {
                       ) : (
                         <tr>
                           <td
-                            colSpan="9"
+                            colSpan="8"
                             className="text-center py-5"
                           >
                             <People
@@ -1225,23 +1015,8 @@ function AdminStaffManagement() {
                   </div>
                   <div className="col-md-6">
                     <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
-                      <small className="text-muted">Joining Date</small>
+                      <small className="text-muted">Starting Date</small>
                       <h6 className="mb-0">{selectedStaff.joiningDate || "N/A"}</h6>
-                    </div>
-                  </div>
-                  <div className="col-md-6">
-                    <div className="p-3" style={{ background: "var(--clothcore-bg)", borderRadius: "10px" }}>
-                      <small className="text-muted">Attendance</small>
-                      <h6 className="mb-0">
-                        <span className="badge" style={{
-                          background: getAttendanceStyle(selectedStaff.attendance).background,
-                          color: getAttendanceStyle(selectedStaff.attendance).color,
-                          padding: "5px 12px",
-                          borderRadius: "20px"
-                        }}>
-                          {selectedStaff.attendance}
-                        </span>
-                      </h6>
                     </div>
                   </div>
                   <div className="col-md-6">
@@ -1309,7 +1084,7 @@ function AdminStaffManagement() {
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
                 <div>
-                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>Edit Staff Member</h5>
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>Edit Staff Member</h5>
                   <p className="mb-0 text-muted" style={{ fontSize: "13px" }}>{editForm.staffId}</p>
                 </div>
                 <button type="button" className="btn-close" onClick={() => !savingEdit && setShowEditModal(false)} />
@@ -1363,8 +1138,8 @@ function AdminStaffManagement() {
                       value={editForm.status}
                       onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
                     >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
+                      <option value="On Duty">On Duty</option>
+                      <option value="On Leave">On Leave</option>
                     </select>
                   </div>
                 </div>
@@ -1388,6 +1163,74 @@ function AdminStaffManagement() {
                   disabled={savingEdit}
                 >
                   {savingEdit ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password modal */}
+      {resetTarget && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 1050 }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content" style={{ borderRadius: "16px" }}>
+              <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
+                <div>
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-text)" }}>Reset Password</h5>
+                  <p className="mb-0 text-muted" style={{ fontSize: "13px" }}>
+                    {resetTarget.name} ({resetTarget.userId?.email})
+                  </p>
+                </div>
+                <button type="button" className="btn-close" onClick={() => !resetSaving && setResetTarget(null)} />
+              </div>
+              <div className="modal-body" style={{ padding: "20px 24px" }}>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>New Password</label>
+                  <input
+                    type="password"
+                    className="form-control admin-select"
+                    value={resetPassword}
+                    onChange={(e) => setResetPassword(e.target.value)}
+                  />
+                </div>
+                <div className="mb-2">
+                  <label className="form-label fw-semibold" style={{ fontSize: "13px" }}>Confirm Password</label>
+                  <input
+                    type="password"
+                    className="form-control admin-select"
+                    value={resetConfirm}
+                    onChange={(e) => setResetConfirm(e.target.value)}
+                  />
+                </div>
+                <small className="d-block mt-2" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", lineHeight: 1.6 }}>
+                  {PASSWORD_REQUIREMENTS_LIST.map((rule) => (
+                    <span key={rule}>✓ {rule}<br /></span>
+                  ))}
+                </small>
+                {resetError && (
+                  <div className="mt-3" style={{ color: "var(--clothcore-danger)", fontSize: "13px" }}>{resetError}</div>
+                )}
+              </div>
+              <div className="modal-footer border-0" style={{ padding: "0 24px 24px" }}>
+                <button
+                  type="button"
+                  className="admin-btn-secondary"
+                  onClick={() => setResetTarget(null)}
+                  disabled={resetSaving}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="admin-btn-primary"
+                  onClick={handleSaveResetPassword}
+                  disabled={resetSaving}
+                >
+                  {resetSaving ? "Saving..." : "Reset Password"}
                 </button>
               </div>
             </div>

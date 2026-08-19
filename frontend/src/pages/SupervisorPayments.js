@@ -8,9 +8,10 @@ import { Search, CreditCard, X, FlagFill } from "react-bootstrap-icons";
 import RoleLayout from "../components/RoleLayout";
 import { SUPERVISOR_NAV_ITEMS } from "../components/roleNav";
 
+const UPLOAD_BASE_URL = "http://localhost:5000";
 const API_URL = "http://localhost:5000/api/payments";
 const STATUS_OPTIONS = ["All Status", "Submitted", "Verified", "Rejected"];
-const TYPE_OPTIONS = ["All Types", "Advance Payment", "Full Payment", "Remaining Balance", "Credit Payment"];
+const STAGE_OPTIONS = ["All Stages", "Advance", "Final"];
 
 function getStatusBadgeClass(status) {
   const map = { Submitted: "admin-badge-warning", Verified: "admin-badge-success", Rejected: "admin-badge-danger" };
@@ -32,7 +33,7 @@ function SupervisorPayments() {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("All Status");
-  const [typeFilter, setTypeFilter] = useState("All Types");
+  const [stageFilter, setStageFilter] = useState("All Stages");
   const [selected, setSelected] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
   const [flagDraft, setFlagDraft] = useState(false);
@@ -67,8 +68,8 @@ function SupervisorPayments() {
       p.orderId?.orderId?.toLowerCase().includes(term) ||
       p.orderId?.customerName?.toLowerCase().includes(term);
     const matchesStatus = statusFilter === "All Status" || p.status === statusFilter;
-    const matchesType = typeFilter === "All Types" || p.paymentType === typeFilter;
-    return matchesSearch && matchesStatus && matchesType;
+    const matchesStage = stageFilter === "All Stages" || p.stage === stageFilter;
+    return matchesSearch && matchesStatus && matchesStage;
   });
 
   const openDetails = (payment) => {
@@ -99,11 +100,13 @@ function SupervisorPayments() {
 
   return (
     <RoleLayout sidebarItems={SUPERVISOR_NAV_ITEMS} roleLabel="Supervisor">
-      <div style={{ marginBottom: "24px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>Payments</h2>
-        <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>
-          Monitor customer payments. Final verification stays with Admin — flag anything that needs their attention.
-        </p>
+      <div className="admin-page-header">
+        <div>
+          <h2 className="admin-page-title">Payments</h2>
+          <p className="admin-page-subtitle">
+            Monitor customer payments. Final verification stays with Admin — flag anything that needs their attention.
+          </p>
+        </div>
       </div>
 
       <div className="admin-content-card">
@@ -128,8 +131,8 @@ function SupervisorPayments() {
               </select>
             </div>
             <div className="col-md-3">
-              <select className="form-select admin-select" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-                {TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+              <select className="form-select admin-select" value={stageFilter} onChange={(e) => setStageFilter(e.target.value)}>
+                {STAGE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -140,8 +143,8 @@ function SupervisorPayments() {
             <thead>
               <tr>
                 <th>Order</th>
-                <th>Shop / Customer</th>
-                <th>Type</th>
+                <th>Shop Owner</th>
+                <th>Stage</th>
                 <th>Amount</th>
                 <th>Method</th>
                 <th>Status</th>
@@ -169,9 +172,9 @@ function SupervisorPayments() {
               ) : (
                 filtered.map((p) => (
                   <tr key={p._id}>
-                    <td style={{ fontWeight: 600, color: "var(--clothcore-blush)" }}>{p.orderId?.orderId || "N/A"}</td>
+                    <td style={{ fontWeight: 600, color: "var(--clothcore-purple)" }}>{p.orderId?.orderId || "N/A"}</td>
                     <td>{p.orderId?.customerName || "N/A"}</td>
-                    <td>{p.paymentType}</td>
+                    <td>{p.stage || "N/A"}</td>
                     <td>LKR {Number(p.amount).toLocaleString()}</td>
                     <td>{p.paymentMethod}</td>
                     <td style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -204,10 +207,9 @@ function SupervisorPayments() {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", fontSize: "13px", marginBottom: "16px" }}>
               <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Garment</div><div style={{ color: "var(--clothcore-text)" }}>{selected.orderId?.item || "N/A"}</div></div>
               <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Order Total</div><div style={{ color: "var(--clothcore-text)" }}>LKR {Number(selected.orderId?.totalAmount || 0).toLocaleString()}</div></div>
-              <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Payment Type</div><div style={{ color: "var(--clothcore-text)" }}>{selected.paymentType}</div></div>
+              <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Payment Stage</div><div style={{ color: "var(--clothcore-text)" }}>{selected.stage}</div></div>
               <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Amount Paid</div><div style={{ color: "var(--clothcore-text)" }}>LKR {Number(selected.amount).toLocaleString()}</div></div>
-              <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Method</div><div style={{ color: "var(--clothcore-text)" }}>{selected.paymentMethod}</div></div>
-              <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Transaction Ref</div><div style={{ color: "var(--clothcore-text)" }}>{selected.transactionReference}</div></div>
+              <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Method</div><div style={{ color: "var(--clothcore-text)" }}>{selected.paymentMethod}{selected.cardLast4 ? ` (•••• ${selected.cardLast4})` : ""}</div></div>
               <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Status</div><span className={`admin-badge ${getStatusBadgeClass(selected.status)}`}>{selected.status}</span></div>
               <div><div style={{ color: "var(--clothcore-text-muted)", marginBottom: "2px" }}>Submitted</div><div style={{ color: "var(--clothcore-text)" }}>{formatDate(selected.createdAt)}</div></div>
               {selected.verifiedAt && (
@@ -218,7 +220,7 @@ function SupervisorPayments() {
               )}
               {selected.proofFile && (
                 <div style={{ gridColumn: "1 / -1" }}>
-                  <a href={selected.proofFile} target="_blank" rel="noreferrer" className="admin-link-btn">View Payment Proof</a>
+                  <a href={`${UPLOAD_BASE_URL}${selected.proofFile}`} target="_blank" rel="noreferrer" className="admin-link-btn">View Payment Proof</a>
                 </div>
               )}
             </div>

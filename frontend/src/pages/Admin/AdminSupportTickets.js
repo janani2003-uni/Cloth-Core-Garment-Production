@@ -81,7 +81,7 @@ function AdminSupportTickets() {
       (t.subject || "").toLowerCase().includes(search) ||
       (t.shopOwnerId?.firstName || "").toLowerCase().includes(search) ||
       (t.shopOwnerId?.lastName || "").toLowerCase().includes(search) ||
-      (t.shopOwnerId?.factoryName || "").toLowerCase().includes(search);
+      (t.shopOwnerId?.shopName || "").toLowerCase().includes(search);
     const matchesStatus = selectedStatus === "All Status" || t.status === selectedStatus;
     return matchesSearch && matchesStatus;
   });
@@ -112,7 +112,7 @@ function AdminSupportTickets() {
             <div className="row g-3 mb-4">
               {[
                 { label: "Open", value: openCount, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-                { label: "In Progress", value: inProgressCount, icon: ArrowRepeat, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
+                { label: "In Progress", value: inProgressCount, icon: ArrowRepeat, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
                 { label: "Resolved", value: resolvedCount, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
               ].map((stat) => (
                 <div key={stat.label} className="col-xl-4 col-md-4">
@@ -176,11 +176,11 @@ function AdminSupportTickets() {
                               <td style={{ fontWeight: 600 }}>{t.subject}</td>
                               <td>
                                 {t.shopOwnerId ? `${t.shopOwnerId.firstName} ${t.shopOwnerId.lastName}` : "Unknown"}
-                                <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)" }}>{t.shopOwnerId?.factoryName}</div>
+                                <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)" }}>{t.shopOwnerId?.shopName}</div>
                               </td>
                               <td><span className={`admin-badge ${style.badge}`} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}><StatusIcon size={12} /> {t.status}</span></td>
                               <td style={{ color: "var(--clothcore-text-soft)" }}>{new Date(t.updatedAt).toLocaleString()}</td>
-                              <td style={{ color: "var(--clothcore-blush)" }}>View →</td>
+                              <td style={{ color: "var(--clothcore-purple)" }}>View →</td>
                             </tr>
                           );
                         })
@@ -197,9 +197,9 @@ function AdminSupportTickets() {
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
                 <div>
-                  <h5 className="modal-title fw-bold mb-1" style={{ color: "var(--clothcore-blush)" }}>{activeTicket.subject}</h5>
+                  <h5 className="modal-title fw-bold mb-1" style={{ color: "var(--clothcore-purple)" }}>{activeTicket.subject}</h5>
                   <p className="mb-0 text-muted" style={{ fontSize: "13px" }}>
-                    {activeTicket.shopOwnerId?.firstName} {activeTicket.shopOwnerId?.lastName} — {activeTicket.shopOwnerId?.factoryName}
+                    {activeTicket.shopOwnerId?.firstName} {activeTicket.shopOwnerId?.lastName} — {activeTicket.shopOwnerId?.shopName}
                   </p>
                 </div>
                 <button type="button" className="btn-close" onClick={() => setActiveTicket(null)} />
@@ -236,7 +236,7 @@ function AdminSupportTickets() {
                       style={{
                         borderRadius: "8px",
                         border: "1px solid var(--clothcore-border)",
-                        background: activeTicket.status === s ? "var(--clothcore-mauve)" : "rgba(255,255,255,0.055)",
+                        background: activeTicket.status === s ? "var(--clothcore-mauve)" : "rgba(82,43,91,0.06)",
                         color: activeTicket.status === s ? "white" : "var(--clothcore-text)",
                         fontSize: "12px",
                       }}

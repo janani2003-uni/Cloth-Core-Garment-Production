@@ -1,8 +1,13 @@
 // src/pages/OrderStep1.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
+import OrderStepHeader from "../components/order/OrderStepHeader";
+import ConfirmModal from "../components/modals/ConfirmModal";
+import { ORDER_COLORS as C } from "../utils/orderTheme";
+import "../styles/orderFlow.css";
 import denimImage from "../assets/denim.jpg.png";
 import shirtImage from "../assets/shirt.jpg.png";
 import tshirtImage from "../assets/tshirt.jpg.png";
@@ -13,6 +18,8 @@ import {
   IconJacket,
   IconHanger2,
   IconDeviceFloppy,
+  IconRefresh,
+  IconLock,
   IconX,
   IconArrowRight,
   IconCheck,
@@ -24,28 +31,32 @@ import {
   IconTarget,
   IconClipboardList,
   IconLoader2,
+  IconAlertTriangle,
 } from "@tabler/icons-react";
 
-// Brand palette — swap these to re-theme the whole page.
-const C = {
-  plum900: "#190019",
-  plum800: "#2B124C",
-  plum700: "#522B5B",
-  mauve500: "#854F6C",
-  pink200: "#DFB6B2",
-  cream100: "#FBE4D8",
+// Shared order-flow palette (frontend/src/utils/orderTheme.js) — kept as
+// the local alias `C` below so the rest of this file didn't need touching.
+
+const PRODUCTS_API_URL = "http://localhost:5000/api/products";
+
+// The garment catalog (name, fabrics, colors, base price) is backend-driven
+// now — GET /api/products (backend/routes/productRoutes.js) — rather than
+// the hardcoded GARMENTS array this used to be. These two maps translate a
+// product's `imageKey` into the actual bundled photo/icon, since the
+// catalog only stores a key, not the asset itself. A garment Admin adds
+// later with an unrecognized key just falls back to the generic icon.
+const IMAGE_MAP = {
+  denim: denimImage,
+  shirt: shirtImage,
+  tshirt: tshirtImage,
+  hoodie: hoodieImage,
 };
 
-// Which fabrics and colors are valid for each garment type.
-// Swap GARMENTS for an API call (e.g. GET /api/products) once the backend is wired up.
-const COLORS = {
-  navy: { label: "Navy Blue", hex: "#1e3a5f" },
-  black: { label: "Black", hex: "#212121" },
-  gray: { label: "Gray", hex: "#757575" },
-  white: { label: "White", hex: "#ffffff" },
-  red: { label: "Red", hex: "#f44336" },
-  green: { label: "Green", hex: "#4CAF50" },
-  yellow: { label: "Yellow", hex: "#FFEB3B" },
+const ICON_MAP = {
+  denim: IconHanger2,
+  shirt: IconShirtSport,
+  tshirt: IconShirt,
+  hoodie: IconJacket,
 };
 
 // Small icon shown next to each fabric's tag (Eco, Durable, Premium...).
@@ -57,73 +68,6 @@ const TAG_ICONS = {
   Heavy: IconWeight,
   Warm: IconFlame,
 };
-
-const GARMENTS = [
-  {
-    id: 1,
-    name: "Denim",
-    Icon: IconHanger2,
-    image: denimImage,
-    price: 1600,
-    stock: 350,
-    popular: false,
-    category: "Casual",
-    fabrics: [
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 0 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 100 },
-      { id: "denim", label: "Denim", tag: "Heavy", delta: 250 },
-    ],
-    colors: ["navy", "black", "gray", "white"],
-  },
-  {
-    id: 2,
-    name: "Shirt",
-    Icon: IconShirtSport,
-    image: shirtImage,
-    price: 1350,
-    stock: 300,
-    popular: false,
-    category: "Semi-Formal",
-    fabrics: [
-      { id: "cotton", label: "100% Cotton", tag: "Eco", delta: 0 },
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 80 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 130 },
-    ],
-    colors: ["white", "navy", "black", "red", "green"],
-  },
-  {
-    id: 3,
-    name: "T-Shirt",
-    Icon: IconShirt,
-    image: tshirtImage,
-    price: 1200,
-    stock: 500,
-    popular: true,
-    category: "Casual",
-    fabrics: [
-      { id: "cotton", label: "100% Cotton", tag: "Eco", delta: 0 },
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 100 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 150 },
-    ],
-    colors: ["navy", "black", "gray", "white", "red", "green", "yellow"],
-  },
-  {
-    id: 4,
-    name: "Hoodie",
-    Icon: IconJacket,
-    image: hoodieImage,
-    price: 2100,
-    stock: 150,
-    popular: true,
-    category: "Casual",
-    fabrics: [
-      { id: "blend", label: "Cotton Blend", tag: "Standard", delta: 0 },
-      { id: "poly", label: "Polyester", tag: "Durable", delta: 100 },
-      { id: "fleece", label: "Fleece", tag: "Warm", delta: 220 },
-    ],
-    colors: ["black", "gray", "navy", "red"],
-  },
-];
 
 function formatPrice(amount) {
   return `Rs. ${Math.round(amount).toLocaleString()}`;
@@ -137,7 +81,7 @@ function GarmentModal({ garment, onCancel, onConfirm }) {
   const [colorId, setColorId] = useState(null);
 
   const fabric = garment.fabrics.find((f) => f.id === fabricId) || null;
-  const color = colorId ? COLORS[colorId] : null;
+  const color = colorId ? garment.colors.find((c) => c.id === colorId) || null : null;
   const unitPrice = garment.price + (fabric?.delta || 0);
   const canConfirm = Boolean(fabric && color);
   const GarmentIcon = garment.Icon;
@@ -148,11 +92,13 @@ function GarmentModal({ garment, onCancel, onConfirm }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(25,0,25,0.55)",
-        backdropFilter: "blur(4px)",
+        background:
+          "radial-gradient(ellipse at center, rgba(43,18,76,0.5) 0%, rgba(25,0,25,0.78) 100%)",
+        backdropFilter: "blur(8px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -162,186 +108,335 @@ function GarmentModal({ garment, onCancel, onConfirm }) {
     >
       <motion.div
         onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.94, y: 10 }}
+        initial={{ opacity: 0, scale: 0.92, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.96, y: 6 }}
-        transition={{ type: "spring", stiffness: 300, damping: 26 }}
-        className="card admin-content-card border-0"
+        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+        transition={{ type: "spring", stiffness: 280, damping: 26 }}
+        className="gc-modal-card border-0"
         style={{
-          borderRadius: 20,
+          borderRadius: 26,
           width: "100%",
-          maxWidth: 420,
-          maxHeight: "90vh",
+          maxWidth: 500,
+          maxHeight: "92vh",
           overflowY: "auto",
-          boxShadow: "0 24px 64px rgba(25,0,25,0.32)",
+          background: "rgba(255,255,255,0.98)",
+          border: "1px solid rgba(255,255,255,0.6)",
+          boxShadow:
+            "0 32px 80px rgba(25,0,25,0.35), 0 10px 28px rgba(82,43,91,0.18), inset 0 1px 0 rgba(255,255,255,0.5)",
         }}
       >
+        {/* Header */}
         <div
-          className="d-flex justify-content-between align-items-center"
+          className="gc-modal-header d-flex justify-content-between align-items-center"
           style={{
-            background: `linear-gradient(135deg, ${C.plum900}, ${C.plum700})`,
+            background: `linear-gradient(135deg, ${C.plum900} 0%, ${C.plum700} 65%, ${C.mauve500} 145%)`,
             color: C.cream100,
-            padding: 18,
-            borderRadius: "20px 20px 0 0",
+            padding: "24px 26px",
+            borderRadius: "26px 26px 0 0",
             position: "sticky",
             top: 0,
+            zIndex: 2,
+            overflow: "hidden",
           }}
         >
-          <div className="d-flex align-items-center gap-2">
+          <div
+            aria-hidden="true"
+            style={{
+              position: "absolute",
+              inset: 0,
+              background:
+                "radial-gradient(circle at 25% -20%, rgba(255,255,255,0.28), transparent 55%)",
+              pointerEvents: "none",
+            }}
+          />
+          <div className="d-flex align-items-center gap-3" style={{ position: "relative" }}>
             <span
               style={{
-                width: 38,
-                height: 38,
-                borderRadius: "50%",
+                width: 58,
+                height: 58,
+                borderRadius: 18,
                 background: "rgba(255,255,255,0.16)",
+                border: "1px solid rgba(255,255,255,0.28)",
+                boxShadow: "0 6px 16px rgba(0,0,0,0.25)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 overflow: "hidden",
+                flexShrink: 0,
               }}
             >
               {garment.image ? (
                 <img
                   src={garment.image}
                   alt={garment.name}
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center" }}
                 />
               ) : (
-                <GarmentIcon size={20} stroke={1.75} />
+                <GarmentIcon size={26} stroke={1.75} />
               )}
             </span>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700 }}>{garment.name}</div>
-              <div style={{ fontSize: 12, color: C.pink200 }}>
+              <div style={{ fontSize: 19, fontWeight: 800, letterSpacing: "0.01em" }}>
+                {garment.name}
+              </div>
+              <div style={{ fontSize: 13, color: C.pink200, marginTop: 2 }}>
                 Choose fabric and color
               </div>
             </div>
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={onCancel}
             aria-label="Close"
+            whileHover={{
+              scale: 1.08,
+              backgroundColor: "rgba(255,255,255,0.26)",
+              boxShadow: "0 0 0 8px rgba(255,255,255,0.08)",
+            }}
+            whileTap={{ scale: 0.92 }}
+            transition={{ type: "spring", stiffness: 400, damping: 20 }}
             style={{
-              background: "rgba(255,255,255,0.12)",
-              border: "none",
+              position: "relative",
+              background: "rgba(255,255,255,0.14)",
+              border: "1px solid rgba(255,255,255,0.25)",
               color: C.cream100,
-              width: 30,
-              height: 30,
+              width: 38,
+              height: 38,
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              flexShrink: 0,
             }}
           >
             <IconX size={18} stroke={1.75} />
-          </button>
+          </motion.button>
         </div>
 
-        <div className="p-4">
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Fabric</div>
-          <div className="row g-2 mb-4">
+        <div className="gc-modal-body" style={{ padding: "28px 26px 26px" }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: C.plum700,
+              marginBottom: 14,
+            }}
+          >
+            Fabric
+          </div>
+          <div className="row g-3 mb-4">
             {garment.fabrics.map((f) => {
               const TagIcon = TAG_ICONS[f.tag] || IconShieldCheck;
               const selected = fabricId === f.id;
               return (
-                <div className="col-4" key={f.id}>
-                  <div
+                <div className="col-4 d-flex" key={f.id}>
+                  <motion.div
+                    className="gc-fabric-card"
+                    whileHover={{ y: -4 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: "spring", stiffness: 320, damping: 22 }}
                     onClick={() => {
                       setFabricId(f.id);
                       setColorId(null);
                     }}
                     style={{
                       cursor: "pointer",
-                      borderRadius: 12,
-                      border: `1.5px solid ${selected ? C.plum700 : "#f0e3dd"}`,
-                      background: selected ? C.cream100 : "#fff",
-                      padding: "10px 8px",
+                      position: "relative",
+                      borderRadius: 16,
+                      padding: "16px 10px",
                       textAlign: "center",
-                      transition: "all .15s ease",
+                      width: "100%",
+                      border: "2px solid transparent",
+                      backgroundImage: selected
+                        ? `linear-gradient(160deg, ${C.cream100}, #ffffff), linear-gradient(135deg, ${C.plum700}, ${C.mauve500})`
+                        : `linear-gradient(160deg, #ffffff, #fbf7f5), linear-gradient(160deg, rgba(25,0,25,0.08), rgba(25,0,25,0.08))`,
+                      backgroundOrigin: "border-box",
+                      backgroundClip: "padding-box, border-box",
+                      boxShadow: selected
+                        ? "0 12px 28px rgba(82,43,91,0.28), 0 0 0 1px rgba(82,43,91,0.05)"
+                        : "0 3px 12px rgba(25,0,25,0.05)",
+                      transition: "box-shadow .25s ease",
                     }}
                   >
-                    <div style={{ fontSize: 12, fontWeight: 700, color: C.plum900 }}>
-                      {f.label}
-                    </div>
+                    {selected && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: "spring", stiffness: 400, damping: 18 }}
+                        className="d-flex align-items-center justify-content-center"
+                        style={{
+                          position: "absolute",
+                          top: -8,
+                          right: -8,
+                          width: 22,
+                          height: 22,
+                          borderRadius: "50%",
+                          background: `linear-gradient(135deg, ${C.plum700}, ${C.mauve500})`,
+                          color: "#fff",
+                          boxShadow: "0 4px 10px rgba(82,43,91,0.4)",
+                        }}
+                      >
+                        <IconCheck size={13} stroke={3} />
+                      </motion.div>
+                    )}
                     <div
+                      className="mx-auto d-flex align-items-center justify-content-center"
                       style={{
-                        fontSize: 10.5,
-                        color: C.plum700,
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: 4,
-                        marginTop: 2,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 10,
+                        marginBottom: 8,
+                        background: selected
+                          ? `linear-gradient(135deg, ${C.plum700}, ${C.mauve500})`
+                          : C.cream100,
+                        color: selected ? "#fff" : C.mauve500,
                       }}
                     >
-                      <TagIcon size={12} stroke={2} />
-                      {f.tag}
-                      {f.delta ? ` · +${formatPrice(f.delta)}` : ""}
+                      <TagIcon size={16} stroke={2} />
                     </div>
-                  </div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: C.plum900, lineHeight: 1.25 }}>
+                      {f.label}
+                    </div>
+                    <div style={{ fontSize: 11, color: C.mauve500, marginTop: 3, lineHeight: 1.3 }}>
+                      {f.tag}
+                    </div>
+                    {f.delta > 0 && (
+                      <div
+                        style={{
+                          display: "inline-block",
+                          marginTop: 7,
+                          fontSize: 10.5,
+                          fontWeight: 700,
+                          color: C.plum800,
+                          background: C.cream100,
+                          borderRadius: 20,
+                          padding: "2px 9px",
+                        }}
+                      >
+                        +{formatPrice(f.delta)}
+                      </div>
+                    )}
+                  </motion.div>
                 </div>
               );
             })}
           </div>
 
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 10 }}>Color</div>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 800,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: C.plum700,
+              marginBottom: 14,
+            }}
+          >
+            Color
+          </div>
           {!fabric ? (
             <p style={{ fontSize: 13, color: C.mauve500 }}>Select a fabric first.</p>
           ) : (
-            <div className="d-flex flex-wrap gap-3 mb-4">
-              {garment.colors.map((cid) => {
-                const c = COLORS[cid];
-                const selected = colorId === cid;
-                return (
-                  <div
-                    key={cid}
-                    onClick={() => setColorId(cid)}
-                    style={{
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 6,
-                    }}
+            <>
+              <div className="d-flex flex-wrap gap-4 mb-3">
+                {garment.colors.map((c) => {
+                  const cid = c.id;
+                  const selected = colorId === cid;
+                  return (
+                    <motion.div
+                      key={cid}
+                      whileHover={{ scale: 1.12, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 18 }}
+                      onClick={() => setColorId(cid)}
+                      style={{
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        gap: 7,
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          background: c.hex,
+                          border: `2.5px solid ${selected ? "#fff" : "rgba(25,0,25,0.1)"}`,
+                          boxShadow: selected
+                            ? `0 0 0 3px ${C.plum700}, 0 8px 20px rgba(82,43,91,0.35)`
+                            : "0 2px 8px rgba(25,0,25,0.08)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          transition: "box-shadow .25s ease",
+                        }}
+                      >
+                        {selected && (
+                          <IconCheck
+                            size={16}
+                            stroke={3}
+                            color={c.hex === "#ffffff" ? C.plum900 : "#fff"}
+                          />
+                        )}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 11.5,
+                          fontWeight: selected ? 700 : 500,
+                          color: selected ? C.plum900 : C.mauve500,
+                        }}
+                      >
+                        {c.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+              <AnimatePresence mode="wait">
+                {color && (
+                  <motion.div
+                    key={colorId}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.2 }}
+                    className="d-flex align-items-center gap-2 mb-4"
+                    style={{ fontSize: 12.5, color: C.plum700, fontWeight: 600 }}
                   >
                     <span
                       style={{
-                        width: 34,
-                        height: 34,
+                        width: 13,
+                        height: 13,
                         borderRadius: "50%",
-                        background: c.hex,
-                        border: `2px solid ${selected ? C.plum700 : "#f0e3dd"}`,
-                        boxShadow: selected ? `0 0 0 3px ${C.pink200}` : "none",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
+                        background: color.hex,
+                        border: "1.5px solid rgba(25,0,25,0.15)",
                       }}
-                    >
-                      {selected && (
-                        <IconCheck
-                          size={14}
-                          stroke={3}
-                          color={c.hex === "#ffffff" ? C.plum900 : "#fff"}
-                        />
-                      )}
-                    </span>
-                    <span style={{ fontSize: 11, color: C.plum700 }}>{c.label}</span>
-                  </div>
-                );
-              })}
-            </div>
+                    />
+                    Selected: <strong style={{ color: C.plum900 }}>{color.label}</strong>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </>
           )}
 
           <div
-            className="d-flex justify-content-between align-items-center mb-3"
             style={{
-              background: C.cream100,
-              borderRadius: 12,
-              padding: "10px 14px",
-              fontSize: 12.5,
-              color: C.plum700,
+              background: `linear-gradient(135deg, ${C.cream100}, #ffffff)`,
+              borderRadius: 18,
+              padding: "18px 20px",
+              marginBottom: 22,
+              border: "1px solid rgba(223,182,178,0.4)",
+              boxShadow: "0 4px 16px rgba(25,0,25,0.05)",
             }}
           >
-            <span className="d-flex align-items-center gap-2">
+            <span
+              className="d-flex align-items-center gap-2"
+              style={{ fontSize: 12.5, color: C.plum700, fontWeight: 500 }}
+            >
               {color ? (
                 <>
                   <IconCheck size={14} stroke={2.5} /> In stock · {garment.stock}+ pieces
@@ -351,45 +446,83 @@ function GarmentModal({ garment, onCancel, onConfirm }) {
               )}
             </span>
             {fabric && (
-              <strong style={{ color: C.plum800, fontSize: 14 }}>
-                {formatPrice(unitPrice)}
-              </strong>
+              <>
+                <div style={{ height: 1, background: "rgba(25,0,25,0.08)", margin: "14px 0 12px" }} />
+                <div className="d-flex justify-content-between align-items-end">
+                  <small
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      letterSpacing: "0.06em",
+                      textTransform: "uppercase",
+                      color: C.mauve500,
+                    }}
+                  >
+                    Unit Price
+                  </small>
+                  <AnimatePresence mode="wait">
+                    <motion.strong
+                      key={unitPrice}
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.22 }}
+                      style={{ color: C.plum900, fontSize: 26, fontWeight: 800 }}
+                    >
+                      {formatPrice(unitPrice)}
+                    </motion.strong>
+                  </AnimatePresence>
+                </div>
+              </>
             )}
           </div>
 
-          <div className="d-flex gap-2">
-            <button
+          <div className="d-flex gap-3">
+            <motion.button
               type="button"
               onClick={onCancel}
+              whileHover={{ backgroundColor: C.mauve500, color: "#ffffff", scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.2 }}
               className="btn flex-fill"
               style={{
                 border: `1.5px solid ${C.mauve500}`,
                 color: C.plum700,
-                borderRadius: 10,
+                background: "transparent",
+                borderRadius: 14,
                 fontWeight: 600,
-                fontSize: 13,
-                padding: "11px",
+                fontSize: 14,
+                padding: "14px",
               }}
             >
               Cancel
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               disabled={!canConfirm}
               onClick={() => onConfirm({ fabric, color, colorId, unitPrice })}
+              whileHover={canConfirm ? { y: -3, boxShadow: "0 16px 36px rgba(25,0,25,0.4)" } : {}}
+              whileTap={canConfirm ? { scale: 0.97 } : {}}
+              transition={{ type: "spring", stiffness: 350, damping: 22 }}
               className="btn flex-fill"
               style={{
-                background: canConfirm ? C.plum900 : "#d8cdd4",
+                background: canConfirm
+                  ? `linear-gradient(135deg, ${C.plum900}, ${C.plum700})`
+                  : "#d8cdd4",
                 color: canConfirm ? C.cream100 : "#8f8690",
                 border: "none",
-                borderRadius: 10,
+                borderRadius: 14,
                 fontWeight: 700,
-                fontSize: 13,
-                padding: "11px",
+                fontSize: 14,
+                padding: "14px",
+                boxShadow: canConfirm
+                  ? "0 10px 26px rgba(25,0,25,0.32), inset 0 1px 0 rgba(255,255,255,0.12)"
+                  : "none",
+                cursor: canConfirm ? "pointer" : "not-allowed",
               }}
             >
               Add to order
-            </button>
+            </motion.button>
           </div>
         </div>
       </motion.div>
@@ -397,17 +530,95 @@ function GarmentModal({ garment, onCancel, onConfirm }) {
   );
 }
 
+// Restores a previously-saved selection (Back-navigating here to review an
+// existing order, or simply resuming a draft) so this step never shows
+// blank when the shop owner already picked a garment/fabric/color for it.
+// Takes the fetched catalog as a parameter since it's no longer a module-
+// level constant — it only exists once GET /api/products has resolved.
+function getInitialConfirmed(garments) {
+  try {
+    const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
+    if (!draft.garment || !draft.fabric || !draft.color) return null;
+
+    const garment = garments.find((g) => g.name === draft.garment);
+    if (!garment) return null;
+
+    const fabric = garment.fabrics.find((f) => f.label === draft.fabric);
+    if (!fabric) return null;
+
+    const color = garment.colors.find((c) => c.label === draft.color);
+    if (!color) return null;
+
+    return {
+      garment,
+      fabric,
+      color,
+      unitPrice: typeof draft.unitPrice === "number" ? draft.unitPrice : garment.price + (fabric.delta || 0),
+    };
+  } catch {
+    return null;
+  }
+}
+
 function OrderStep1() {
   const navigate = useNavigate();
 
+  // Once this draft has a real orderId (i.e. it's already been submitted
+  // for approval — see OrderApproval.js's createOrder()), every step in
+  // the wizard becomes a read-only look-back at what was actually
+  // submitted, not an editable form — changing the garment/fabric/color
+  // here after the fact would silently disagree with the order Admin is
+  // reviewing. The only way back to an editable, blank Step 1 is "Place
+  // Order" from the sidebar or the "Place New Order" button on the
+  // Approval page, both of which clear this before landing here (see
+  // goToPlaceOrder() in utils/orderStatus.js).
+  const isLocked = Boolean(
+    JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}").orderId
+  );
+
+  const [garments, setGarments] = useState([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
   const [modalGarmentId, setModalGarmentId] = useState(null);
   const [confirmed, setConfirmed] = useState(null); // { garment, fabric, color, unitPrice }
   const [isLoading, setIsLoading] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const modalGarment = GARMENTS.find((g) => g.id === modalGarmentId) || null;
+  const loadCatalog = React.useCallback(() => {
+    setCatalogLoading(true);
+    setCatalogError("");
+    axios
+      .get(PRODUCTS_API_URL)
+      .then((res) => {
+        const mapped = (res.data?.data || []).map((p) => ({
+          id: p._id,
+          name: p.name,
+          Icon: ICON_MAP[p.imageKey] || IconHanger2,
+          image: IMAGE_MAP[p.imageKey] || null,
+          price: p.basePrice,
+          stock: p.stockHint ?? 0,
+          popular: p.popular,
+          category: p.category,
+          fabrics: p.fabrics || [],
+          colors: p.colors || [],
+        }));
+        setGarments(mapped);
+        setConfirmed((current) => current || getInitialConfirmed(mapped));
+      })
+      .catch(() => {
+        setCatalogError("Could not load the garment catalog. Please try again.");
+      })
+      .finally(() => setCatalogLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadCatalog();
+  }, [loadCatalog]);
+
+  const modalGarment = garments.find((g) => g.id === modalGarmentId) || null;
 
   function handleConfirm({ fabric, color, unitPrice }) {
-    const garment = GARMENTS.find((g) => g.id === modalGarmentId);
+    const garment = garments.find((g) => g.id === modalGarmentId);
     setConfirmed({ garment, fabric, color, unitPrice });
     setModalGarmentId(null);
   }
@@ -418,12 +629,28 @@ function OrderStep1() {
     const existingDraft = JSON.parse(
       localStorage.getItem("clothCoreOrderDraft") || "{}"
     );
+
+    // If a real order was already created for this draft (existingDraft
+    // .orderId, set once Step 6 - Admin Approval - actually submits it) but
+    // the garment/fabric/color picked here is now different, this is no
+    // longer that same order — clear orderId so later steps create a fresh
+    // order for these new selections instead of silently re-showing (or
+    // re-approving) the old one. This is exactly what caused "placing
+    // another order shows/approves the wrong thing": the old orderId stuck
+    // around in the draft and every later step kept reusing it.
+    const selectionChanged =
+      existingDraft.garment !== confirmed.garment.name ||
+      existingDraft.fabric !== confirmed.fabric.label ||
+      existingDraft.color !== confirmed.color.label;
+
     const draft = {
       ...existingDraft,
       garment: confirmed.garment.name,
       fabric: confirmed.fabric.label,
       color: confirmed.color.label,
+      colorHex: confirmed.color.hex,
       unitPrice: confirmed.unitPrice,
+      ...(selectionChanged ? { orderId: undefined } : {}),
     };
     localStorage.setItem("clothCoreOrderDraft", JSON.stringify(draft));
 
@@ -433,10 +660,22 @@ function OrderStep1() {
     }, 1500);
   }
 
+  // Clears the selected garment/fabric/color and starts the order over.
+  // The whole saved draft is discarded, not just this step's fields —
+  // every later step (design, quantities, delivery, payment) is built
+  // around the garment picked here, so once that's cleared none of that
+  // downstream data is still valid to resume either.
+  function handleResetSelection() {
+    setConfirmed(null);
+    setModalGarmentId(null);
+    localStorage.removeItem("clothCoreOrderDraft");
+    setShowResetConfirm(false);
+  }
+
   return (
     <ShopOwnerLayout
       shellStyle={{ background: C.cream100 }}
-      contentClassName="container py-4"
+      contentClassName="container py-4 order-flow-page"
       contentStyle={{ paddingLeft: "20px", paddingRight: "20px" }}
     >
           {/* Header Section */}
@@ -444,44 +683,73 @@ function OrderStep1() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3"
+            className="d-flex justify-content-between align-items-start mb-2 flex-wrap gap-3"
           >
-            <div>
-              <h1 className="fw-bold d-flex align-items-center flex-wrap" style={{ fontSize: "2.2rem" }}>
-                <span
-                  style={{
-                    background: C.plum900,
-                    padding: "5px 20px",
-                    borderRadius: "10px",
-                    color: C.cream100,
-                    marginRight: "15px",
-                    fontSize: "1.1rem",
-                  }}
-                >
-                  Step 1
-                </span>
-                <span style={{ color: C.plum900 }}>Product & Material Selection</span>
-              </h1>
-              <p className="mt-2 d-flex align-items-center gap-2" style={{ fontSize: "1.1rem", color: C.plum700 }}>
-                <IconTarget size={18} stroke={1.75} /> Choose your garment, fabric, and
-                color to get started
-              </p>
+            <div className="flex-grow-1">
+              <OrderStepHeader
+                stepIndex={1}
+                title="Product & Material Selection"
+                subtitle="Choose your garment, fabric, and color to get started."
+                icon={<IconTarget size={22} stroke={1.75} color={C.mauve500} />}
+              />
             </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="btn px-4 py-2 d-flex align-items-center gap-2"
-              style={{
-                background: "#fff",
-                color: C.plum700,
-                borderRadius: "25px",
-                fontWeight: "bold",
-                border: `1.5px solid ${C.mauve500}`,
-              }}
-            >
-              <IconDeviceFloppy size={17} stroke={1.75} /> Save Progress
-            </motion.button>
+            <div className="d-flex gap-2" style={{ flexShrink: 0 }}>
+              {confirmed && !isLocked && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="btn px-4 py-2 d-flex align-items-center gap-2"
+                  style={{
+                    background: "transparent",
+                    color: "#b3261e",
+                    borderRadius: "25px",
+                    fontWeight: "bold",
+                    border: "1.5px solid rgba(179,38,30,0.4)",
+                  }}
+                  onClick={() => setShowResetConfirm(true)}
+                >
+                  <IconRefresh size={17} stroke={1.75} /> Reset Selection
+                </motion.button>
+              )}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="btn px-4 py-2 d-flex align-items-center gap-2"
+                style={{
+                  background: "#fff",
+                  color: C.plum700,
+                  borderRadius: "25px",
+                  fontWeight: "bold",
+                  border: `1.5px solid ${C.mauve500}`,
+                }}
+              >
+                <IconDeviceFloppy size={17} stroke={1.75} /> Save Progress
+              </motion.button>
+            </div>
           </motion.div>
+
+          {isLocked && (
+            <div
+              className="d-flex align-items-center gap-3 p-3 mb-4"
+              style={{ background: "rgba(217,155,168,0.16)", border: `1.5px solid ${C.mauve500}`, borderRadius: 16 }}
+              role="status"
+            >
+              <span
+                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: 40, height: 40, borderRadius: "50%", background: "#fff", color: C.plum700 }}
+              >
+                <IconLock size={20} stroke={1.75} />
+              </span>
+              <div>
+                <div className="fw-bold" style={{ color: C.plum900, fontSize: 14 }}>
+                  This order has already been submitted
+                </div>
+                <div style={{ color: C.mauve500, fontSize: 12.5 }}>
+                  You're viewing what was submitted for approval — it can no longer be changed here. Use "Place New Order" on the Approval page (or "Place Order" in the sidebar) to start a separate order.
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="row">
             {/* Left Section - Selection Options */}
@@ -491,8 +759,8 @@ function OrderStep1() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
-                className="card admin-content-card mb-4 border-0"
-                style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(25,0,25,0.08)" }}
+                className="card mb-4 border-0"
+                style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(25,0,25,0.08)", background: "#fff" }}
               >
                 <div className="card-body p-4">
                   <div className="d-flex align-items-center mb-4">
@@ -515,8 +783,32 @@ function OrderStep1() {
                     <span className="ms-3 badge bg-light text-dark">Choose one</span>
                   </div>
 
+                  {catalogLoading && garments.length === 0 ? (
+                    <div className="text-center py-5">
+                      <IconLoader2 size={32} className="pms-spin" color={C.mauve500} />
+                      <p className="mt-3 mb-0" style={{ color: C.mauve500 }}>Loading garment catalog...</p>
+                    </div>
+                  ) : catalogError ? (
+                    <div
+                      className="d-flex align-items-center justify-content-between gap-3 p-3"
+                      style={{ background: "rgba(179,38,30,0.06)", border: "1px solid rgba(179,38,30,0.2)", borderRadius: 12, color: "#b3261e" }}
+                      role="alert"
+                    >
+                      <span className="d-flex align-items-center gap-2" style={{ fontSize: 13.5, fontWeight: 600 }}>
+                        <IconAlertTriangle size={18} stroke={2.5} /> {catalogError}
+                      </span>
+                      <button
+                        type="button"
+                        className="btn btn-sm fw-bold cc-outline-btn"
+                        style={{ border: "1.5px solid #b3261e", color: "#b3261e", borderRadius: 20, background: "transparent" }}
+                        onClick={loadCatalog}
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
                   <div className="row g-3">
-                    {GARMENTS.map((g) => {
+                    {garments.map((g) => {
                       const selected = confirmed?.garment.id === g.id;
                       return (
                         <motion.div
@@ -528,7 +820,8 @@ function OrderStep1() {
                           <div
                             className="h-100"
                             style={{
-                              cursor: "pointer",
+                              cursor: isLocked ? "not-allowed" : "pointer",
+                              opacity: isLocked && !selected ? 0.55 : 1,
                               borderRadius: "22px",
                               border: `2px solid ${selected ? C.plum700 : "rgba(25,0,25,0.08)"}`,
                               background: "white",
@@ -539,7 +832,7 @@ function OrderStep1() {
                               position: "relative",
                               overflow: "hidden",
                             }}
-                            onClick={() => setModalGarmentId(g.id)}
+                            onClick={() => !isLocked && setModalGarmentId(g.id)}
                           >
                             {/* Photo */}
                             <div
@@ -686,9 +979,12 @@ function OrderStep1() {
                       );
                     })}
                   </div>
-                  <p className="mb-0 mt-2" style={{ fontSize: 12.5, color: C.mauve500 }}>
-                    Tap a garment to choose its fabric and color in a popup.
-                  </p>
+                  )}
+                  {garments.length > 0 && (
+                    <p className="mb-0 mt-2" style={{ fontSize: 12.5, color: C.mauve500 }}>
+                      Tap a garment to choose its fabric and color in a popup.
+                    </p>
+                  )}
                 </div>
               </motion.div>
 
@@ -699,8 +995,8 @@ function OrderStep1() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <div
-                  className="card admin-content-card border-0"
-                  style={{ borderRadius: "16px", boxShadow: "0 4px 20px rgba(25,0,25,0.06)" }}
+                  className="card border-0"
+                  style={{ borderRadius: "16px", boxShadow: "0 4px 20px rgba(25,0,25,0.06)", background: "#fff" }}
                 >
                   <div className="card-body p-3">
                     <div className="d-flex justify-content-between align-items-center flex-wrap">
@@ -725,9 +1021,9 @@ function OrderStep1() {
                                 Great! {confirmed.garment.name} in {confirmed.fabric.label},{" "}
                                 {confirmed.color.label} is in stock.
                               </strong>
-                              <div className="text-muted small">
+                              <div className="small" style={{ color: C.mauve500 }}>
                                 Available Quantity:{" "}
-                                <span className="fw-bold">{confirmed.garment.stock}+ pcs</span>
+                                <span className="fw-bold" style={{ color: C.plum900 }}>{confirmed.garment.stock}+ pcs</span>
                               </div>
                             </>
                           ) : (
@@ -739,7 +1035,7 @@ function OrderStep1() {
                       </div>
                       {confirmed && (
                         <div className="text-end mt-2 mt-md-0">
-                          <small className="text-muted">Unit Price</small>
+                          <small style={{ color: C.mauve500 }}>Unit Price</small>
                           <h6 className="fw-bold mb-0" style={{ color: C.plum800 }}>
                             {formatPrice(confirmed.unitPrice)}
                           </h6>
@@ -761,8 +1057,8 @@ function OrderStep1() {
                 style={{ top: "20px" }}
               >
                 <div
-                  className="card admin-content-card border-0"
-                  style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(25,0,25,0.12)", overflow: "hidden" }}
+                  className="card border-0"
+                  style={{ borderRadius: "20px", boxShadow: "0 10px 40px rgba(25,0,25,0.12)", overflow: "hidden", background: "#fff" }}
                 >
                   <div
                     style={{
@@ -780,19 +1076,19 @@ function OrderStep1() {
                   <div className="card-body p-4">
                     <div className="mb-4">
                       <div className="d-flex justify-content-between align-items-center mb-3">
-                        <small className="text-muted">Garment</small>
+                        <small style={{ color: C.mauve500 }}>Garment</small>
                         <span className="fw-bold" style={{ color: C.plum900 }}>
                           {confirmed ? confirmed.garment.name : "Not selected"}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between align-items-center mb-3">
-                        <small className="text-muted">Fabric</small>
+                        <small style={{ color: C.mauve500 }}>Fabric</small>
                         <span className="fw-bold" style={{ color: C.plum900 }}>
                           {confirmed ? confirmed.fabric.label : "Not selected"}
                         </span>
                       </div>
                       <div className="d-flex justify-content-between align-items-center">
-                        <small className="text-muted">Color</small>
+                        <small style={{ color: C.mauve500 }}>Color</small>
                         <div className="d-flex align-items-center">
                           {confirmed && (
                             <div
@@ -817,7 +1113,7 @@ function OrderStep1() {
                     <hr />
 
                     <div className="mb-3">
-                      <small className="text-muted">Unit Price</small>
+                      <small style={{ color: C.mauve500 }}>Unit Price</small>
                       <h3 className="fw-bold mb-0" style={{ color: C.plum800 }}>
                         {formatPrice(confirmed ? confirmed.unitPrice : 0)}
                       </h3>
@@ -887,9 +1183,25 @@ function OrderStep1() {
         )}
       </AnimatePresence>
 
+      <ConfirmModal
+        open={showResetConfirm}
+        onCancel={() => setShowResetConfirm(false)}
+        onConfirm={handleResetSelection}
+        title="Reset Selection?"
+        message="This clears your selected garment, fabric and color, along with any design, quantities, delivery and payment details already saved for this order. You'll start over from Step 1."
+        confirmLabel="Reset Selection"
+        danger
+      />
+
       <style>{`
         .pms-spin { animation: pms-spin 0.8s linear infinite; }
         @keyframes pms-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @media (max-width: 480px) {
+          .gc-modal-card { border-radius: 20px !important; }
+          .gc-modal-header { padding: 18px !important; border-radius: 20px 20px 0 0 !important; }
+          .gc-modal-body { padding: 20px 18px !important; }
+          .gc-fabric-card { padding: 12px 6px !important; }
+        }
       `}</style>
     </ShopOwnerLayout>
   );

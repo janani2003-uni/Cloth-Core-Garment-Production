@@ -1,24 +1,48 @@
 // src/components/Sidebar.js
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import {
   House,
   Box,
   Clipboard,
   Gear,
-  Bell,
   BoxArrowRight,
   Shop,
   CreditCard,
   Truck,
-  ChatDots
 } from 'react-bootstrap-icons';
 import logo from '../assets/logo-new.png.jpeg';
-import { clearSession } from '../utils/auth';
+import { clearSession, getUser } from '../utils/auth';
+import { goToPlaceOrder } from '../utils/orderStatus';
+import LogoutConfirmModal from './modals/LogoutConfirmModal';
 
 function Sidebar() {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // "My Account" card below shows the real saved Shop Profile — never a
+  // placeholder business name. If the Shop Owner hasn't registered a shop
+  // yet, it says so instead of a fake name. Refetches on every mount, which
+  // covers the normal case (each page wraps itself in ShopOwnerLayout, so
+  // this remounts on navigation) — including right after saving changes on
+  // the Shop Profile page and navigating away.
+  const [shop, setShop] = useState(null);
+  const [shopChecked, setShopChecked] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    axios.get('http://localhost:5000/api/shops/my-shop')
+      .then((res) => { if (!cancelled) setShop(res.data); })
+      .catch(() => { if (!cancelled) setShop(null); })
+      .finally(() => { if (!cancelled) setShopChecked(true); });
+    return () => { cancelled = true; };
+  }, []);
+
+  const user = getUser();
+  const accountLabel = shop?.shopName || (shopChecked ? 'No Shop Registered' : 'Loading…');
+  const accountInitial =
+    (shop?.shopName?.[0] || user?.firstName?.[0] || 'S').toUpperCase();
 
   const menuItems = [
     { path: '/dashboard', icon: House, label: 'Dashboard' },
@@ -27,16 +51,19 @@ function Sidebar() {
     { path: '/shop-profile', icon: Shop, label: 'Shop Profile' },
     { path: '/payments', icon: CreditCard, label: 'Payments' },
     { path: '/deliveries', icon: Truck, label: 'Deliveries' },
-    { path: '/notifications', icon: Bell, label: 'Notifications' },
-    { path: '/support', icon: ChatDots, label: 'Support' },
     { path: '/settings', icon: Gear, label: 'Settings' },
   ];
 
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+
   const handleLogout = () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      clearSession();
-      navigate('/login');
-    }
+    setLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setLogoutModalOpen(false);
+    clearSession();
+    navigate('/login');
   };
 
   // Handle My Account click - navigate to settings with profile tab
@@ -46,19 +73,23 @@ function Sidebar() {
 
   return (
     <div className="admin-sidebar">
-      {/* Logo Section */}
+      {/* Logo Section — sized up and given a soft accent-colored halo so it
+          reads as part of the sidebar instead of a small sticker pasted on
+          top of the dark purple background. The logo asset itself (a JPEG
+          with a baked-in white background) is untouched. */}
       <div className="text-center mb-4 px-3">
         <div
+          className="cc-sidebar-logo"
           style={{
-            width: "68px",
-            height: "68px",
-            margin: "0 auto 10px",
-            borderRadius: "20px",
-            background: "rgba(255,255,255,0.94)",
+            width: "92px",
+            height: "92px",
+            margin: "0 auto 12px",
+            borderRadius: "26px",
+            background: "linear-gradient(160deg, #ffffff, #f6ecf1)",
+            border: "1px solid rgba(255,255,255,0.5)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 8px 20px rgba(0,0,0,0.28)",
             overflow: "hidden",
           }}
         >
@@ -66,16 +97,16 @@ function Sidebar() {
             src={logo}
             alt="ClothCore"
             style={{
-              width: "48px",
-              height: "48px",
+              width: "66px",
+              height: "66px",
               objectFit: "contain",
             }}
           />
         </div>
-        <h5 className="fw-bold mb-0" style={{ color: "white", fontSize: "18px" }}>
+        <h5 className="fw-bold mb-0" style={{ color: "var(--sidebar-text)", fontSize: "18px" }}>
           ClothCore
         </h5>
-        <small style={{ color: "rgba(255,255,255,0.6)", fontSize: "11px" }}>
+        <small style={{ color: "var(--sidebar-text-soft)", fontSize: "11px" }}>
           Garment Production
         </small>
       </div>
@@ -90,7 +121,7 @@ function Sidebar() {
           return (
             <div
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => (item.path === '/step1' ? goToPlaceOrder(navigate) : navigate(item.path))}
               className={`admin-sidebar-link${isActive ? " is-active" : ""}`}
             >
               <Icon size={20} style={{ marginRight: "12px" }} />
@@ -102,7 +133,7 @@ function Sidebar() {
                     width: "8px",
                     height: "8px",
                     borderRadius: "50%",
-                    background: "var(--clothcore-blush)"
+                    background: "var(--sidebar-accent)"
                   }}
                 />
               )}
@@ -117,6 +148,7 @@ function Sidebar() {
         {/* My Account - Navigates to Settings Profile */}
         <div
           onClick={handleMyAccount}
+          className={`cc-account-row${location.pathname === '/settings' ? ' is-active' : ''}`}
           style={{
             display: "flex",
             alignItems: "center",
@@ -124,42 +156,39 @@ function Sidebar() {
             marginBottom: "8px",
             borderRadius: "12px",
             cursor: "pointer",
-            background: location.pathname === '/settings' ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.05)",
-            transition: "all 0.3s ease",
-            border: location.pathname === '/settings' ? "1px solid rgba(223,182,178,0.35)" : "1px solid transparent"
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.15)";
-            e.currentTarget.style.borderColor = "rgba(223,182,178,0.35)";
-          }}
-          onMouseLeave={(e) => {
-            if (location.pathname !== '/settings') {
-              e.currentTarget.style.background = "rgba(255,255,255,0.05)";
-              e.currentTarget.style.borderColor = "transparent";
-            }
+            background: "var(--sidebar-bg-secondary)",
+            border: "1px solid var(--sidebar-border)"
           }}
         >
-          <div
-            style={{
-              width: "36px",
-              height: "36px",
-              borderRadius: "50%",
-              background: "linear-gradient(135deg, var(--clothcore-blush), var(--clothcore-mauve))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "white",
-              fontWeight: "bold",
-              fontSize: "14px",
-              marginRight: "12px"
-            }}
-          >
-            SF
-          </div>
+          {shop?.logoPath ? (
+            <img
+              src={`http://localhost:5000${shop.logoPath}`}
+              alt={`${shop.shopName || "Shop"} logo`}
+              style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", marginRight: "12px", flexShrink: 0 }}
+            />
+          ) : (
+            <div
+              style={{
+                width: "36px",
+                height: "36px",
+                borderRadius: "50%",
+                background: "linear-gradient(135deg, var(--sidebar-accent), var(--sidebar-accent-strong))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontWeight: "bold",
+                fontSize: "14px",
+                marginRight: "12px"
+              }}
+            >
+              {accountInitial}
+            </div>
+          )}
           <div>
-            <div style={{ fontSize: "12px", fontWeight: "600" }}>My Account</div>
-            <div style={{ fontSize: "10px", color: "rgba(255,255,255,0.6)" }}>
-              Saman Fashions
+            <div style={{ fontSize: "12px", fontWeight: "600", color: "var(--sidebar-text)" }}>My Account</div>
+            <div style={{ fontSize: "10px", color: "var(--sidebar-text-soft)" }}>
+              {accountLabel}
             </div>
           </div>
           {location.pathname === '/settings' && (
@@ -169,7 +198,7 @@ function Sidebar() {
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                background: "var(--clothcore-blush)"
+                background: "var(--sidebar-accent)"
               }}
             />
           )}
@@ -178,6 +207,7 @@ function Sidebar() {
         {/* Log Out Button */}
         <div
           onClick={handleLogout}
+          className="cc-logout-row"
           style={{
             display: "flex",
             alignItems: "center",
@@ -185,26 +215,15 @@ function Sidebar() {
             margin: "0",
             borderRadius: "12px",
             cursor: "pointer",
-            background: "rgba(220, 53, 69, 0.15)",
-            transition: "all 0.3s ease",
-            border: "1px solid rgba(220, 53, 69, 0.2)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(220, 53, 69, 0.25)";
-            e.currentTarget.style.borderColor = "rgba(220, 53, 69, 0.4)";
-            e.currentTarget.style.transform = "scale(1.02)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(220, 53, 69, 0.15)";
-            e.currentTarget.style.borderColor = "rgba(220, 53, 69, 0.2)";
-            e.currentTarget.style.transform = "scale(1)";
+            background: "var(--sidebar-danger-bg)",
+            border: "1px solid var(--sidebar-danger-border)",
           }}
         >
-          <BoxArrowRight size={20} style={{ marginRight: "12px", color: "#ff6b6b" }} />
-          <span style={{ 
-            fontSize: "14px", 
+          <BoxArrowRight size={20} style={{ marginRight: "12px", color: "var(--sidebar-danger-text)" }} />
+          <span style={{
+            fontSize: "14px",
             fontWeight: "500",
-            color: "#ff6b6b"
+            color: "var(--sidebar-danger-text)"
           }}>
             Logout
           </span>
@@ -212,13 +231,19 @@ function Sidebar() {
             style={{
               marginLeft: "auto",
               fontSize: "12px",
-              color: "rgba(255,255,255,0.4)"
+              color: "var(--sidebar-text-faint)"
             }}
           >
             ↵
           </span>
         </div>
       </div>
+
+      <LogoutConfirmModal
+        open={logoutModalOpen}
+        onCancel={() => setLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 }

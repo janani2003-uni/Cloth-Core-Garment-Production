@@ -5,9 +5,11 @@
 // broadcast feed.
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import { Bell, CheckCircle, ExclamationTriangle, CreditCard, PersonPlus, Truck, ChatDots } from "react-bootstrap-icons";
 
 const API_URL = "http://localhost:5000/api/notifications";
+const ORDERS_API_URL = "http://localhost:5000/api/orders";
 
 function formatRelativeTime(dateInput) {
   if (!dateInput) return "";
@@ -44,6 +46,7 @@ function getIcon(type) {
 }
 
 function NotificationBell() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const ref = useRef(null);
@@ -82,6 +85,51 @@ function NotificationBell() {
     }
   };
 
+  // Clicking an "Order Approved" notification takes the shop owner straight
+  // to Step 7 Payment instead of just marking it read — the notification's
+  // relatedId (the order's Mongo _id) is written into the order draft so
+  // OrderStep5 can load the order even if the shop owner is on a different
+  // device/session than the one that placed it. We re-check the order's
+  // live approval status here rather than trusting the notification's own
+  // wording, since it could be stale by the time it's clicked.
+  const DELIVERY_NOTIFICATION_TITLES = ["Delivery Scheduled", "Delivery In Progress", "Order Delivered"];
+
+  const handleNotificationClick = async (n) => {
+    markAsRead(n._id);
+
+    if (n.relatedModel !== "Order" || !n.relatedId) return;
+
+    // Delivery-lifecycle updates aren't about the approval gate — re-deriving
+    // a destination from approval status here would just bounce the shop
+    // owner back toward Payment. Send them to Deliveries instead.
+    if (DELIVERY_NOTIFICATION_TITLES.includes(n.title)) {
+      setOpen(false);
+      navigate("/deliveries");
+      return;
+    }
+
+    try {
+      const res = await axios.get(`${ORDERS_API_URL}/${n.relatedId}/approval-status`);
+      const status = res.data?.data?.approval?.status;
+      if (!status) return;
+
+      const draft = JSON.parse(localStorage.getItem("clothCoreOrderDraft") || "{}");
+      localStorage.setItem(
+        "clothCoreOrderDraft",
+        JSON.stringify({ ...draft, orderId: n.relatedId })
+      );
+      setOpen(false);
+
+      // Approved goes straight to Payment; Pending/Rejected/anything else
+      // goes to the Admin Approval status page instead (never Payment) so
+      // a rejection reason or "still pending" state is always visible.
+      navigate(status === "Approved" ? "/step5" : "/order-approval");
+    } catch (err) {
+      // Silent — worst case the shop owner just doesn't get auto-routed and
+      // can navigate manually from the Admin Approval page.
+    }
+  };
+
   const markAllAsRead = async () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     try {
@@ -106,12 +154,13 @@ function NotificationBell() {
       <div
         role="button"
         tabIndex={0}
+        className="cc-bell-btn"
         onClick={() => setOpen((v) => !v)}
         style={{
           width: "40px",
           height: "40px",
           borderRadius: "50%",
-          background: open ? "rgba(82,43,91,0.15)" : "rgba(82,43,91,0.08)",
+          background: open ? "rgba(217,155,168,0.2)" : "var(--sidebar-bg-secondary)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -119,10 +168,10 @@ function NotificationBell() {
           position: "relative",
         }}
       >
-        <Bell size={20} style={{ color: "var(--clothcore-blush)" }} />
+        <Bell className="cc-bell-icon" size={20} style={{ color: "var(--sidebar-accent)" }} />
         {unreadCount > 0 && (
           <span
-            className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+            className="position-absolute top-0 start-100 translate-middle badge rounded-pill cc-notif-badge"
             style={{
               background: "linear-gradient(135deg, var(--clothcore-danger), #b83d4d)",
               fontSize: "10px",
@@ -137,6 +186,7 @@ function NotificationBell() {
 
       {open && (
         <div
+          className="cc-notif-dropdown"
           style={{
             position: "absolute",
             top: "48px",
@@ -177,7 +227,8 @@ function NotificationBell() {
                 <button
                   key={n._id}
                   type="button"
-                  onClick={() => markAsRead(n._id)}
+                  className="cc-notif-item"
+                  onClick={() => handleNotificationClick(n)}
                   style={{
                     width: "100%",
                     textAlign: "left",
@@ -195,8 +246,8 @@ function NotificationBell() {
                       width: "34px",
                       height: "34px",
                       borderRadius: "10px",
-                      background: "rgba(133,79,108,0.2)",
-                      color: "var(--clothcore-blush)",
+                      background: "rgba(133,79,108,0.16)",
+                      color: "var(--clothcore-mauve)",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -228,19 +279,21 @@ function NotificationBell() {
                 display: "flex",
                 justifyContent: "space-between",
                 borderTop: "1px solid var(--clothcore-border)",
-                background: "rgba(255,255,255,0.03)",
+                background: "rgba(82,43,91,0.03)",
               }}
             >
               <button
                 type="button"
+                className="cc-text-btn"
                 onClick={markAllAsRead}
                 disabled={unreadCount === 0}
-                style={{ background: "transparent", border: "none", fontSize: "12px", fontWeight: 600, color: unreadCount === 0 ? "var(--clothcore-text-muted)" : "var(--clothcore-blush)", cursor: unreadCount === 0 ? "not-allowed" : "pointer" }}
+                style={{ background: "transparent", border: "none", fontSize: "12px", fontWeight: 600, color: unreadCount === 0 ? "var(--clothcore-text-muted)" : "var(--clothcore-mauve)", cursor: unreadCount === 0 ? "not-allowed" : "pointer" }}
               >
                 Mark all as read
               </button>
               <button
                 type="button"
+                className="cc-text-btn"
                 onClick={clearAll}
                 style={{ background: "transparent", border: "none", fontSize: "12px", fontWeight: 600, color: "var(--clothcore-danger)", cursor: "pointer" }}
               >

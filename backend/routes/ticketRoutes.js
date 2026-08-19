@@ -70,7 +70,7 @@ router.get("/", requireRole("admin"), async (req, res) => {
     }
 
     const tickets = await Ticket.find(filter)
-      .populate("shopOwnerId", "firstName lastName email factoryName")
+      .populate("shopOwnerId", "firstName lastName email shopName")
       .sort({ updatedAt: -1 });
 
     return res.status(200).json({ success: true, data: tickets });
@@ -85,7 +85,7 @@ router.get("/:id", async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id).populate(
       "shopOwnerId",
-      "firstName lastName email factoryName"
+      "firstName lastName email shopName"
     );
 
     if (!ticket) {

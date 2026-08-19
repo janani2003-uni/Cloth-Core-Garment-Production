@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import { getUser } from "../utils/auth";
+import { getOrderDisplayStatus, getOrderActionTarget, goToOrder, getEffectivePayment, TONE_COLORS } from "../utils/orderStatus";
+import { getProductionStage } from "../utils/productionStage";
 import {
   Box,
   Clock,
@@ -60,33 +62,22 @@ function Dashboard() {
     fetchShop();
   }, []);
 
-  const getStatusBadgeBg = (status) => {
-    switch (status) {
-      case "Delivered":
-        return "linear-gradient(135deg, var(--clothcore-success), #158a52)";
-      case "Cancelled":
-        return "linear-gradient(135deg, var(--clothcore-danger), #b83d4d)";
-      case "Approved":
-        return "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))";
-      case "Production":
-        return "linear-gradient(135deg, var(--clothcore-warning), #b8701d)";
-      case "Pending":
-      default:
-        return "linear-gradient(135deg, var(--clothcore-warning), #b8701d)";
-    }
-  };
 
   const sortedOrders = [...orders].sort(
     (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
   );
 
   const totalOrders = orders.length;
-  const pendingApproval = orders.filter((o) => o.status === "Pending").length;
+  // approval.status is the new pre-payment gate (Pending/Approved/Rejected)
+  // — distinct from the older `status` field (Pending/Production/Delivered)
+  // which tracks the production lifecycle *after* approval. This stat is
+  // specifically about approval, so it must read the right field.
+  const pendingApproval = orders.filter((o) => o.approval?.status === "Pending").length;
   const inProduction = orders.filter((o) => o.status === "Production").length;
   const delivered = orders.filter((o) => o.status === "Delivered").length;
 
   const stats = [
-    { label: "Total Orders", value: String(totalOrders), icon: Box, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
+    { label: "Total Orders", value: String(totalOrders), icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
     { label: "Pending Approval", value: String(pendingApproval), icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
     { label: "In Production", value: String(inProduction), icon: BoxSeam, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)" },
     { label: "Delivered", value: String(delivered), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" }
@@ -98,11 +89,18 @@ function Dashboard() {
     (o) => o.status !== "Delivered" && o.status !== "Cancelled"
   );
 
-  const totalOutstanding = orders
-    .filter((o) => o.paymentStatus !== "Paid")
-    .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0);
+  // A shop owner's Dashboard treats a submitted-but-not-yet-verified
+  // payment as already paid (see getEffectivePayment) — Submitted vs
+  // Verified is Admin's own review-queue detail, not something reflected
+  // back here. Real remaining balance owed is whatever's left after that.
+  const totalOutstanding = orders.reduce(
+    (sum, o) => sum + getEffectivePayment(o).effectiveRemaining,
+    0
+  );
 
-  const pendingPaymentsCount = orders.filter((o) => o.paymentStatus === "Pending").length;
+  const pendingPaymentsCount = orders.filter(
+    (o) => getEffectivePayment(o).status === "Pending"
+  ).length;
 
   const shopCompletion = shop
     ? Math.round(
@@ -130,7 +128,7 @@ function Dashboard() {
                   </div>
                 </div>
                 <button className="admin-btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => navigate("/shop-profile")}>
-                  Create Shop Profile
+                  Update Shop Profile
                 </button>
               </div>
             )}
@@ -143,9 +141,9 @@ function Dashboard() {
                 <div className="d-flex align-items-center gap-3">
                   <ExclamationTriangle size={22} style={{ color: "var(--clothcore-warning)" }} />
                   <div>
-                    <span className="admin-badge admin-badge-warning me-2">Approval Pending</span>
+                    <span className="admin-badge admin-badge-warning me-2">Under Admin Review</span>
                     <span style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
-                      Your shop profile has been submitted and is waiting for Admin approval.
+                      Your shop profile is complete — you can place orders now. It's also under Admin review for verification and Shop ID assignment.
                     </span>
                   </div>
                 </div>
@@ -163,9 +161,9 @@ function Dashboard() {
                 <div className="d-flex align-items-center gap-3">
                   <ExclamationTriangle size={22} style={{ color: "var(--clothcore-danger)" }} />
                   <div>
-                    <span className="admin-badge admin-badge-danger me-2">Changes Required</span>
+                    <span className="admin-badge admin-badge-danger me-2">Changes Requested</span>
                     <span style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
-                      Your shop profile needs changes before approval.
+                      An administrator requested changes to your shop profile — you can still place orders in the meantime.
                       {shop.rejectionReason ? ` "${shop.rejectionReason}"` : ""}
                     </span>
                   </div>
@@ -259,7 +257,7 @@ function Dashboard() {
                     <button
                       className="btn btn-sm"
                       style={{
-                        color: "var(--clothcore-blush)",
+                        color: "var(--clothcore-purple)",
                         fontWeight: "500",
                         display: "flex",
                         alignItems: "center",
@@ -271,87 +269,82 @@ function Dashboard() {
                     </button>
                   </div>
 
+                  {/* Compact row list instead of a wide table — every field
+                      that matters (status, amount, action) stays visible
+                      without ever needing to scroll sideways; only the item
+                      description truncates. */}
                   <div className="card-body p-0">
-                    <div className="table-responsive">
-                      <table className="table table-hover admin-table mb-0" style={{ fontSize: "14px" }}>
-                        <thead style={{
-                          background: "rgba(255,255,255,0.04)",
-                          borderBottom: "2px solid var(--clothcore-border)"
-                        }}>
-                          <tr>
-                            <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                              Order ID
-                            </th>
-                            <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                              Item
-                            </th>
-                            <th className="px-4 py-3 fw-bold text-center" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                              Qty
-                            </th>
-                            <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                              Status
-                            </th>
-                            <th className="px-4 py-3 fw-bold text-end" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                              Amount
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {ordersLoading ? (
-                            <tr>
-                              <td colSpan="5" className="text-center py-4 text-muted">
-                                Loading orders...
-                              </td>
-                            </tr>
-                          ) : recentOrders.length === 0 ? (
-                            <tr>
-                              <td colSpan="5" className="text-center py-4 text-muted">
-                                No orders yet
-                              </td>
-                            </tr>
-                          ) : (
-                            recentOrders.map((order) => (
-                              <tr key={order._id} style={{
-                                transition: "all 0.2s ease",
-                                borderBottom: "1px solid var(--clothcore-border)"
+                    {ordersLoading ? (
+                      <div className="text-center py-4 text-muted">Loading orders...</div>
+                    ) : recentOrders.length === 0 ? (
+                      <div className="text-center py-4 text-muted">No orders yet</div>
+                    ) : (
+                      recentOrders.map((order) => {
+                        const display = getOrderDisplayStatus(order);
+                        const tone = TONE_COLORS[display.tone] || TONE_COLORS.purple;
+                        return (
+                          <div
+                            key={order._id}
+                            className="d-flex align-items-center px-4 py-3"
+                            style={{ borderBottom: "1px solid var(--clothcore-border)", transition: "background 0.2s ease" }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(82,43,91,0.02)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                          >
+                            <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+                              <div className="fw-bold" style={{ color: "var(--clothcore-purple)", fontSize: "13px" }}>
+                                {order.orderId}
+                              </div>
+                              <div
+                                className="text-truncate"
+                                style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", maxWidth: "100%" }}
+                                title={`${order.item} · Qty ${order.quantity}`}
+                              >
+                                {order.item} · Qty {order.quantity}
+                              </div>
+                            </div>
+
+                            <span
+                              className="badge mx-3 flex-shrink-0"
+                              style={{
+                                background: tone.bg,
+                                color: tone.color,
+                                borderRadius: "20px",
+                                fontSize: "11px",
+                                fontWeight: "600",
+                                padding: "5px 10px",
+                                whiteSpace: "nowrap",
                               }}
-                              onMouseEnter={(e) => {
-                                e.currentTarget.style.background = "rgba(82,43,91,0.02)";
+                            >
+                              {display.label}
+                            </span>
+
+                            <div
+                              className="fw-bold text-end flex-shrink-0"
+                              style={{ color: "var(--clothcore-text)", fontSize: "13px", minWidth: "90px" }}
+                            >
+                              LKR {Number(order.totalAmount || 0).toLocaleString()}
+                            </div>
+
+                            <button
+                              type="button"
+                              className="btn btn-sm fw-bold flex-shrink-0 ms-3"
+                              onClick={() => goToOrder(navigate, order)}
+                              style={{
+                                background: "transparent",
+                                border: "1.5px solid var(--clothcore-mauve)",
+                                color: "var(--clothcore-purple)",
+                                borderRadius: "20px",
+                                fontSize: "12px",
+                                padding: "5px 14px",
+                                whiteSpace: "nowrap",
                               }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.style.background = "transparent";
-                              }}>
-                                <td className="px-4 py-3">
-                                  <span className="fw-bold" style={{ color: "var(--clothcore-blush)", fontSize: "13px" }}>
-                                    {order.orderId}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3">{order.item}</td>
-                                <td className="px-4 py-3 text-center">
-                                  <span className="fw-bold">{order.quantity}</span>
-                                </td>
-                                <td className="px-4 py-3">
-                                  <span className="badge px-3 py-2" style={{
-                                    background: getStatusBadgeBg(order.status),
-                                    color: "white",
-                                    borderRadius: "20px",
-                                    fontSize: "12px",
-                                    fontWeight: "600"
-                                  }}>
-                                    {order.status}
-                                  </span>
-                                </td>
-                                <td className="px-4 py-3 text-end">
-                                  <span className="fw-bold" style={{ color: "var(--clothcore-text)" }}>
-                                    LKR {Number(order.totalAmount || 0).toLocaleString()}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                            >
+                              {getOrderActionTarget(order).label}
+                            </button>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               </div>
@@ -365,33 +358,24 @@ function Dashboard() {
                 }}>
                   <div className="card-body p-4">
                     <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-text)" }}>
-                      <BoxSeam size={20} className="me-2" style={{ color: "var(--clothcore-blush)" }} />
+                      <BoxSeam size={20} className="me-2" style={{ color: "var(--clothcore-purple)" }} />
                       Active Order Tracking
                     </h5>
 
                     {activeOrder ? (
                       <div className="p-3" style={{
-                        background: "rgba(255,255,255,0.04)",
+                        background: "rgba(82,43,91,0.045)",
                         borderRadius: "16px"
                       }}>
                         <div className="d-flex justify-content-between align-items-start mb-2">
                           <div>
-                            <span className="badge" style={{
-                              background: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
-                              color: "white",
-                              padding: "4px 12px",
-                              borderRadius: "12px",
-                              fontSize: "11px"
-                            }}>
-                              {activeOrder.status}
-                            </span>
-                            <h6 className="fw-bold mt-2 mb-0">{activeOrder.orderId}</h6>
+                            <h6 className="fw-bold mb-0">{activeOrder.orderId}</h6>
                             <p className="text-muted mb-0" style={{ fontSize: "13px" }}>
                               {activeOrder.item}
                             </p>
                           </div>
                           <div className="text-end">
-                            <div className="fw-bold" style={{ color: "var(--clothcore-blush)", fontSize: "18px" }}>
+                            <div className="fw-bold" style={{ color: "var(--clothcore-purple)", fontSize: "18px" }}>
                               {activeOrder.progress || 0}%
                             </div>
                           </div>
@@ -409,18 +393,33 @@ function Dashboard() {
                           />
                         </div>
 
+                        {/* Real Production stage — derived from order.progress,
+                            which backend/routes/productionRoutes.js keeps in
+                            sync with the linked Production record on every
+                            Admin/Supervisor update (syncOrderProgress()), so
+                            this always matches the real stage, never a
+                            hardcoded example. */}
+                        {activeOrder.status === "Production" && (
+                          <div className="d-flex justify-content-between align-items-center mt-2">
+                            <small className="text-muted">Production Stage</small>
+                            <small className="fw-bold" style={{ color: "var(--clothcore-purple)" }}>
+                              {getProductionStage(activeOrder.progress)}
+                            </small>
+                          </div>
+                        )}
+
                         <div className="d-flex justify-content-between mt-2">
-                          <small className="text-muted">Started</small>
+                          <small className="text-muted">Order Status</small>
                           <small className="text-muted">
                             {activeOrder.deliveryDate
-                              ? `Estimated: ${new Date(activeOrder.deliveryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
+                              ? `Est. Delivery: ${new Date(activeOrder.deliveryDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}`
                               : "Not scheduled yet"}
                           </small>
                         </div>
                       </div>
                     ) : (
                       <div className="p-4 text-center" style={{
-                        background: "rgba(255,255,255,0.04)",
+                        background: "rgba(82,43,91,0.045)",
                         borderRadius: "16px",
                         color: "var(--clothcore-text-soft)"
                       }}>
@@ -433,7 +432,7 @@ function Dashboard() {
 
                     {/* Payment Summary */}
                     <h6 className="fw-bold mb-3" style={{ color: "var(--clothcore-text)" }}>
-                      <CreditCard size={18} className="me-2" style={{ color: "var(--clothcore-blush)" }} />
+                      <CreditCard size={18} className="me-2" style={{ color: "var(--clothcore-purple)" }} />
                       Payment Summary
                     </h6>
 
@@ -454,7 +453,7 @@ function Dashboard() {
                       marginBottom: "16px"
                     }}>
                       <span className="text-muted">Payments Pending</span>
-                      <span className="fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                      <span className="fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                         {pendingPaymentsCount}
                       </span>
                     </div>

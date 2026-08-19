@@ -28,6 +28,18 @@ const inventorySchema = new mongoose.Schema(
       default: "",
     },
 
+    // Only meaningful for category === "Fabrics" — which of the current
+    // Order Step 1 fabric types (e.g. "100% Cotton", "Cotton Fleece",
+    // "100% Cotton Denim") this raw material stock corresponds to. Sourced
+    // from the same Product catalog Step 1 reads (see
+    // GET /api/products/catalog-options), never a separately-typed value,
+    // so it can't drift out of sync with what shop owners can actually order.
+    fabricType: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
     description: {
       type: String,
       trim: true,

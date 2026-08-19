@@ -39,27 +39,43 @@ function Register() {
           <div className="collapse navbar-collapse" id="navbarNav">
             <ul className="navbar-nav mx-auto">
               <li className="nav-item">
-                <a className="nav-link" href="/">
-                  HOME
-                </a>
+                <button
+                  type="button"
+                  className="nav-link btn btn-link"
+                  onClick={() => navigate("/")}
+                >
+                  Home
+                </button>
               </li>
 
               <li className="nav-item">
-                <a className="nav-link" href="#who-we-are">
-                  WHO WE ARE
-                </a>
+                <button
+                  type="button"
+                  className="nav-link btn btn-link"
+                  onClick={() => navigate("/")}
+                >
+                  Who We Are
+                </button>
               </li>
 
               <li className="nav-item">
-                <a className="nav-link" href="#products">
-                  OUR PRODUCTS & MATERIALS
-                </a>
+                <button
+                  type="button"
+                  className="nav-link btn btn-link"
+                  onClick={() => navigate("/")}
+                >
+                  Our Products & Materials
+                </button>
               </li>
 
               <li className="nav-item">
-                <a className="nav-link" href="#contact">
-                  CONTACT US
-                </a>
+                <button
+                  type="button"
+                  className="nav-link btn btn-link"
+                  onClick={() => navigate("/")}
+                >
+                  Contact Us
+                </button>
               </li>
             </ul>
 
@@ -74,6 +90,7 @@ function Register() {
             <button
               type="button"
               className="login-register-btn"
+              onClick={() => navigate("/register")}
             >
               Register
             </button>

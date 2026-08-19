@@ -16,7 +16,7 @@ import {
   CheckCircle,
   Box,
   ExclamationTriangle,
-  Boxes,
+  FileEarmarkPdf,
 } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
 
@@ -43,6 +43,7 @@ function AdminReports() {
   const [inventory, setInventory] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const fetchReports = useCallback(async () => {
     try {
@@ -70,6 +71,29 @@ function AdminReports() {
     fetchReports();
   }, [fetchReports]);
 
+  const downloadReportPdf = async () => {
+    try {
+      setDownloadingPdf(true);
+      const res = await axios.get(`${REPORTS_API_URL}/sales/pdf`, {
+        params: { from: range.from, to: range.to },
+        responseType: "blob",
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `ClothCore-Sales-Report-${range.from}_to_${range.to}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      console.error("Download Report PDF Error:", err);
+      alert("Could not generate report PDF.");
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   const getStatusBadge = (status) => {
     const map = {
       Pending: "admin-badge-warning",
@@ -90,11 +114,11 @@ function AdminReports() {
           {
             label: "Revenue (LKR)",
             data: sales.dailyRevenue.map((d) => d.revenue),
-            borderColor: "#dfb6b2",
+            borderColor: "#854F6C",
             backgroundColor: "rgba(133,79,108,0.22)",
             fill: true,
             tension: 0.35,
-            pointBackgroundColor: "#dfb6b2",
+            pointBackgroundColor: "#854F6C",
           },
         ],
       }
@@ -105,11 +129,11 @@ function AdminReports() {
     maintainAspectRatio: false,
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: "#cdbdca" }, grid: { color: "rgba(255,255,255,0.06)" } },
+      x: { ticks: { color: "#854F6C" }, grid: { color: "rgba(82,43,91,0.08)" } },
       y: {
         beginAtZero: true,
-        ticks: { color: "#cdbdca", callback: (v) => `LKR ${v.toLocaleString()}` },
-        grid: { color: "rgba(255,255,255,0.06)" },
+        ticks: { color: "#854F6C", callback: (v) => `LKR ${v.toLocaleString()}` },
+        grid: { color: "rgba(82,43,91,0.08)" },
       },
     },
   };
@@ -132,7 +156,7 @@ function AdminReports() {
                   onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
                   style={{ width: "160px" }}
                 />
-                <span style={{ color: "var(--clothcore-text-soft)" }}>to</span>
+                <span style={{ color: "rgba(255,255,255,0.85)" }}>to</span>
                 <input
                   type="date"
                   className="form-control admin-select"
@@ -142,6 +166,14 @@ function AdminReports() {
                   onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
                   style={{ width: "160px" }}
                 />
+                <button
+                  type="button"
+                  className="admin-hero-btn"
+                  disabled={loading || !!error || downloadingPdf}
+                  onClick={downloadReportPdf}
+                >
+                  <FileEarmarkPdf size={16} /> {downloadingPdf ? "Generating..." : "Download PDF"}
+                </button>
               </div>
             </div>
 
@@ -172,7 +204,7 @@ function AdminReports() {
                     <div className="card admin-stat-card">
                       <div className="card-body">
                         <div className="admin-stat-icon mb-2" style={{ background: "rgba(82,43,91,0.1)", width: "40px", height: "40px" }}>
-                          <Clipboard size={18} style={{ color: "var(--clothcore-blush)" }} />
+                          <Clipboard size={18} style={{ color: "var(--clothcore-purple)" }} />
                         </div>
                         <div className="admin-stat-label">Orders Placed</div>
                         <div className="admin-stat-value" style={{ fontSize: "22px" }}>{sales.summary.totalOrders}</div>
@@ -207,7 +239,7 @@ function AdminReports() {
                   <div className="col-lg-7">
                     <div className="card admin-content-card h-100">
                       <div className="card-body">
-                        <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-blush)" }}>Revenue Trend</h5>
+                        <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-purple)" }}>Revenue Trend</h5>
                         <div style={{ height: "260px" }}>
                           {chartData && <Line data={chartData} options={chartOptions} />}
                         </div>
@@ -217,7 +249,7 @@ function AdminReports() {
                   <div className="col-lg-5">
                     <div className="card admin-content-card h-100">
                       <div className="card-body">
-                        <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-blush)" }}>Orders by Status</h5>
+                        <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-purple)" }}>Orders by Status</h5>
                         <div className="table-responsive">
                           <table className="table admin-table mb-0" style={{ fontSize: "13px" }}>
                             <thead><tr><th>Status</th><th>Count</th><th>Value</th></tr></thead>
@@ -243,7 +275,7 @@ function AdminReports() {
 
                 <div className="card admin-content-card mb-4">
                   <div className="card-body">
-                    <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-blush)" }}>Top Items (by revenue)</h5>
+                    <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-purple)" }}>Top Items (by revenue)</h5>
                     <div className="table-responsive">
                       <table className="table admin-table mb-0" style={{ fontSize: "13px" }}>
                         <thead><tr><th>Item</th><th>Quantity Sold</th><th>Revenue</th></tr></thead>
@@ -269,10 +301,8 @@ function AdminReports() {
                 <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-text)" }}>Production</h5>
                 <div className="row g-3 mb-4">
                   {[
-                    { label: "Total Production Orders", value: production.totalOrders, icon: Box, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
-                    { label: "In Production", value: production.inProduction, icon: Clipboard, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)" },
+                    { label: "Total Production Orders", value: production.totalOrders, icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
                     { label: "Completed", value: production.completed, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
-                    { label: "Avg. Progress", value: `${production.averageProgress}%`, icon: ExclamationTriangle, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
                   ].map((stat) => (
                     <div key={stat.label} className="col-xl-3 col-lg-6 col-md-6">
                       <div className="card admin-stat-card">
@@ -293,9 +323,7 @@ function AdminReports() {
                 <div className="row g-3">
                   {[
                     { label: "Total Stock Value", value: `LKR ${Number(inventory.totalValue || 0).toLocaleString()}`, icon: Wallet2, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
-                    { label: "In Stock (units)", value: inventory.inStock, icon: Boxes, color: "var(--clothcore-blush)", bg: "rgba(82,43,91,0.1)" },
                     { label: "Low Stock (units)", value: inventory.lowStock, icon: ExclamationTriangle, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-                    { label: "Out of Stock (items)", value: inventory.outOfStock, icon: ExclamationTriangle, color: "var(--clothcore-danger)", bg: "var(--clothcore-danger-bg)" },
                   ].map((stat) => (
                     <div key={stat.label} className="col-xl-3 col-lg-6 col-md-6">
                       <div className="card admin-stat-card">

@@ -136,9 +136,13 @@ router.put("/:id/approve", async (req, res) => {
       { new: true }
     );
 
+    const relatedOrder = await Order.findById(sample.orderId);
+
     await Notification.create({
       title: "Sample Approved",
-      message: `The shop approved the sample for an order.`,
+      message: relatedOrder
+        ? `${relatedOrder.customerName} approved the sample for order ${relatedOrder.orderId}.`
+        : "A shop approved a sample.",
       type: "order",
       relatedId: sample._id,
       relatedModel: "Sample",
@@ -172,9 +176,13 @@ router.put("/:id/request-revision", async (req, res) => {
       { new: true }
     );
 
+    const relatedOrder = await Order.findById(sample.orderId);
+
     await Notification.create({
       title: "Sample Revision Requested",
-      message: `The shop requested a revision on a sample.`,
+      message: relatedOrder
+        ? `${relatedOrder.customerName} requested a revision on the sample for order ${relatedOrder.orderId}.`
+        : "A shop requested a sample revision.",
       type: "order",
       relatedId: sample._id,
       relatedModel: "Sample",

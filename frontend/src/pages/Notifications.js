@@ -9,6 +9,8 @@ function Notifications() {
         heading="Notifications"
         subtitle="Updates about your orders, samples, payments and deliveries."
         dashboardPath="/dashboard"
+        orderApprovedPath="/step5"
+        orderStatusPath="/order-approval"
       />
     </ShopOwnerLayout>
   );

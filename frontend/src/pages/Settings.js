@@ -5,11 +5,19 @@ import AdminLayout from "../components/AdminLayout";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import { getUser } from "../utils/auth";
 import { formatRoleLabel } from "../utils/roles";
+import { BoxSeam, CashCoin, Eye, EyeSlash, ShieldCheck } from "react-bootstrap-icons";
+import {
+  PASSWORD_REGEX,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+  PASSWORD_REQUIREMENTS_LIST,
+} from "../utils/passwordPolicy";
 
 const ME_API_URL = "http://localhost:5000/api/auth/me";
 const PASSWORD_API_URL = "http://localhost:5000/api/auth/me/password";
 const SETTINGS_API_URL = "http://localhost:5000/api/settings";
 const BUSINESS_RULES_API_URL = "http://localhost:5000/api/settings/business-rules";
+const SHOP_API_URL = "http://localhost:5000/api/shops";
+const UPLOAD_BASE_URL = "http://localhost:5000";
 
 const ADMIN_TOGGLES = [
   { key: "orderUpdates", label: "New order notifications" },
@@ -106,9 +114,14 @@ function Settings() {
     firstName: "",
     lastName: "",
     email: "",
-    factoryName: "",
+    shopName: "",
   });
   const [accountInfo, setAccountInfo] = useState(null);
+  // The real Shop Logo (Shop collection, uploaded from the Shop Profile
+  // page) — separate from the legacy User.shopName text field above. Only
+  // meaningful for a Shop Owner account; Admin has no shop to have a logo
+  // for.
+  const [shopLogoPath, setShopLogoPath] = useState(null);
 
   useEffect(() => {
     const storedUser = getUser();
@@ -127,7 +140,7 @@ function Settings() {
           firstName: user.firstName || "",
           lastName: user.lastName || "",
           email: user.email || "",
-          factoryName: user.factoryName || "",
+          shopName: user.shopName || "",
         });
         setAccountInfo({
           role: user.role,
@@ -142,6 +155,13 @@ function Settings() {
       .finally(() => {
         setProfileLoading(false);
       });
+
+    if (storedUser.role !== "admin") {
+      axios
+        .get(`${SHOP_API_URL}/my-shop`)
+        .then((response) => setShopLogoPath(response.data?.logoPath || null))
+        .catch(() => setShopLogoPath(null));
+    }
   }, []);
 
   const handleProfileChange = (event) => {
@@ -164,9 +184,9 @@ function Settings() {
     if (
       !profileForm.firstName.trim() ||
       !profileForm.lastName.trim() ||
-      !profileForm.factoryName.trim()
+      !profileForm.shopName.trim()
     ) {
-      alert("First name, last name and factory name are required.");
+      alert("First name, last name and shop name are required.");
       return;
     }
 
@@ -176,7 +196,7 @@ function Settings() {
       const response = await axios.put(ME_API_URL, {
         firstName: profileForm.firstName.trim(),
         lastName: profileForm.lastName.trim(),
-        factoryName: profileForm.factoryName.trim(),
+        shopName: profileForm.shopName.trim(),
       });
 
       const updatedUser = { ...storedUser, ...response.data.user };
@@ -250,38 +270,6 @@ function Settings() {
   }, []);
 
   // ==========================
-  // Browser notification permission (real browser API, no backend needed)
-  // ==========================
-  const getBrowserNotificationStatus = () => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      return "Not supported in this browser";
-    }
-    if (Notification.permission === "granted") return "Enabled";
-    if (Notification.permission === "denied") return "Blocked";
-    return "Disabled";
-  };
-
-  const [browserNotificationStatus, setBrowserNotificationStatus] = useState(
-    getBrowserNotificationStatus()
-  );
-
-  const handleEnableBrowserNotifications = async () => {
-    if (typeof window === "undefined" || !("Notification" in window)) {
-      alert("This browser does not support notifications.");
-      return;
-    }
-
-    const permission = await Notification.requestPermission();
-    setBrowserNotificationStatus(getBrowserNotificationStatus());
-
-    if (permission === "granted") {
-      new Notification("ClothCore", {
-        body: "Browser notifications are now enabled.",
-      });
-    }
-  };
-
-  // ==========================
   // Security Settings (change password)
   // ==========================
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -290,6 +278,11 @@ function Settings() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
 
   const handlePasswordChange = (event) => {
     const { name, value } = event.target;
@@ -298,43 +291,59 @@ function Settings() {
       ...currentForm,
       [name]: value,
     }));
+    setPasswordError("");
+    setPasswordSuccess("");
   };
 
   const handlePasswordUpdate = async () => {
+    setPasswordSuccess("");
+
     if (!passwordForm.currentPassword) {
-      alert("Please enter your current password.");
+      setPasswordError("Please enter your current password.");
       return;
     }
 
-    if (passwordForm.newPassword.length < 8) {
-      alert("New password must be at least 8 characters long.");
+    // Same rule the rest of the app enforces (registration, forgot-password
+    // reset, staff password reset) — checked here too so a rejected
+    // password never has to make a round trip to find out why.
+    if (!PASSWORD_REGEX.test(passwordForm.newPassword)) {
+      setPasswordError(PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("New password and confirm password do not match.");
+      setPasswordError("New password and confirm password do not match.");
+      return;
+    }
+
+    if (passwordForm.newPassword === passwordForm.currentPassword) {
+      setPasswordError("New password must be different from your current password.");
       return;
     }
 
     try {
       setPasswordSaving(true);
+      setPasswordError("");
 
       await axios.put(PASSWORD_API_URL, {
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword,
       });
 
-      alert("Password updated successfully.");
+      setPasswordSuccess("Password updated successfully.");
 
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
+      setShowCurrentPassword(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
     } catch (err) {
       console.error("Update Password Error:", err);
 
-      alert(
+      setPasswordError(
         err.response?.data?.message ||
           "Could not update your password. Please try again later."
       );
@@ -354,9 +363,9 @@ function Settings() {
                 {/* Left Menu */}
                 <div
                   className="col-md-3 border-end p-4"
-                  style={{ background: "rgba(255,255,255,0.03)", borderColor: "var(--clothcore-border)" }}
+                  style={{ background: "rgba(82,43,91,0.035)", borderColor: "var(--clothcore-border)" }}
                 >
-                  <h3 className="fw-bold mb-4" style={{ color: "var(--clothcore-blush)" }}>
+                  <h3 className="fw-bold mb-4" style={{ color: "var(--clothcore-purple)" }}>
                     Settings
                   </h3>
 
@@ -430,7 +439,7 @@ function Settings() {
                     <>
                       <div className="d-flex justify-content-between mb-4">
                         <div>
-                          <h3 className="fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                          <h3 className="fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                             Profile Settings
                           </h3>
                           <p className="text-muted">
@@ -441,24 +450,36 @@ function Settings() {
                       <hr />
 
                       <div className="row mt-4">
-                        {/* Profile Image */}
+                        {/* Profile Image — the real uploaded Shop Logo for
+                            a Shop Owner (see Shop Profile page), falling
+                            back to initials when there isn't one yet or
+                            for an Admin account (no shop to have a logo). */}
                         <div className="col-md-3 text-center">
-                          <div
-                            className="rounded-circle mx-auto mb-3"
-                            style={{
-                              width: "130px",
-                              height: "130px",
-                              background: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              color: "white",
-                              fontSize: "48px",
-                              fontWeight: "bold"
-                            }}
-                          >
-                            {`${profileForm.firstName?.[0] || ""}${profileForm.lastName?.[0] || ""}`.toUpperCase() || "?"}
-                          </div>
+                          {shopLogoPath ? (
+                            <img
+                              src={`${UPLOAD_BASE_URL}${shopLogoPath}`}
+                              alt="Shop logo"
+                              className="rounded-circle mx-auto mb-3"
+                              style={{ width: "130px", height: "130px", objectFit: "cover", display: "block", border: "1px solid var(--clothcore-border-strong)", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}
+                            />
+                          ) : (
+                            <div
+                              className="rounded-circle mx-auto mb-3"
+                              style={{
+                                width: "130px",
+                                height: "130px",
+                                background: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "white",
+                                fontSize: "48px",
+                                fontWeight: "bold"
+                              }}
+                            >
+                              {`${profileForm.firstName?.[0] || ""}${profileForm.lastName?.[0] || ""}`.toUpperCase() || "?"}
+                            </div>
+                          )}
                         </div>
 
                         {/* Form Section */}
@@ -511,19 +532,19 @@ function Settings() {
                                   borderRadius: "12px",
                                   padding: "12px 16px",
                                   border: "2px solid var(--clothcore-border)",
-                                  background: "rgba(255,255,255,0.03)",
+                                  background: "rgba(82,43,91,0.035)",
                                   color: "var(--clothcore-text-muted)"
                                 }}
                               />
                             </div>
 
                             <div className="col-md-6 mb-3">
-                              <label className="form-label fw-bold">Factory Name</label>
+                              <label className="form-label fw-bold">Shop Name</label>
                               <input
                                 type="text"
-                                name="factoryName"
+                                name="shopName"
                                 className="form-control"
-                                value={profileForm.factoryName}
+                                value={profileForm.shopName}
                                 onChange={handleProfileChange}
                                 disabled={profileLoading || profileSaving}
                                 style={{
@@ -558,7 +579,7 @@ function Settings() {
 
                   {activeTab === "security" && (
                     <>
-                      <h3 className="fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                      <h3 className="fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                         Security & Privacy
                       </h3>
                       <p className="text-muted">
@@ -573,57 +594,112 @@ function Settings() {
                             boxShadow: "var(--clothcore-shadow)"
                           }}>
                             <div className="card-body">
-                              <h5 className="mb-4">Change Password</h5>
+                              <h5 className="mb-1">Change Password</h5>
+                              <p className="text-muted small mb-4">
+                                Choose a strong password you don't use anywhere else.
+                              </p>
+
+                              {passwordError && (
+                                <div
+                                  className="mb-3"
+                                  style={{ background: "rgba(179,38,30,0.08)", border: "1px solid rgba(179,38,30,0.2)", borderRadius: 10, padding: "10px 14px", color: "#b3261e", fontSize: 13, fontWeight: 600 }}
+                                  role="alert"
+                                >
+                                  {passwordError}
+                                </div>
+                              )}
+                              {passwordSuccess && (
+                                <div
+                                  className="mb-3 d-flex align-items-center gap-2"
+                                  style={{ background: "rgba(31,122,68,0.1)", border: "1px solid rgba(31,122,68,0.25)", borderRadius: 10, padding: "10px 14px", color: "#1f7a44", fontSize: 13, fontWeight: 600 }}
+                                  role="status"
+                                >
+                                  <ShieldCheck size={16} /> {passwordSuccess}
+                                </div>
+                              )}
+
                               <div className="mb-3">
                                 <label className="form-label fw-bold">Current Password</label>
-                                <input
-                                  type="password"
-                                  name="currentPassword"
-                                  className="form-control"
-                                  value={passwordForm.currentPassword}
-                                  onChange={handlePasswordChange}
-                                  disabled={passwordSaving}
-                                  style={{
-                                    borderRadius: "12px",
-                                    padding: "12px 16px",
-                                    border: "2px solid var(--clothcore-border)"
-                                  }}
-                                />
+                                <div className="position-relative">
+                                  <input
+                                    type={showCurrentPassword ? "text" : "password"}
+                                    name="currentPassword"
+                                    className="form-control"
+                                    value={passwordForm.currentPassword}
+                                    onChange={handlePasswordChange}
+                                    disabled={passwordSaving}
+                                    style={{
+                                      borderRadius: "12px",
+                                      padding: "12px 44px 12px 16px",
+                                      border: "2px solid var(--clothcore-border)"
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowCurrentPassword((v) => !v)}
+                                    aria-label={showCurrentPassword ? "Hide password" : "Show password"}
+                                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "var(--clothcore-text-soft)" }}
+                                  >
+                                    {showCurrentPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                                  </button>
+                                </div>
                               </div>
                               <div className="mb-3">
                                 <label className="form-label fw-bold">New Password</label>
-                                <input
-                                  type="password"
-                                  name="newPassword"
-                                  className="form-control"
-                                  value={passwordForm.newPassword}
-                                  onChange={handlePasswordChange}
-                                  disabled={passwordSaving}
-                                  style={{
-                                    borderRadius: "12px",
-                                    padding: "12px 16px",
-                                    border: "2px solid var(--clothcore-border)"
-                                  }}
-                                />
-                                <div className="form-text">
-                                  Must be at least 8 characters long.
+                                <div className="position-relative">
+                                  <input
+                                    type={showNewPassword ? "text" : "password"}
+                                    name="newPassword"
+                                    className="form-control"
+                                    value={passwordForm.newPassword}
+                                    onChange={handlePasswordChange}
+                                    disabled={passwordSaving}
+                                    style={{
+                                      borderRadius: "12px",
+                                      padding: "12px 44px 12px 16px",
+                                      border: "2px solid var(--clothcore-border)"
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword((v) => !v)}
+                                    aria-label={showNewPassword ? "Hide password" : "Show password"}
+                                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "var(--clothcore-text-soft)" }}
+                                  >
+                                    {showNewPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                                  </button>
+                                </div>
+                                <div className="form-text" style={{ lineHeight: 1.6 }}>
+                                  {PASSWORD_REQUIREMENTS_LIST.map((rule) => (
+                                    <span key={rule} className="d-block">✓ {rule}</span>
+                                  ))}
                                 </div>
                               </div>
                               <div className="mb-3">
                                 <label className="form-label fw-bold">Confirm Password</label>
-                                <input
-                                  type="password"
-                                  name="confirmPassword"
-                                  className="form-control"
-                                  value={passwordForm.confirmPassword}
-                                  onChange={handlePasswordChange}
-                                  disabled={passwordSaving}
-                                  style={{
-                                    borderRadius: "12px",
-                                    padding: "12px 16px",
-                                    border: "2px solid var(--clothcore-border)"
-                                  }}
-                                />
+                                <div className="position-relative">
+                                  <input
+                                    type={showConfirmPassword ? "text" : "password"}
+                                    name="confirmPassword"
+                                    className="form-control"
+                                    value={passwordForm.confirmPassword}
+                                    onChange={handlePasswordChange}
+                                    disabled={passwordSaving}
+                                    style={{
+                                      borderRadius: "12px",
+                                      padding: "12px 44px 12px 16px",
+                                      border: "2px solid var(--clothcore-border)"
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword((v) => !v)}
+                                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                    style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "var(--clothcore-text-soft)" }}
+                                  >
+                                    {showConfirmPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                                  </button>
+                                </div>
                               </div>
                               <button
                                 className="btn w-100"
@@ -635,7 +711,8 @@ function Settings() {
                                   borderRadius: "12px",
                                   border: "none",
                                   padding: "12px",
-                                  fontWeight: "600"
+                                  fontWeight: "600",
+                                  opacity: passwordSaving ? 0.7 : 1,
                                 }}>
                                 {passwordSaving ? "Updating..." : "Update Password"}
                               </button>
@@ -656,11 +733,10 @@ function Settings() {
                                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                                   {[
                                     { label: "Role", value: formatRoleLabel(accountInfo.role) },
-                                    { label: "Account Status", value: accountInfo.status || "Active" },
                                     { label: "Member Since", value: accountInfo.createdAt ? new Date(accountInfo.createdAt).toLocaleDateString() : "N/A" },
                                     { label: "Last Login", value: accountInfo.lastLogin ? new Date(accountInfo.lastLogin).toLocaleString() : "N/A" },
                                   ].map((row) => (
-                                    <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+                                    <div key={row.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(82,43,91,0.07)" }}>
                                       <span style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>{row.label}</span>
                                       <span style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--clothcore-text)" }}>{row.value}</span>
                                     </div>
@@ -679,7 +755,7 @@ function Settings() {
 
                   {activeTab === "notifications" && (
                     <>
-                      <h3 className="fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                      <h3 className="fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                         Notifications
                       </h3>
                       <p className="text-muted">
@@ -688,7 +764,7 @@ function Settings() {
                       <hr />
 
                       <div className="row mt-4">
-                        <div className="col-md-6">
+                        <div className="col-md-8">
                           <div className="card admin-content-card" style={{
                             borderRadius: "16px",
                             boxShadow: "var(--clothcore-shadow)"
@@ -741,35 +817,13 @@ function Settings() {
                             </div>
                           </div>
                         </div>
-
-                        <div className="col-md-6">
-                          <div className="card admin-content-card mb-3" style={{
-                            borderRadius: "16px",
-                            boxShadow: "var(--clothcore-shadow)"
-                          }}>
-                            <div className="card-body">
-                              <h5>Browser Notifications</h5>
-                              <p className="text-muted">
-                                Status: {browserNotificationStatus}
-                              </p>
-                              <button
-                                className="btn btn-outline-secondary"
-                                style={{ borderRadius: "12px" }}
-                                onClick={handleEnableBrowserNotifications}
-                                disabled={browserNotificationStatus !== "Disabled"}
-                              >
-                                Enable
-                              </button>
-                            </div>
-                          </div>
-                        </div>
                       </div>
                     </>
                   )}
 
                   {activeTab === "system" && isAdminUser && (
                     <>
-                      <h3 className="fw-bold" style={{ color: "var(--clothcore-blush)" }}>
+                      <h3 className="fw-bold" style={{ color: "var(--clothcore-purple)" }}>
                         System Settings
                       </h3>
                       <p className="text-muted">
@@ -835,25 +889,56 @@ function Settings() {
                             boxShadow: "var(--clothcore-shadow)"
                           }}>
                             <div className="card-body">
-                              <h5 className="mb-3">Business Rules</h5>
-                              <p className="text-muted small">
-                                Configured via environment variables on the server — see <code>MINIMUM_ORDER_QUANTITY</code> and{" "}
-                                <code>ADVANCE_PAYMENT_PERCENTAGE</code> in <code>backend/.env</code>. Shown here read-only.
+                              <h5 className="mb-1">Business Rules</h5>
+                              <p className="text-muted small mb-4">
+                                The rules every order placed on ClothCore is checked against.
                               </p>
                               {!businessRules ? (
                                 <div className="spinner-border spinner-border-sm" role="status" style={{ color: "var(--clothcore-mauve)" }} />
                               ) : (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                                  <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                                    <span style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>Minimum Order Quantity</span>
-                                    <span style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--clothcore-text)" }}>{businessRules.minimumOrderQuantity} pcs</span>
+                                <div style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                                  <div className="d-flex align-items-start gap-3">
+                                    <div style={{
+                                      width: "42px", height: "42px", borderRadius: "12px",
+                                      background: "rgba(82,43,91,0.08)", display: "flex",
+                                      alignItems: "center", justifyContent: "center", flexShrink: 0
+                                    }}>
+                                      <BoxSeam size={18} style={{ color: "var(--clothcore-purple)" }} />
+                                    </div>
+                                    <div className="flex-grow-1">
+                                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--clothcore-text)" }}>Minimum Order Quantity</span>
+                                        <span style={{ fontSize: "17px", fontWeight: 700, color: "var(--clothcore-purple)" }}>{businessRules.minimumOrderQuantity} pcs</span>
+                                      </div>
+                                      <p className="text-muted mb-0 mt-1" style={{ fontSize: "12.5px" }}>
+                                        Every order must be for at least this many pieces.
+                                      </p>
+                                    </div>
                                   </div>
-                                  <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0" }}>
-                                    <span style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>Advance Payment Percentage</span>
-                                    <span style={{ fontSize: "13.5px", fontWeight: 600, color: "var(--clothcore-text)" }}>{businessRules.advancePaymentPercentage}%</span>
+
+                                  <div className="d-flex align-items-start gap-3">
+                                    <div style={{
+                                      width: "42px", height: "42px", borderRadius: "12px",
+                                      background: "rgba(82,43,91,0.08)", display: "flex",
+                                      alignItems: "center", justifyContent: "center", flexShrink: 0
+                                    }}>
+                                      <CashCoin size={18} style={{ color: "var(--clothcore-purple)" }} />
+                                    </div>
+                                    <div className="flex-grow-1">
+                                      <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <span style={{ fontSize: "14px", fontWeight: 600, color: "var(--clothcore-text)" }}>Advance Payment</span>
+                                        <span style={{ fontSize: "17px", fontWeight: 700, color: "var(--clothcore-purple)" }}>{businessRules.advancePaymentPercentage}%</span>
+                                      </div>
+                                      <p className="text-muted mb-0 mt-1" style={{ fontSize: "12.5px" }}>
+                                        Suggested upfront payment shop owners are shown when placing an order.
+                                      </p>
+                                    </div>
                                   </div>
                                 </div>
                               )}
+                              <p className="text-muted mb-0 mt-4" style={{ fontSize: "11.5px" }}>
+                                Set by your development team — contact them if these need to change.
+                              </p>
                             </div>
                           </div>
                         </div>

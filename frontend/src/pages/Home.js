@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, MotionConfig } from "framer-motion";
+import axios from "axios";
 import {
   FiArrowRight,
   FiUser,
@@ -27,59 +28,56 @@ import {
 } from "react-icons/fi";
 import {
   GiSewingMachine,
-  GiCottonFlower,
-  GiRolledCloth,
+  GiShirt,
+  GiTShirt,
+  GiHoodie,
   GiTrousers,
-  GiLeafSwirl,
 } from "react-icons/gi";
-import { HiSparkles } from "react-icons/hi";
 import "./Home.css";
 import logo from "../assets/logo-new.png.jpeg";
 import heroGallery1 from "../assets/hero-gallery-1.jpg.png";
 import heroGallery2 from "../assets/hero-gallery-2.jpg.png";
 import heroGallery3 from "../assets/hero-gallery-3.jpg.png";
 import heroGallery4 from "../assets/hero-gallery-4.jpg.png";
-import cottonImage from "../assets/material-cotton.jpg.png";
-import silkImage from "../assets/material-silk.jpg.png";
-import denimImage from "../assets/material-denim.jpg.png";
-import linenImage from "../assets/material-linen.jpg.png";
+import shirtImage from "../assets/shirt.jpg.png";
+import tshirtImage from "../assets/tshirt.jpg.png";
+import hoodieImage from "../assets/hoodie.jpg.png";
+import denimImage from "../assets/denim.jpg.png";
+import SuccessModal from "../components/modals/SuccessModal";
 
-const materials = [
+// The four actual garment categories ClothCore takes bulk orders for —
+// reuses the same catalog photos already bundled for the order-placement
+// flow (see OrderStep1.js's IMAGE_MAP) rather than the old raw-material
+// (cotton/silk/linen) stock photos, since this section now represents
+// what a shop can actually order, not fabric inventory.
+const garments = [
   {
-    name: "Cotton",
-    stock: 120,
-    unit: "rolls",
-    image: cottonImage,
-    alt: "Cotton processing material",
-    icon: GiCottonFlower,
-    className: "cotton",
+    name: "Shirts",
+    image: shirtImage,
+    alt: "Shirt garment category",
+    icon: GiShirt,
+    className: "shirt",
   },
   {
-    name: "Silk",
-    stock: 34,
-    unit: "rolls",
-    image: silkImage,
-    alt: "Silk fabric production",
-    icon: GiRolledCloth,
-    className: "silk",
+    name: "T-Shirts",
+    image: tshirtImage,
+    alt: "T-Shirt garment category",
+    icon: GiTShirt,
+    className: "tshirt",
   },
   {
-    name: "Denim",
-    stock: 76,
-    unit: "rolls",
+    name: "Hoodies",
+    image: hoodieImage,
+    alt: "Hoodie garment category",
+    icon: GiHoodie,
+    className: "hoodie",
+  },
+  {
+    name: "Denims",
     image: denimImage,
-    alt: "Denim garment production",
+    alt: "Denim garment category",
     icon: GiTrousers,
     className: "denim",
-  },
-  {
-    name: "Linen",
-    stock: 52,
-    unit: "rolls",
-    image: linenImage,
-    alt: "Linen garment production",
-    icon: GiLeafSwirl,
-    className: "linen",
   },
 ];
 
@@ -256,19 +254,32 @@ function Home() {
     },
   ];
 
-  const [inquiry, setInquiry] = useState({ name: "", email: "", subject: "", message: "" });
+  const [inquiry, setInquiry] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    shopName: "",
+    subject: "",
+    message: "",
+  });
   const [inquiryErrors, setInquiryErrors] = useState({});
-  const [inquiryStatus, setInquiryStatus] = useState(null);
+  const [inquiryStatus, setInquiryStatus] = useState(null); // null | "error"
+  const [inquirySubmitting, setInquirySubmitting] = useState(false);
+  const [inquirySent, setInquirySent] = useState(false);
+  const [inquiryServerError, setInquiryServerError] = useState("");
 
   const handleInquiryChange = (event) => {
     const { name, value } = event.target;
     setInquiry((current) => ({ ...current, [name]: value }));
     setInquiryErrors((current) => ({ ...current, [name]: undefined }));
     setInquiryStatus(null);
+    setInquiryServerError("");
   };
 
-  const handleInquirySubmit = (event) => {
+  const handleInquirySubmit = async (event) => {
     event.preventDefault();
+
+    if (inquirySubmitting) return; // guards against duplicate submits from repeated clicks
 
     const errors = {};
     if (!inquiry.name.trim()) errors.name = "Please enter your name.";
@@ -277,7 +288,6 @@ function Home() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(inquiry.email)) {
       errors.email = "Please enter a valid email address.";
     }
-    if (!inquiry.subject.trim()) errors.subject = "Please enter a subject.";
     if (!inquiry.message.trim()) errors.message = "Please enter a message.";
 
     if (Object.keys(errors).length > 0) {
@@ -286,12 +296,24 @@ function Home() {
       return;
     }
 
-    const body = `Name: ${inquiry.name}\nEmail: ${inquiry.email}\n\n${inquiry.message}`;
-    const mailtoUrl = `mailto:clothcore@gmail.com?subject=${encodeURIComponent(
-      inquiry.subject
-    )}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailtoUrl;
-    setInquiryStatus("success");
+    setInquiryServerError("");
+    setInquirySubmitting(true);
+
+    try {
+      // Real backend delivery — POST /api/contact sends the inquiry to the
+      // official ClothCore Gmail inbox (backend/utils/mailer.js) and only
+      // resolves once that email has actually been sent. No mailto: link,
+      // no fake success state.
+      await axios.post("http://localhost:5000/api/contact", inquiry);
+      setInquirySent(true);
+      setInquiry({ name: "", email: "", phone: "", shopName: "", subject: "", message: "" });
+    } catch (err) {
+      setInquiryServerError(
+        err.response?.data?.message || "We couldn't send your inquiry right now. Please try again."
+      );
+    } finally {
+      setInquirySubmitting(false);
+    }
   };
 
   return (
@@ -700,7 +722,7 @@ function Home() {
 
       {/* Products Section */}
       <section className="products-section" id="products">
-        <p className="section-subtitle">MODULES &amp; MATERIALS</p>
+        <p className="section-subtitle">MODULES &amp; PRODUCTS</p>
         <h2>What ClothCore Manages</h2>
 
         <h3 className="products-subheading">ClothCore Modules</h3>
@@ -772,15 +794,8 @@ function Home() {
           <div className="materials-blob materials-blob-2" />
 
           <div className="materials-header">
-            <p className="materials-eyebrow">OUR MATERIALS</p>
-            <h3 className="products-subheading materials-heading">Supported Material Categories</h3>
-            <p className="materials-subtitle">
-              Premium materials selected for quality garment production.
-            </p>
-            <span className="materials-badge-pill">
-              <HiSparkles aria-hidden="true" />
-              Example stock figures for demonstration only
-            </span>
+            <p className="materials-eyebrow">OUR GARMENTS</p>
+            <h3 className="products-subheading materials-heading">Garments We Offer</h3>
           </div>
 
           <motion.div
@@ -790,12 +805,23 @@ function Home() {
             whileInView="show"
             viewport={{ once: true, amount: 0.2 }}
           >
-            {materials.map((material) => {
-              const CategoryIcon = material.icon;
+            {garments.map((garment) => {
+              const CategoryIcon = garment.icon;
               return (
                 <motion.div
-                  key={material.name}
-                  className={`material-card cc-card material-card-${material.className}`}
+                  key={garment.name}
+                  className={`material-card cc-card material-card-${garment.className}`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`${garment.name} — go to Register to place an order`}
+                  onClick={() => navigate("/register")}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      navigate("/register");
+                    }
+                  }}
+                  style={{ cursor: "pointer" }}
                   variants={fadeUp}
                   whileHover={{ y: -8 }}
                   whileTap={{ scale: 0.98 }}
@@ -805,19 +831,15 @@ function Home() {
                     <CategoryIcon />
                   </span>
 
-                  <div className={`material-image-frame material-image-frame-${material.className}`}>
+                  <div className={`material-image-frame material-image-frame-${garment.className}`}>
                     <span className="material-frame-dot material-frame-dot-1" aria-hidden="true" />
                     <span className="material-frame-dot material-frame-dot-2" aria-hidden="true" />
                     <span className="material-frame-dot material-frame-dot-3" aria-hidden="true" />
-                    <img src={material.image} alt={material.alt} loading="lazy" />
+                    <img src={garment.image} alt={garment.alt} loading="lazy" />
                   </div>
 
-                  <h3>{material.name}</h3>
-
-                  <span className="material-stock-pill">
-                    <FiPackage aria-hidden="true" />
-                    Sample stock: <strong>{material.stock}</strong> {material.unit}
-                  </span>
+                  <h3>{garment.name}</h3>
+                  <p className="material-desc">{garment.desc}</p>
                 </motion.div>
               );
             })}
@@ -888,8 +910,7 @@ function Home() {
           >
             <h3 className="inquiry-title">Send a Quick Inquiry</h3>
             <p className="inquiry-subtitle">
-              This opens your email app with the message pre-filled — ClothCore
-              doesn't have a live inbox connected to this form yet.
+              Our team receives this directly and will get back to you soon.
             </p>
 
             <div className="inquiry-field">
@@ -901,6 +922,7 @@ function Home() {
                 className="form-control auth-input"
                 value={inquiry.name}
                 onChange={handleInquiryChange}
+                disabled={inquirySubmitting}
                 aria-invalid={!!inquiryErrors.name}
                 aria-describedby={inquiryErrors.name ? "inquiryName-error" : undefined}
               />
@@ -918,6 +940,7 @@ function Home() {
                 className="form-control auth-input"
                 value={inquiry.email}
                 onChange={handleInquiryChange}
+                disabled={inquirySubmitting}
                 aria-invalid={!!inquiryErrors.email}
                 aria-describedby={inquiryErrors.email ? "inquiryEmail-error" : undefined}
               />
@@ -926,8 +949,36 @@ function Home() {
               )}
             </div>
 
+            <div className="inquiry-field-row">
+              <div className="inquiry-field">
+                <label htmlFor="inquiryPhone">Phone (optional)</label>
+                <input
+                  id="inquiryPhone"
+                  name="phone"
+                  type="tel"
+                  className="form-control auth-input"
+                  value={inquiry.phone}
+                  onChange={handleInquiryChange}
+                  disabled={inquirySubmitting}
+                />
+              </div>
+
+              <div className="inquiry-field">
+                <label htmlFor="inquiryShopName">Shop / Company (optional)</label>
+                <input
+                  id="inquiryShopName"
+                  name="shopName"
+                  type="text"
+                  className="form-control auth-input"
+                  value={inquiry.shopName}
+                  onChange={handleInquiryChange}
+                  disabled={inquirySubmitting}
+                />
+              </div>
+            </div>
+
             <div className="inquiry-field">
-              <label htmlFor="inquirySubject">Subject</label>
+              <label htmlFor="inquirySubject">Subject (optional)</label>
               <input
                 id="inquirySubject"
                 name="subject"
@@ -935,12 +986,8 @@ function Home() {
                 className="form-control auth-input"
                 value={inquiry.subject}
                 onChange={handleInquiryChange}
-                aria-invalid={!!inquiryErrors.subject}
-                aria-describedby={inquiryErrors.subject ? "inquirySubject-error" : undefined}
+                disabled={inquirySubmitting}
               />
-              {inquiryErrors.subject && (
-                <span className="inquiry-error" id="inquirySubject-error">{inquiryErrors.subject}</span>
-              )}
             </div>
 
             <div className="inquiry-field">
@@ -952,6 +999,7 @@ function Home() {
                 className="form-control auth-input"
                 value={inquiry.message}
                 onChange={handleInquiryChange}
+                disabled={inquirySubmitting}
                 aria-invalid={!!inquiryErrors.message}
                 aria-describedby={inquiryErrors.message ? "inquiryMessage-error" : undefined}
               />
@@ -960,23 +1008,31 @@ function Home() {
               )}
             </div>
 
-            <button type="submit" className="get-started-btn inquiry-submit">
-              Send Message <FiArrowRight />
+            <button type="submit" className="get-started-btn inquiry-submit" disabled={inquirySubmitting}>
+              {inquirySubmitting ? "Sending..." : (<>Send Message <FiArrowRight /></>)}
             </button>
 
-            {inquiryStatus === "success" && (
-              <p className="inquiry-feedback inquiry-feedback-success" role="status">
-                Your email app should now be open with this message ready to send.
-              </p>
-            )}
             {inquiryStatus === "error" && (
               <p className="inquiry-feedback inquiry-feedback-error" role="alert">
                 Please fix the highlighted fields above.
               </p>
             )}
+            {inquiryServerError && (
+              <p className="inquiry-feedback inquiry-feedback-error" role="alert">
+                {inquiryServerError}
+              </p>
+            )}
           </motion.form>
         </div>
       </section>
+
+      <SuccessModal
+        open={inquirySent}
+        onClose={() => setInquirySent(false)}
+        title="Inquiry Sent Successfully"
+        message={"Thank you for contacting ClothCore.\nOur team has received your message and will get back to you soon."}
+        primaryLabel="Done"
+      />
 
       {/* Footer */}
       <footer className="footer">

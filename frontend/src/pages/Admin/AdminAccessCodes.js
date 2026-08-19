@@ -86,16 +86,16 @@ function AdminAccessCodes() {
 
   return (
     <AdminLayout>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
+      <div className="admin-page-header">
         <div>
-          <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px", display: "flex", alignItems: "center", gap: "10px" }}>
+          <h2 className="admin-page-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <ShieldLock size={22} /> Admin Access Codes
           </h2>
-          <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>
+          <p className="admin-page-subtitle">
             Codes an existing account can enter at login (with their normal password) to become an Admin. Share these only with people you trust.
           </p>
         </div>
-        <button className="admin-btn-primary" onClick={() => { setCreateForm({ code: "", label: "" }); setFormError(""); setShowCreateModal(true); }}>
+        <button className="admin-hero-btn" onClick={() => { setCreateForm({ code: "", label: "" }); setFormError(""); setShowCreateModal(true); }}>
           <PlusCircle size={16} /> New Code
         </button>
       </div>
@@ -136,7 +136,7 @@ function AdminAccessCodes() {
                   return (
                     <tr key={c._id}>
                       <td>
-                        <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--clothcore-blush)", letterSpacing: "0.05em" }}>{c.code}</span>
+                        <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--clothcore-purple)", letterSpacing: "0.05em" }}>{c.code}</span>
                         <button
                           className="admin-link-btn"
                           style={{ marginLeft: "8px", padding: 0 }}
@@ -196,7 +196,7 @@ function AdminAccessCodes() {
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>New Admin Access Code</h5>
+                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>New Admin Access Code</h5>
                 <button type="button" className="btn-close" onClick={() => setShowCreateModal(false)} />
               </div>
               <form onSubmit={handleCreate}>

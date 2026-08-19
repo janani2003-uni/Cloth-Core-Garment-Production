@@ -19,27 +19,16 @@ function RoleLayout({ sidebarItems, roleLabel, children }) {
       <RoleSidebar items={sidebarItems} roleLabel={roleLabel} />
 
       <div className="flex-grow-1">
-        <div style={{ padding: "16px 24px 0" }}>
-          <Admintopbar />
-        </div>
+        <Admintopbar />
 
         {isAdminPreview && (
-          <div
-            style={{
-              padding: "8px 24px",
-              background: "rgba(217,131,36,0.08)",
-              borderBottom: "1px solid rgba(217,131,36,0.18)",
-              fontSize: "12px",
-              fontWeight: 600,
-              color: "var(--clothcore-warning, #d98324)",
-            }}
-          >
+          <div className="admin-preview-banner">
             Admin Preview — Viewing as {roleLabel}
           </div>
         )}
 
         <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0">
+          <div className="container-fluid px-0" style={{ maxWidth: "1280px", margin: "0 auto" }}>
             {children}
           </div>
         </div>

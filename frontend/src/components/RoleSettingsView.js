@@ -1,15 +1,13 @@
 // src/components/RoleSettingsView.js
-// Settings view for Supervisor — password change and notification
-// preferences. `toggles` lets only the relevant preference rows show,
-// backed by the User.notificationPreferences sub-document.
+// Settings view for Supervisor — notification preferences only. Account
+// Security (password change) has been removed from this page per request;
+// Notification Preferences is the main relevant settings section here.
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { getUser } from "../utils/auth";
 
 const ME_URL = "http://localhost:5000/api/auth/me";
-const PASSWORD_URL = "http://localhost:5000/api/auth/me/password";
 
-// Update the cached user object in whichever storage getUser() found it in
+// Update the cached user object in whichever storage the session lives in
 // (localStorage for "remember me", sessionStorage otherwise), so the rest of
 // the app sees the freshly-saved preferences immediately without switching
 // which storage the session lives in.
@@ -26,11 +24,6 @@ function RoleSettingsView({ heading, subtitle, toggles }) {
   const [loading, setLoading] = useState(true);
   const [savingPrefs, setSavingPrefs] = useState(false);
   const [prefsMessage, setPrefsMessage] = useState("");
-
-  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
-  const [savingPassword, setSavingPassword] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState("");
-  const [passwordError, setPasswordError] = useState("");
 
   const fetchMe = useCallback(async () => {
     try {
@@ -59,8 +52,10 @@ function RoleSettingsView({ heading, subtitle, toggles }) {
       setSavingPrefs(true);
       setPrefsMessage("");
       const res = await axios.put(ME_URL, { notificationPreferences: prefs });
-      const currentUser = getUser();
-      updateStoredUser({ ...currentUser, notificationPreferences: res.data.user.notificationPreferences });
+      const stored = localStorage.getItem("user")
+        ? JSON.parse(localStorage.getItem("user"))
+        : JSON.parse(sessionStorage.getItem("user") || "null");
+      updateStoredUser({ ...stored, notificationPreferences: res.data.user.notificationPreferences });
       setPrefsMessage("Preferences saved.");
     } catch (err) {
       setPrefsMessage(err.response?.data?.message || "Could not save preferences.");
@@ -69,44 +64,17 @@ function RoleSettingsView({ heading, subtitle, toggles }) {
     }
   };
 
-  const changePassword = async (e) => {
-    e.preventDefault();
-    setPasswordError("");
-    setPasswordMessage("");
-
-    if (passwordForm.newPassword.length < 8) {
-      setPasswordError("New password must be at least 8 characters.");
-      return;
-    }
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      setPasswordError("New password and confirmation do not match.");
-      return;
-    }
-
-    try {
-      setSavingPassword(true);
-      await axios.put(PASSWORD_URL, {
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
-      });
-      setPasswordMessage("Password updated successfully.");
-      setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
-    } catch (err) {
-      setPasswordError(err.response?.data?.message || "Could not update password.");
-    } finally {
-      setSavingPassword(false);
-    }
-  };
-
   return (
     <>
-      <div style={{ marginBottom: "24px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>{heading}</h2>
-        <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>{subtitle}</p>
+      <div className="admin-page-header">
+        <div>
+          <h2 className="admin-page-title">{heading}</h2>
+          <p className="admin-page-subtitle">{subtitle}</p>
+        </div>
       </div>
 
-      <div className="row g-3">
-        <div className="col-lg-6">
+      <div className="row g-3 justify-content-center">
+        <div className="col-lg-7">
           <div className="admin-content-card" style={{ padding: "24px" }}>
             <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "16px" }}>Notification Preferences</h3>
 
@@ -115,7 +83,7 @@ function RoleSettingsView({ heading, subtitle, toggles }) {
             ) : (
               <>
                 {toggles.map((t) => (
-                  <label key={t.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)", cursor: "pointer" }}>
+                  <label key={t.key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(82,43,91,0.07)", cursor: "pointer" }}>
                     <span style={{ fontSize: "13.5px", color: "var(--clothcore-text)" }}>{t.label}</span>
                     <input type="checkbox" checked={!!prefs[t.key]} onChange={() => togglePref(t.key)} style={{ width: "18px", height: "18px", accentColor: "var(--clothcore-mauve)" }} />
                   </label>
@@ -132,54 +100,6 @@ function RoleSettingsView({ heading, subtitle, toggles }) {
                 </button>
               </>
             )}
-          </div>
-        </div>
-
-        <div className="col-lg-6">
-          <div className="admin-content-card" style={{ padding: "24px" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "16px" }}>Account Security</h3>
-
-            <form onSubmit={changePassword} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Current Password</label>
-                <input
-                  type="password"
-                  className="form-control admin-select"
-                  value={passwordForm.currentPassword}
-                  onChange={(e) => setPasswordForm((f) => ({ ...f, currentPassword: e.target.value }))}
-                  required
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>New Password</label>
-                <input
-                  type="password"
-                  className="form-control admin-select"
-                  value={passwordForm.newPassword}
-                  onChange={(e) => setPasswordForm((f) => ({ ...f, newPassword: e.target.value }))}
-                  required
-                  minLength={8}
-                />
-              </div>
-              <div>
-                <label style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "4px", display: "block" }}>Confirm New Password</label>
-                <input
-                  type="password"
-                  className="form-control admin-select"
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) => setPasswordForm((f) => ({ ...f, confirmPassword: e.target.value }))}
-                  required
-                  minLength={8}
-                />
-              </div>
-
-              {passwordError && <div style={{ fontSize: "12.5px", color: "var(--clothcore-danger)" }}>{passwordError}</div>}
-              {passwordMessage && <div style={{ fontSize: "12.5px", color: "var(--clothcore-success)" }}>{passwordMessage}</div>}
-
-              <button type="submit" className="admin-btn-primary" disabled={savingPassword} style={{ alignSelf: "flex-start" }}>
-                {savingPassword ? "Updating..." : "Update Password"}
-              </button>
-            </form>
           </div>
         </div>
       </div>

@@ -15,9 +15,16 @@ const canView = requireRole("admin", "supervisor");
 const canManage = requireRole("admin", "supervisor");
 const canUpdateOwnStatus = requireRole("admin", "supervisor");
 
-// A delivery can't be scheduled/dispatched before production is finished and
-// the order has at least a partial payment recorded — cross-checked against
-// the order's own status rather than trusted from the request body.
+// Exactly three shop-owner-facing statuses. A Shop Owner can only ever read
+// this field (GET /order/:orderId below, used by Deliveries.js) — every
+// write route in this file is role-gated to Admin/Supervisor only, so this
+// is enforced by the backend, not just by hiding the UI control.
+const DELIVERY_STATUSES = ["Not Yet Delivered", "Delivery In Progress", "Delivered"];
+
+// A delivery can't move to "Delivery In Progress" before production is
+// finished and the order has at least the advance payment verified —
+// cross-checked against the order's own status rather than trusted from
+// the request body.
 async function assertDeliveryReady(orderId) {
   const order = await Order.findById(orderId);
 
@@ -26,13 +33,31 @@ async function assertDeliveryReady(orderId) {
   }
 
   if (order.paymentStatus === "Pending") {
-    return "This order has no payment recorded yet — delivery cannot be scheduled until at least a partial payment is made.";
+    return "This order has no verified payment yet — delivery cannot begin until the advance payment is verified.";
   }
 
   const production = await Production.findOne({ orderId: order.orderId });
 
   if (production && production.status !== "Completed" && production.stage !== "Completed") {
-    return `Production for this order is still "${production.stage}" — delivery cannot be scheduled until production is complete.`;
+    return `Production for this order is still "${production.stage}" — delivery cannot begin until production is complete.`;
+  }
+
+  return null;
+}
+
+// A delivery can't be marked "Delivered" before the FULL order balance
+// (both the advance and the final 50%) has actually been verified — this
+// is the real, backend-side enforcement of "delivery must not complete
+// before full payment", not just a disabled frontend button.
+async function assertFullyPaidForDelivery(orderId) {
+  const order = await Order.findById(orderId);
+
+  if (!order) {
+    return "Order not found";
+  }
+
+  if (order.paymentStatus !== "Full Paid" || Number(order.remainingBalance || 0) > 0) {
+    return "This order cannot be marked Delivered until the full remaining balance has been paid and verified.";
   }
 
   return null;
@@ -41,7 +66,7 @@ async function assertDeliveryReady(orderId) {
 // Admin/Supervisor: create a delivery record for an order
 router.post("/", canManage, async (req, res) => {
   try {
-    const { orderId, deliveryStaffName, trackingNumber, scheduledDate, notes } = req.body;
+    const { orderId, deliveryStaffName, scheduledDate, notes, address } = req.body;
 
     if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
       return res.status(400).json({ success: false, message: "A valid orderId is required" });
@@ -66,14 +91,32 @@ router.post("/", canManage, async (req, res) => {
       }
     }
 
+    // Defaults to what the shop owner actually asked for at order placement
+    // (order.deliveryAddress) — Admin/Supervisor can still override before
+    // saving. Delivery method is always "Factory Delivery" now — there is
+    // no other option to choose from.
     const delivery = await Delivery.create({
       orderId,
       deliveryStaffName: deliveryStaffName?.trim() || "",
-      trackingNumber: trackingNumber?.trim() || "",
+      address: (address !== undefined ? address : order.deliveryAddress)?.trim() || "",
+      method: "Factory Delivery",
       scheduledDate: scheduledDate || null,
-      status: scheduledDate ? "Scheduled" : "Not Scheduled",
+      status: "Not Yet Delivered",
       notes: notes?.trim() || "",
     });
+
+    // The shop owner previously only ever heard about their delivery once
+    // it was fully "Delivered" — no word that it had even been scheduled.
+    if (order.userId && delivery.scheduledDate) {
+      await Notification.create({
+        title: "Delivery Scheduled",
+        message: `Delivery for order ${order.orderId} has been scheduled for ${new Date(delivery.scheduledDate).toLocaleDateString()}.`,
+        type: "order",
+        relatedId: order._id,
+        relatedModel: "Order",
+        recipientId: order.userId,
+      });
+    }
 
     await logActivity({
       actor: req.user,
@@ -90,12 +133,12 @@ router.post("/", canManage, async (req, res) => {
   }
 });
 
-// Admin/Supervisor/Staff: list all deliveries (read-only monitoring for
-// Supervisor/Staff — write access stays gated per-route below)
+// Admin/Supervisor: list all deliveries (Supervisor is read+update, same as
+// Admin — write access below stays role-gated the same way for both)
 router.get("/", canView, async (req, res) => {
   try {
     const deliveries = await Delivery.find()
-      .populate("orderId", "orderId customerName item quantity status paymentStatus deliveryDate")
+      .populate("orderId", "orderId customerName item quantity status paymentStatus deliveryDate deliveryAddress deliveryMethod")
       .sort({ createdAt: -1 });
 
     return res.status(200).json(deliveries);
@@ -105,11 +148,23 @@ router.get("/", canView, async (req, res) => {
   }
 });
 
-// Delivery for a specific order (shop owner or admin)
+// Delivery for a specific order — a Shop Owner may only read their own
+// order's delivery status here; they have no route anywhere in this file
+// that can write to it.
 router.get("/order/:orderId", async (req, res) => {
   try {
     if (!mongoose.Types.ObjectId.isValid(req.params.orderId)) {
       return res.status(400).json({ success: false, message: "Invalid order ID" });
+    }
+
+    const order = await Order.findById(req.params.orderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    const canViewAny = ["admin", "supervisor"].includes(req.user.role);
+    if (!canViewAny && (!order.userId || String(order.userId) !== String(req.user.id))) {
+      return res.status(403).json({ success: false, message: "You do not have access to this order" });
     }
 
     const delivery = await Delivery.findOne({ orderId: req.params.orderId });
@@ -126,10 +181,12 @@ router.get("/order/:orderId", async (req, res) => {
 });
 
 // Admin/Supervisor: full delivery edit — scheduling, staff assignment,
-// tracking, status, notes.
+// status, notes. Tracking number and delivery method are no longer
+// editable here (the system only ever uses Factory Delivery, and tracking
+// numbers have been removed everywhere in the UI).
 router.put("/:id", canManage, async (req, res) => {
   try {
-    const allowedFields = ["deliveryStaffName", "trackingNumber", "scheduledDate", "status", "notes"];
+    const allowedFields = ["deliveryStaffName", "address", "scheduledDate", "status", "notes"];
     const updates = {};
 
     allowedFields.forEach((field) => {
@@ -138,14 +195,26 @@ router.put("/:id", canManage, async (req, res) => {
       }
     });
 
+    if (updates.status !== undefined && !DELIVERY_STATUSES.includes(updates.status)) {
+      return res.status(400).json({ success: false, message: `Status must be one of: ${DELIVERY_STATUSES.join(", ")}` });
+    }
+
     const existingDelivery = await Delivery.findById(req.params.id);
     if (!existingDelivery) {
       return res.status(404).json({ success: false, message: "Delivery record not found" });
     }
 
-    const movingToDispatch = updates.status === "Dispatched" && existingDelivery.status !== "Dispatched";
-    if (movingToDispatch) {
+    const movingToInProgress = updates.status === "Delivery In Progress" && existingDelivery.status !== "Delivery In Progress";
+    if (movingToInProgress) {
       const blockedReason = await assertDeliveryReady(existingDelivery.orderId);
+      if (blockedReason) {
+        return res.status(400).json({ success: false, message: blockedReason });
+      }
+    }
+
+    const movingToDelivered = updates.status === "Delivered" && existingDelivery.status !== "Delivered";
+    if (movingToDelivered) {
+      const blockedReason = await assertFullyPaidForDelivery(existingDelivery.orderId);
       if (blockedReason) {
         return res.status(400).json({ success: false, message: blockedReason });
       }
@@ -160,7 +229,7 @@ router.put("/:id", canManage, async (req, res) => {
       return res.status(404).json({ success: false, message: "Delivery record not found" });
     }
 
-    if (updates.status === "Delivered" && delivery.orderId) {
+    if (movingToDelivered && delivery.orderId) {
       const updatedOrder = await Order.findByIdAndUpdate(
         delivery.orderId,
         { status: "Delivered", progress: 100 },
@@ -175,6 +244,27 @@ router.put("/:id", canManage, async (req, res) => {
         relatedModel: "Order",
         recipientId: updatedOrder?.userId || null,
       });
+    } else if (movingToInProgress && delivery.orderId) {
+      // Previously the shop owner heard nothing between "Scheduled" and
+      // "Delivered" — no word their order had actually left the factory.
+      // This is also the moment the order's own status becomes
+      // "In Delivery" — the one other place besides "Delivered" above that
+      // order.status changes as a side effect of a delivery update.
+      const dispatchedOrder = await Order.findByIdAndUpdate(
+        delivery.orderId,
+        { status: "In Delivery" },
+        { new: true }
+      );
+      if (dispatchedOrder?.userId) {
+        await Notification.create({
+          title: "Delivery In Progress",
+          message: `Order ${dispatchedOrder.orderId} is now out for delivery.`,
+          type: "order",
+          relatedId: delivery.orderId,
+          relatedModel: "Order",
+          recipientId: dispatchedOrder.userId,
+        });
+      }
     }
 
     await logActivity({
@@ -192,19 +282,15 @@ router.put("/:id", canManage, async (req, res) => {
   }
 });
 
-// Admin/Supervisor/Staff: move a delivery through its own fulfillment status
-// (Dispatched -> In Transit -> Delivered, or Delivery Failed) plus an
-// optional note — narrower than the full PUT above, since Staff shouldn't be
-// able to reassign delivery staff, retarget tracking numbers, or reschedule.
-const STAFF_ALLOWED_STATUSES = ["Dispatched", "In Transit", "Delivered", "Delivery Failed"];
-
+// Admin/Supervisor: move a delivery through its own 3-stage status —
+// narrower than the full PUT above (status + an optional note only).
 router.patch("/:id/status", canUpdateOwnStatus, async (req, res) => {
   try {
     const { status, notes } = req.body;
 
-    if (!status || !STAFF_ALLOWED_STATUSES.includes(status)) {
+    if (!status || !DELIVERY_STATUSES.includes(status)) {
       return res.status(400).json({ success: false,
-        message: `Status must be one of: ${STAFF_ALLOWED_STATUSES.join(", ")}`,
+        message: `Status must be one of: ${DELIVERY_STATUSES.join(", ")}`,
       });
     }
 
@@ -213,8 +299,18 @@ router.patch("/:id/status", canUpdateOwnStatus, async (req, res) => {
       return res.status(404).json({ success: false, message: "Delivery record not found" });
     }
 
-    if (status === "Dispatched" && delivery.status !== "Dispatched") {
+    const justMovingToInProgress = status === "Delivery In Progress" && delivery.status !== "Delivery In Progress";
+    const justMovingToDelivered = status === "Delivered" && delivery.status !== "Delivered";
+
+    if (justMovingToInProgress) {
       const blockedReason = await assertDeliveryReady(delivery.orderId);
+      if (blockedReason) {
+        return res.status(400).json({ success: false, message: blockedReason });
+      }
+    }
+
+    if (justMovingToDelivered) {
+      const blockedReason = await assertFullyPaidForDelivery(delivery.orderId);
       if (blockedReason) {
         return res.status(400).json({ success: false, message: blockedReason });
       }
@@ -226,7 +322,7 @@ router.patch("/:id/status", canUpdateOwnStatus, async (req, res) => {
     }
     await delivery.save();
 
-    if (status === "Delivered" && delivery.orderId) {
+    if (justMovingToDelivered && delivery.orderId) {
       const updatedOrder = await Order.findByIdAndUpdate(
         delivery.orderId,
         { status: "Delivered", progress: 100 },
@@ -241,6 +337,22 @@ router.patch("/:id/status", canUpdateOwnStatus, async (req, res) => {
         relatedModel: "Order",
         recipientId: updatedOrder?.userId || null,
       });
+    } else if (justMovingToInProgress && delivery.orderId) {
+      const dispatchedOrder = await Order.findByIdAndUpdate(
+        delivery.orderId,
+        { status: "In Delivery" },
+        { new: true }
+      );
+      if (dispatchedOrder?.userId) {
+        await Notification.create({
+          title: "Delivery In Progress",
+          message: `Order ${dispatchedOrder.orderId} is now out for delivery.`,
+          type: "order",
+          relatedId: delivery.orderId,
+          relatedModel: "Order",
+          recipientId: dispatchedOrder.userId,
+        });
+      }
     }
 
     await logActivity({

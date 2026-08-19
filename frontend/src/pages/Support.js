@@ -97,14 +97,13 @@ function Support() {
 
   return (
     <ShopOwnerLayout>
-          <div className="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center mb-4 gap-3">
+          <div className="admin-page-header">
             <div>
-              <h1 className="fw-bold" style={{ fontSize: "28px", color: "var(--clothcore-text)" }}>Support</h1>
-              <p className="text-muted mb-0" style={{ fontSize: "15px" }}>Raise an issue and track responses from our team</p>
+              <h1 className="admin-page-title" style={{ fontSize: "28px" }}>Support</h1>
+              <p className="admin-page-subtitle" style={{ fontSize: "15px" }}>Raise an issue and track responses from our team</p>
             </div>
             <button
-              className="btn fw-bold px-4 py-2"
-              style={{ background: "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))", color: "white", borderRadius: "12px", border: "none", display: "flex", alignItems: "center", gap: "8px" }}
+              className="admin-hero-btn"
               onClick={() => setShowNewModal(true)}
             >
               <Plus size={18} /> New Ticket
@@ -115,7 +114,7 @@ function Support() {
             <div className="card-body p-0">
               <div className="table-responsive">
                 <table className="table table-hover admin-table mb-0" style={{ fontSize: "14px" }}>
-                  <thead style={{ background: "rgba(255,255,255,0.04)", borderBottom: "2px solid var(--clothcore-border)" }}>
+                  <thead style={{ background: "rgba(82,43,91,0.045)", borderBottom: "2px solid var(--clothcore-border)" }}>
                     <tr>
                       {["Subject", "Status", "Last Updated", ""].map((h) => (
                         <th key={h} className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase" }}>{h}</th>
@@ -149,7 +148,7 @@ function Support() {
                             <td className="px-4 py-3" style={{ color: "var(--clothcore-text-soft)" }}>
                               {new Date(t.updatedAt).toLocaleString()}
                             </td>
-                            <td className="px-4 py-3 text-end" style={{ color: "var(--clothcore-blush)", fontSize: "13px" }}>View →</td>
+                            <td className="px-4 py-3 text-end" style={{ color: "var(--clothcore-purple)", fontSize: "13px" }}>View →</td>
                           </tr>
                         );
                       })
@@ -167,7 +166,7 @@ function Support() {
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <form onSubmit={handleCreateTicket}>
                 <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>New Support Ticket</h5>
+                  <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>New Support Ticket</h5>
                   <button type="button" className="btn-close" onClick={() => setShowNewModal(false)} />
                 </div>
                 <div className="modal-body" style={{ padding: "24px" }}>
@@ -198,7 +197,7 @@ function Support() {
           <div className="modal-dialog modal-lg modal-dialog-centered">
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)" }}>{activeTicket.subject}</h5>
+                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)" }}>{activeTicket.subject}</h5>
                 <button type="button" className="btn-close" onClick={() => setActiveTicket(null)} />
               </div>
               <div className="modal-body" style={{ padding: "24px", maxHeight: "60vh", overflowY: "auto" }}>

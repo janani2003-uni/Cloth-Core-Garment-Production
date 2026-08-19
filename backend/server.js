@@ -27,12 +27,23 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const deliveryRoutes = require("./routes/deliveryRoutes");
 const sampleRoutes = require("./routes/sampleRoutes");
 const adminAccessCodeRoutes = require("./routes/adminAccessCodeRoutes");
+const designRoutes = require("./routes/designRoutes");
+const garmentStockRoutes = require("./routes/garmentStockRoutes");
+const productRoutes = require("./routes/productRoutes");
+const contactRoutes = require("./routes/contactRoutes");
+const { isEmailConfigured } = require("./utils/mailer");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+// Real disk-backed uploads (Shop Logos, Step 2 design uploads, payment
+// proofs — see backend/middleware/upload.js) are served statically from
+// here, e.g. GET /uploads/logos/xxx.png. Only the relative path
+// ("/uploads/logos/xxx.png") is ever stored in MongoDB.
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Routes
 app.use("/api/auth", authRoutes);
@@ -51,6 +62,10 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/samples", sampleRoutes);
 app.use("/api/admin-codes", adminAccessCodeRoutes);
+app.use("/api/design", designRoutes);
+app.use("/api/garment-stock", garmentStockRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/contact", contactRoutes);
 app.get("/", (req, res) => {
   res.send("Backend Running Successfully");
 });
@@ -68,6 +83,15 @@ process.on("uncaughtException", (error) => {
 if (!process.env.MONGO_URI) {
   console.error("MONGO_URI is missing from backend/.env");
   process.exit(1);
+}
+
+// Password recovery is the only feature that depends on email — everything
+// else must keep working even if this isn't configured yet, so this is a
+// warning, not a fatal exit.
+if (!isEmailConfigured) {
+  console.warn(
+    "EMAIL_USER / EMAIL_PASS are not set in backend/.env — Forgot Password emails will not be sent until a Gmail App Password is configured."
+  );
 }
 
 const RETRY_DELAY_MS = 5000;

@@ -1,0 +1,305 @@
+/* Shared visual system for the Order Step 1-6 / Delivery flow.
+   Imported once per order page instead of each page repeating its own
+   <style> block with the same @keyframes / focus rules. */
+
+@keyframes order-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pms-spin { animation: order-spin 0.8s linear infinite; }
+@keyframes order-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.order-flow-page .card {
+  animation: order-fade-in 0.5s ease;
+}
+
+.order-flow-page textarea:focus,
+.order-flow-page input:focus,
+.order-flow-page select:focus,
+.order-flow-page .form-control:focus,
+.order-flow-page .form-select:focus {
+  border-color: #854f6c !important;
+  box-shadow: 0 0 0 0.2rem rgba(82, 43, 91, 0.18) !important;
+  outline: none;
+}
+
+.order-flow-page button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Back / Next navigation buttons */
+.order-nav-back {
+  background: rgba(82, 43, 91, 0.08);
+  color: #522b5b;
+  border: 1.5px solid rgba(82, 43, 91, 0.3);
+  border-radius: 30px;
+  font-weight: 700;
+  padding: 12px 34px;
+  transition: all 0.25s ease;
+}
+.order-nav-back:hover:not(:disabled) {
+  background: rgba(82, 43, 91, 0.16);
+  transform: translateY(-2px);
+}
+.order-nav-back:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.order-nav-next {
+  background: linear-gradient(45deg, #522b5b, #854f6c);
+  color: #fff;
+  border: none;
+  border-radius: 30px;
+  font-weight: 700;
+  padding: 12px 34px;
+  box-shadow: 0 6px 22px rgba(82, 43, 91, 0.35);
+  transition: all 0.25s ease;
+}
+.order-nav-next:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(82, 43, 91, 0.45);
+}
+.order-nav-next:active:not(:disabled) {
+  transform: translateY(0);
+}
+.order-nav-next:disabled {
+  background: #d8cdd4;
+  color: #8f8690;
+  box-shadow: none;
+}
+
+/* Progress indicator */
+.order-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 22px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.order-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.order-progress-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.order-progress-dot.is-done {
+  background: linear-gradient(135deg, #522b5b, #854f6c);
+  color: #fff;
+}
+.order-progress-dot.is-current {
+  background: #fff;
+  color: #522b5b;
+  border: 2px solid #854f6c;
+  box-shadow: 0 0 0 3px rgba(223, 182, 178, 0.5);
+}
+.order-progress-dot.is-upcoming {
+  background: rgba(82, 43, 91, 0.08);
+  color: #9c8ba0;
+}
+
+.order-progress-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #9c8ba0;
+  white-space: nowrap;
+}
+.order-progress-label.is-active {
+  color: #522b5b;
+}
+
+.order-progress-line {
+  width: 22px;
+  height: 2px;
+  background: rgba(82, 43, 91, 0.15);
+  flex-shrink: 0;
+}
+.order-progress-line.is-done {
+  background: #854f6c;
+}
+
+@media (max-width: 576px) {
+  .order-progress-label { display: none; }
+  .order-progress-line { width: 14px; }
+}
+
+/* Premium data table (Size Chart / Quantities) — replaces Bootstrap's
+   .table-hover / .admin-table, whose dark-shell hover styles turned rows
+   near-white and unreadable inside the light order-flow cards. */
+.order-table-wrap {
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(82, 43, 91, 0.1);
+}
+
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.order-table thead th {
+  background: #fbe4d8;
+  color: #2b124c;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid rgba(82, 43, 91, 0.12);
+}
+
+.order-table tbody td {
+  padding: 14px 16px;
+  font-size: 14px;
+  color: #190019;
+  border-bottom: 1px solid rgba(82, 43, 91, 0.08);
+  vertical-align: middle;
+}
+
+.order-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.order-table tbody tr {
+  background: #fff;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.order-table tbody tr:hover {
+  background: rgba(223, 182, 178, 0.22);
+  box-shadow: inset 3px 0 0 #854f6c;
+}
+
+/* Segmented CM / In toggle */
+.order-segmented {
+  display: inline-flex;
+  background: rgba(82, 43, 91, 0.08);
+  border-radius: 30px;
+  padding: 4px;
+  gap: 2px;
+}
+
+.order-segmented button {
+  border: none;
+  background: transparent;
+  color: #522b5b;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 7px 22px;
+  border-radius: 24px;
+  transition: all 0.25s ease;
+  cursor: pointer;
+}
+
+.order-segmented button.is-active {
+  background: linear-gradient(135deg, #522b5b, #854f6c);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(82, 43, 91, 0.3);
+}
+
+/* Quantity stepper */
+.order-qty-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(82, 43, 91, 0.25);
+  background: #fff;
+  color: #522b5b;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.order-qty-btn:hover:not(:disabled) {
+  background: rgba(82, 43, 91, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(82, 43, 91, 0.18);
+}
+.order-qty-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.94);
+}
+
+.order-qty-input {
+  width: 60px;
+  text-align: center;
+  font-weight: 700;
+  color: #190019;
+  border: 1.5px solid rgba(82, 43, 91, 0.18);
+  border-radius: 10px;
+  padding: 6px 4px;
+}
+.order-qty-input::-webkit-inner-spin-button,
+.order-qty-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.order-qty-input {
+  -moz-appearance: textfield;
+}
+
+/* Stock availability badge */
+.order-stock-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(31, 122, 68, 0.12);
+  color: #1f7a44;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  box-shadow: 0 2px 6px rgba(31, 122, 68, 0.12);
+}
+
+/* Warning banner */
+.order-warning-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fbe4d8;
+  border: 1px solid rgba(217, 131, 36, 0.35);
+  border-left: 4px solid #d98324;
+  border-radius: 14px;
+  padding: 14px 18px;
+  color: #7a4a12;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+/* Summary card progress bar */
+.order-progress-bar-track {
+  width: 100%;
+  height: 10px;
+  border-radius: 20px;
+  background: rgba(82, 43, 91, 0.12);
+  overflow: hidden;
+}
+.order-progress-bar-fill {
+  height: 100%;
+  border-radius: 20px;
+  background: linear-gradient(90deg, #854f6c, #522b5b);
+  transition: width 0.4s ease;
+}
+.order-progress-bar-fill.is-met {
+  background: linear-gradient(90deg, #3cbe82, #1f7a44);
+}

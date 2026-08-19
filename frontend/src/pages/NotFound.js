@@ -35,16 +35,7 @@ function NotFound() {
         <h4 className="fw-bold mb-2" style={{ color: "var(--clothcore-text, #221033)" }}>Page not found</h4>
         <p className="text-muted mb-4">The page you're looking for doesn't exist or may have been moved.</p>
         <button
-          className="btn fw-bold px-4 py-2"
-          style={{
-            background: "linear-gradient(135deg, var(--clothcore-purple, #522b5b), var(--clothcore-mauve, #854f6c))",
-            color: "white",
-            borderRadius: "12px",
-            border: "none",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
+          className="admin-btn-primary"
           onClick={() => navigate(homePath)}
         >
           <HouseDoor size={18} /> Back to {user ? "Dashboard" : "Home"}

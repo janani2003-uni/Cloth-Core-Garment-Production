@@ -11,6 +11,7 @@ function SupervisorNotifications() {
         heading="Notifications"
         subtitle="Stage updates, delivery scheduling and payment issues that need your attention."
         dashboardPath="/supervisor-dashboard"
+        orderQueuePath="/supervisor/order-approvals"
       />
     </RoleLayout>
   );

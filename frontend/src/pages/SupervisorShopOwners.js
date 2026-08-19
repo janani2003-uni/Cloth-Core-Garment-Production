@@ -55,16 +55,18 @@ function SupervisorShopOwners() {
     return (
       `${o.firstName} ${o.lastName}`.toLowerCase().includes(term) ||
       o.email?.toLowerCase().includes(term) ||
-      o.factoryName?.toLowerCase().includes(term) ||
+      o.shopName?.toLowerCase().includes(term) ||
       o.shop?.shopName?.toLowerCase().includes(term)
     );
   });
 
   return (
     <RoleLayout sidebarItems={SUPERVISOR_NAV_ITEMS} roleLabel="Supervisor">
-      <div style={{ marginBottom: "24px" }}>
-        <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px" }}>Shop Owners</h2>
-        <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>Directory of shop owner accounts and their shop approval status. View-only — role and account changes are managed by an Admin.</p>
+      <div className="admin-page-header">
+        <div>
+          <h2 className="admin-page-title">Shop Owners</h2>
+          <p className="admin-page-subtitle">Directory of shop owner accounts and their shop approval status. View-only — role and account changes are managed by an Admin.</p>
+        </div>
       </div>
 
       <div className="admin-content-card">
@@ -74,7 +76,7 @@ function SupervisorShopOwners() {
             <input
               type="text"
               className="form-control admin-select"
-              placeholder="Search by name, email, factory, shop..."
+              placeholder="Search by name, email, shop..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{ paddingLeft: "36px" }}
@@ -88,7 +90,7 @@ function SupervisorShopOwners() {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
-                <th>Factory</th>
+                <th>Registered As</th>
                 <th>Shop</th>
                 <th>Shop Status</th>
                 <th>Joined</th>
@@ -116,7 +118,7 @@ function SupervisorShopOwners() {
                   <tr key={o._id}>
                     <td style={{ fontWeight: 600, color: "var(--clothcore-text)" }}>{o.firstName} {o.lastName}</td>
                     <td>{o.email}</td>
-                    <td>{o.factoryName || "—"}</td>
+                    <td>{o.shopName || "—"}</td>
                     <td>{o.shop?.shopName || "—"}</td>
                     <td><span className={`admin-badge ${shopBadgeClass(o.shop)}`}>{shopStatusLabel(o.shop)}</span></td>
                     <td style={{ color: "var(--clothcore-text-soft)" }}>{o.createdAt ? new Date(o.createdAt).toLocaleDateString() : "N/A"}</td>
@@ -134,18 +136,40 @@ function SupervisorShopOwners() {
           <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
             <div className="modal-content" style={{ borderRadius: "16px" }}>
               <div className="modal-header border-0" style={{ padding: "24px 24px 0" }}>
-                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-blush)", display: "flex", alignItems: "center", gap: "8px" }}>
+                <h5 className="modal-title fw-bold" style={{ color: "var(--clothcore-purple)", display: "flex", alignItems: "center", gap: "8px" }}>
                   <ShopIcon size={16} /> {viewing.firstName} {viewing.lastName}
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setViewing(null)} />
               </div>
-              <div className="modal-body" style={{ padding: "20px 24px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", fontSize: "13px" }}>
-                <div><div style={{ color: "var(--clothcore-text-muted)" }}>Email</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.email}</div></div>
-                <div><div style={{ color: "var(--clothcore-text-muted)" }}>Factory Name</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.factoryName || "—"}</div></div>
-                <div><div style={{ color: "var(--clothcore-text-muted)" }}>Shop Name</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop?.shopName || "No shop profile yet"}</div></div>
-                <div><div style={{ color: "var(--clothcore-text-muted)" }}>Shop Code</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop?.shopCode || "Not assigned"}</div></div>
-                <div><div style={{ color: "var(--clothcore-text-muted)" }}>Account Status</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.status}</div></div>
-                <div><div style={{ color: "var(--clothcore-text-muted)" }}>Joined</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.createdAt ? new Date(viewing.createdAt).toLocaleDateString() : "N/A"}</div></div>
+              <div className="modal-body" style={{ padding: "20px 24px", fontSize: "13px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: viewing.shop ? "20px" : 0 }}>
+                  <div><div style={{ color: "var(--clothcore-text-muted)" }}>Email</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.email}</div></div>
+                  <div><div style={{ color: "var(--clothcore-text-muted)" }}>Registered Shop Name</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shopName || "—"}</div></div>
+                  <div><div style={{ color: "var(--clothcore-text-muted)" }}>Account Status</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.status}</div></div>
+                  <div><div style={{ color: "var(--clothcore-text-muted)" }}>Joined</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.createdAt ? new Date(viewing.createdAt).toLocaleDateString() : "N/A"}</div></div>
+                </div>
+
+                {viewing.shop ? (
+                  <>
+                    <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--clothcore-text-soft)", textTransform: "uppercase", marginBottom: "10px", borderTop: "1px solid var(--clothcore-border)", paddingTop: "16px" }}>
+                      Shop Profile
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px" }}>
+                      <div><div style={{ color: "var(--clothcore-text-muted)" }}>Shop Name</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.shopName || "—"}</div></div>
+                      <div><div style={{ color: "var(--clothcore-text-muted)" }}>Shop Code</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.shopCode || "Not assigned"}</div></div>
+                      <div style={{ gridColumn: "1 / -1" }}><div style={{ color: "var(--clothcore-text-muted)" }}>Address</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.shopAddress || "—"}</div></div>
+                      <div><div style={{ color: "var(--clothcore-text-muted)" }}>Phone</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.phone || "—"}</div></div>
+                      <div><div style={{ color: "var(--clothcore-text-muted)" }}>Email</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.email || "—"}</div></div>
+                      <div><div style={{ color: "var(--clothcore-text-muted)" }}>Garment Categories</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.garmentCategories || "—"}</div></div>
+                      <div><div style={{ color: "var(--clothcore-text-muted)" }}>Preferred Payment</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.preferredPaymentMethod || "—"}</div></div>
+                      <div style={{ gridColumn: "1 / -1" }}><div style={{ color: "var(--clothcore-text-muted)" }}>Description</div><div style={{ color: "var(--clothcore-text)" }}>{viewing.shop.businessDescription || "—"}</div></div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-muted" style={{ borderTop: "1px solid var(--clothcore-border)", paddingTop: "16px" }}>
+                    This shop owner hasn't set up their Shop Profile yet.
+                  </div>
+                )}
               </div>
               <div className="modal-footer border-0" style={{ padding: "0 24px 24px" }}>
                 <button type="button" className="admin-btn-secondary" onClick={() => setViewing(null)}>Close</button>

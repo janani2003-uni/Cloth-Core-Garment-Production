@@ -11,13 +11,22 @@ function AdminLayout({ children, contentClassName = "", shellStyle }) {
     <div className="d-flex admin-shell" style={shellStyle}>
       <Adminsidebar />
 
-      <div className={`flex-grow-1${contentClassName ? ` ${contentClassName}` : ""}`}>
-        <div style={{ padding: "16px 24px 0" }}>
-          <Admintopbar />
-        </div>
+      {/* min-width: 0 overrides the flex item's default min-width: auto —
+          without it, a wide child (e.g. Inventory's custom flex layout or
+          any un-wrapped table) forces this whole pane wider than the
+          viewport instead of scrolling within its own bounds. */}
+      <div
+        className={`flex-grow-1${contentClassName ? ` ${contentClassName}` : ""}`}
+        style={{ minWidth: 0 }}
+      >
+        <Admintopbar />
 
         <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0">
+          {/* Admin tables tend to be wider than Shop Owner content
+              (more columns), so this gets a bit more breathing room than
+              ShopOwnerLayout's/RoleLayout's 1280px — still centered instead
+              of stretching to the viewport edge on wide monitors. */}
+          <div className="container-fluid px-0" style={{ maxWidth: "1400px", margin: "0 auto" }}>
             {children}
           </div>
         </div>

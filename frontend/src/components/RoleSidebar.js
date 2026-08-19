@@ -7,45 +7,55 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { BoxArrowRight } from "react-bootstrap-icons";
 import logo from "../assets/logo-new.png.jpeg";
 import { clearSession } from "../utils/auth";
+import LogoutConfirmModal from "./modals/LogoutConfirmModal";
 
 function RoleSidebar({ items, roleLabel }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const [logoutModalOpen, setLogoutModalOpen] = React.useState(false);
 
   const handleLogout = () => {
-    if (window.confirm("Are you sure you want to log out?")) {
-      clearSession();
-      navigate("/login");
-    }
+    setLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setLogoutModalOpen(false);
+    clearSession();
+    navigate("/login");
   };
 
   return (
     <div className="admin-sidebar">
+      {/* Logo Section — sized up and given a soft accent-colored halo so it
+          reads as part of the sidebar instead of a small sticker pasted on
+          top of the dark purple background. The logo asset itself (a JPEG
+          with a baked-in white background) is untouched. */}
       <div className="text-center mb-4 px-3">
         <div
+          className="cc-sidebar-logo"
           style={{
-            width: "68px",
-            height: "68px",
-            margin: "0 auto 10px",
-            borderRadius: "20px",
-            background: "rgba(255,255,255,0.94)",
+            width: "92px",
+            height: "92px",
+            margin: "0 auto 12px",
+            borderRadius: "26px",
+            background: "linear-gradient(160deg, #ffffff, #f6ecf1)",
+            border: "1px solid rgba(255,255,255,0.5)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 8px 20px rgba(0,0,0,0.28)",
             overflow: "hidden",
           }}
         >
           <img
             src={logo}
             alt="ClothCore"
-            style={{ width: "48px", height: "48px", objectFit: "contain" }}
+            style={{ width: "66px", height: "66px", objectFit: "contain" }}
           />
         </div>
-        <h5 className="fw-bold mb-0" style={{ color: "white", fontSize: "18px" }}>
+        <h5 className="fw-bold mb-0" style={{ color: "var(--sidebar-text)", fontSize: "18px" }}>
           ClothCore
         </h5>
-        <small style={{ color: "rgba(255,255,255,0.6)", fontSize: "11px" }}>
+        <small style={{ color: "var(--sidebar-text-soft)", fontSize: "11px" }}>
           {roleLabel}
         </small>
       </div>
@@ -70,7 +80,7 @@ function RoleSidebar({ items, roleLabel }) {
                     width: "8px",
                     height: "8px",
                     borderRadius: "50%",
-                    background: "var(--clothcore-blush)",
+                    background: "var(--sidebar-accent)",
                   }}
                 />
               )}
@@ -82,29 +92,27 @@ function RoleSidebar({ items, roleLabel }) {
       <div className="px-3 mt-auto">
         <div
           onClick={handleLogout}
+          className="cc-logout-row"
           style={{
             display: "flex",
             alignItems: "center",
             padding: "12px 15px",
             borderRadius: "12px",
             cursor: "pointer",
-            background: "rgba(220, 53, 69, 0.15)",
-            transition: "all 0.3s ease",
-            border: "1px solid rgba(220, 53, 69, 0.2)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(220, 53, 69, 0.25)";
-            e.currentTarget.style.borderColor = "rgba(220, 53, 69, 0.4)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(220, 53, 69, 0.15)";
-            e.currentTarget.style.borderColor = "rgba(220, 53, 69, 0.2)";
+            background: "var(--sidebar-danger-bg)",
+            border: "1px solid var(--sidebar-danger-border)",
           }}
         >
-          <BoxArrowRight size={20} style={{ marginRight: "12px", color: "#ff6b6b" }} />
-          <span style={{ fontSize: "14px", fontWeight: "500", color: "#ff6b6b" }}>Logout</span>
+          <BoxArrowRight size={20} style={{ marginRight: "12px", color: "var(--sidebar-danger-text)" }} />
+          <span style={{ fontSize: "14px", fontWeight: "500", color: "var(--sidebar-danger-text)" }}>Logout</span>
         </div>
       </div>
+
+      <LogoutConfirmModal
+        open={logoutModalOpen}
+        onCancel={() => setLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+      />
     </div>
   );
 }

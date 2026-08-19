@@ -1,5 +1,29 @@
 /* Shared design system for the Admin / Shop Owner dashboard shell.
-   Consumed by Adminsidebar, Admintopbar, Sidebar, and Admin/*.js pages. */
+   Consumed by Adminsidebar, Admintopbar, Sidebar, RoleSidebar, and
+   Admin/*.js pages.
+
+   Sidebar + topbar are one unified dark-plum chrome (medium-dark purple,
+   not the old near-black), which the peach/cream content pages sit inside.
+   Every sidebar/account/logout color below is named by ROLE (bg, text,
+   accent, danger...) rather than by literal hue, so this single --sidebar-*
+   token set is the one place to retune the whole chrome later without
+   hunting through Adminsidebar/Sidebar/RoleSidebar's JSX. */
+
+:root {
+  --sidebar-bg: #3D1E45;
+  --sidebar-bg-secondary: rgba(255, 255, 255, 0.06);
+  --sidebar-text: #FBEFF3;
+  --sidebar-text-soft: rgba(251, 239, 243, 0.62);
+  --sidebar-text-faint: rgba(251, 239, 243, 0.35);
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-icon: rgba(251, 239, 243, 0.72);
+  --sidebar-accent: #D99BA8;
+  --sidebar-accent-strong: #8F5279;
+  --sidebar-danger-bg: rgba(224, 110, 100, 0.14);
+  --sidebar-danger-bg-hover: rgba(224, 110, 100, 0.24);
+  --sidebar-danger-border: rgba(224, 110, 100, 0.28);
+  --sidebar-danger-text: #F2A9A0;
+}
 
 .admin-shell {
   min-height: 100vh;
@@ -22,51 +46,58 @@
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  padding: 20px 0;
-  color: white;
-  background: var(--clothcore-darkest);
-  border-right: 1px solid var(--clothcore-border);
+  padding: 24px 0;
+  color: var(--sidebar-text);
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--sidebar-border);
 }
 
 .admin-sidebar-link {
   display: flex;
   align-items: center;
-  padding: 10px 20px;
-  margin: 3px 10px;
-  border-radius: var(--clothcore-radius-sm);
+  padding: 11px 18px;
+  margin: 3px 14px;
+  border-radius: 12px;
   cursor: pointer;
   border-left: 3px solid transparent;
-  color: rgba(255, 255, 255, 0.72);
-  font-weight: 400;
-  transition: background-color var(--clothcore-transition-smooth), color var(--clothcore-transition-smooth), border-color var(--clothcore-transition-smooth), transform var(--clothcore-transition-smooth);
+  color: var(--sidebar-icon);
+  font-weight: 500;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
 }
 
 .admin-sidebar-link:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: white;
+  background: var(--sidebar-bg-secondary);
+  color: var(--sidebar-text);
   transform: translateX(2px);
 }
 
 .admin-sidebar-link.is-active {
-  background: rgba(255, 255, 255, 0.1);
-  border-left-color: var(--clothcore-blush);
-  color: white;
+  background: linear-gradient(135deg, rgba(217, 155, 168, 0.18), rgba(217, 155, 168, 0.06));
+  border-left-color: var(--sidebar-accent);
+  color: var(--sidebar-text);
   font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
 }
 
+/* Topbar shares the sidebar's medium-dark purple family (not a flat
+   rgba(43,24,48,...) block anymore) so the two read as one continuous piece
+   of chrome — a soft diagonal sweep plus a hairline accent underline is the
+   "modern" touch, kept subtle rather than glowing/glassy. */
 .admin-topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   min-height: 72px;
-  background: rgba(67, 38, 77, 0.92);
+  background: linear-gradient(120deg, #3D1E45 0%, #4C2555 60%, #3D1E45 100%);
   backdrop-filter: blur(10px);
+  margin: 16px 24px 0;
   padding: 12px 20px;
   border-radius: var(--clothcore-radius-sm);
-  border: 1px solid var(--clothcore-border);
-  box-shadow: 0 8px 22px rgba(24, 10, 28, 0.22);
+  border: 1px solid var(--sidebar-border);
+  border-bottom: 2px solid rgba(217, 155, 168, 0.16);
+  box-shadow: 0 10px 26px rgba(24, 10, 28, 0.26);
   position: sticky;
-  top: 0;
+  top: 16px;
   z-index: 100;
 }
 
@@ -76,10 +107,10 @@
   align-items: center;
   min-height: 72px;
   padding: 12px 24px;
-  background: rgba(67, 38, 77, 0.92);
+  background: linear-gradient(120deg, #3D1E45 0%, #4C2555 60%, #3D1E45 100%);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--clothcore-border);
-  box-shadow: 0 8px 22px rgba(24, 10, 28, 0.22);
+  border-bottom: 2px solid rgba(217, 155, 168, 0.16);
+  box-shadow: 0 10px 26px rgba(24, 10, 28, 0.26);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -89,6 +120,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
 }
 
 .shop-topbar-logo {
@@ -97,29 +129,41 @@
   object-fit: contain;
   padding: 5px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.92);
+  background: #FFFFFF;
+  border: 1px solid var(--sidebar-border);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
 }
 
 .shop-topbar-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--clothcore-text);
+  color: var(--sidebar-text);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shop-topbar-subtitle {
   font-size: 11px;
-  color: var(--clothcore-text-soft);
+  color: var(--sidebar-text-soft);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .shop-topbar-actions {
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-shrink: 0;
 }
 
+/* Avatar chip sits on the dark sidebar/topbar chrome — uses the same
+   --sidebar-accent pairing as the sidebar's own account avatar so both
+   read as one consistent identity chip. */
 .admin-avatar {
   width: 35px;
   height: 35px;
@@ -129,27 +173,76 @@
   align-items: center;
   font-weight: bold;
   color: white;
-  background: linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve));
+  background: linear-gradient(135deg, var(--sidebar-accent), var(--sidebar-accent-strong));
+  flex-shrink: 0;
 }
 
+/* Gradient hero header — every Admin page that uses .admin-page-header
+   picks this up automatically (no per-page JSX change needed). Mirrors the
+   purple/mauve hero treatment Orders.js/Payments.js already hand-build
+   inline, just promoted to a shared class + a bit of ambient motion
+   (slow background drift, matching Home's heroBgShift but subtler). */
 .admin-page-header {
+  position: relative;
+  overflow: hidden;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+  padding: 26px 30px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve), var(--clothcore-purple));
+  background-size: 200% 200%;
+  animation: clothcoreFadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both, ccHeroBgShift 14s ease-in-out infinite;
+  box-shadow: var(--clothcore-shadow);
   margin-bottom: var(--clothcore-spacing);
+}
+
+@keyframes ccHeroBgShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.admin-page-header::before,
+.admin-page-header::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.admin-page-header::before {
+  top: -40px;
+  right: -30px;
+  width: 160px;
+  height: 160px;
+}
+
+.admin-page-header::after {
+  bottom: -60px;
+  right: 90px;
+  width: 120px;
+  height: 120px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.admin-page-header > * {
+  position: relative;
+  z-index: 1;
 }
 
 .admin-page-title {
   font-weight: 700;
   font-size: var(--clothcore-font-xl);
-  color: var(--clothcore-text);
+  color: #fff;
   margin-bottom: 2px;
 }
 
 .admin-page-subtitle {
-  color: var(--clothcore-text-soft);
+  color: rgba(255, 255, 255, 0.85);
   font-size: var(--clothcore-font-base);
   margin-bottom: 0;
 }
@@ -161,18 +254,18 @@
   padding: 10px 22px;
   border: none;
   border-radius: var(--clothcore-radius-sm);
-  background: var(--clothcore-mauve);
-  color: white;
+  background: linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve));
+  color: #fff7fb;
   font-weight: 600;
   font-size: var(--clothcore-font-base);
   cursor: pointer;
+  box-shadow: 0 6px 18px rgba(82, 43, 91, 0.28);
   transition: background-color var(--clothcore-transition-smooth), transform var(--clothcore-transition-smooth), box-shadow var(--clothcore-transition-smooth);
 }
 
 .admin-btn-primary:hover {
-  background: #a06d87;
   transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(133, 79, 108, 0.35);
+  box-shadow: 0 10px 24px rgba(82, 43, 91, 0.36);
 }
 
 .admin-btn-primary:active {
@@ -184,9 +277,9 @@
   align-items: center;
   gap: 8px;
   padding: 10px 22px;
-  border: 1px solid var(--clothcore-border-strong);
+  border: 1.5px solid var(--clothcore-border-strong);
   border-radius: var(--clothcore-radius-sm);
-  background: rgba(255, 255, 255, 0.055);
+  background: #fff;
   color: var(--clothcore-text);
   font-weight: 600;
   font-size: var(--clothcore-font-base);
@@ -195,24 +288,72 @@
 }
 
 .admin-btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: var(--clothcore-blush);
+  background: rgba(82, 43, 91, 0.06);
+  border-color: var(--clothcore-mauve);
   transform: translateY(-1px);
+}
+
+/* Buttons/controls meant to sit inside .admin-page-header's dark gradient —
+   a frosted-white treatment for contrast, mirroring Home's light-on-dark
+   hero button pairing rather than reusing .admin-btn-primary's
+   purple-on-purple (which would nearly disappear against the hero bg). */
+.admin-hero-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--clothcore-purple);
+  font-weight: 700;
+  font-size: var(--clothcore-font-base);
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  transition: all var(--clothcore-transition-smooth);
+  white-space: nowrap;
+}
+
+.admin-hero-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.24);
+}
+
+.admin-hero-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Status/count chip meant to sit inside .admin-page-header — same reasoning
+   as .admin-hero-btn (the plain .admin-badge-* family is near-invisible on
+   the hero's own purple/mauve background since it was built for light
+   cards). Text color is left to the caller via inline style so status
+   semantics (success/danger/warning) still come through. */
+.admin-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
 }
 
 .admin-select {
   border-radius: var(--clothcore-radius-sm);
   border: 1.5px solid var(--clothcore-border-strong);
-  background: rgba(255, 255, 255, 0.055);
+  background: #fff;
   color: var(--clothcore-text);
   font-size: var(--clothcore-font-sm);
   height: var(--clothcore-input-height);
 }
 
 .admin-select:focus {
-  background: rgba(255, 255, 255, 0.08);
+  background: #fff;
   border-color: var(--clothcore-mauve);
-  box-shadow: 0 0 0 3px rgba(133, 79, 108, 0.18);
+  box-shadow: 0 0 0 3px rgba(133, 79, 108, 0.16);
   color: var(--clothcore-text);
 }
 
@@ -223,7 +364,7 @@
 .admin-stat-card {
   border: 1px solid var(--clothcore-border);
   border-radius: var(--clothcore-radius);
-  box-shadow: 0 10px 26px rgba(24, 10, 28, 0.28);
+  box-shadow: var(--clothcore-shadow);
   background: var(--clothcore-card);
   transition: transform var(--clothcore-transition-smooth), box-shadow var(--clothcore-transition-smooth), border-color var(--clothcore-transition-smooth);
   cursor: pointer;
@@ -234,7 +375,7 @@
 .admin-stat-card:hover {
   transform: translateY(-3px);
   border-color: var(--clothcore-border-strong);
-  box-shadow: 0 16px 32px rgba(24, 10, 28, 0.36);
+  box-shadow: var(--clothcore-shadow-hover);
 }
 
 .admin-stat-icon {
@@ -262,7 +403,7 @@
 .admin-content-card {
   border: 1px solid var(--clothcore-border);
   border-radius: var(--clothcore-radius);
-  box-shadow: 0 10px 26px rgba(24, 10, 28, 0.28);
+  box-shadow: var(--clothcore-shadow);
   background: var(--clothcore-card);
   transition: transform var(--clothcore-transition-smooth), box-shadow var(--clothcore-transition-smooth), border-color var(--clothcore-transition-smooth);
   animation: clothcoreFadeInUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
@@ -294,7 +435,7 @@
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--clothcore-text-soft);
+  color: var(--clothcore-text);
   font-weight: 700;
   padding: 13px 20px;
   border-bottom: 1px solid var(--clothcore-border-strong);
@@ -313,12 +454,12 @@
   padding: 13px 20px;
   vertical-align: middle;
   color: var(--clothcore-text);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid var(--clothcore-border);
   background: transparent;
 }
 
 .admin-table tbody tr:nth-child(even) td {
-  background: rgba(255, 255, 255, 0.018);
+  background: rgba(82, 43, 91, 0.025);
 }
 
 .admin-table tbody tr:last-child td {
@@ -329,8 +470,10 @@
   transition: background-color var(--clothcore-transition-smooth);
 }
 
+/* Never a full-white hover — that's exactly the bug that made rows
+   unreadable before. A soft mauve/peach tint keeps text legible. */
 .admin-table tbody tr:hover td {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(223, 182, 178, 0.22);
 }
 
 .admin-badge {
@@ -362,12 +505,12 @@
 }
 
 .admin-badge-accent {
-  background: rgba(133, 79, 108, 0.14);
+  background: rgba(82, 43, 91, 0.1);
   color: var(--clothcore-mauve);
 }
 
 .admin-link-btn {
-  color: var(--clothcore-blush);
+  color: var(--clothcore-mauve);
   font-weight: 600;
   font-size: 13px;
   background: transparent;
@@ -375,7 +518,7 @@
 }
 
 .admin-link-btn:hover {
-  color: var(--clothcore-peach);
+  color: var(--clothcore-purple);
 }
 
 /* Bootstrap's default .text-muted grey isn't tuned for this palette's
@@ -387,28 +530,29 @@
   color: var(--clothcore-text-muted) !important;
 }
 
-/* Generic dark form controls — applies to any plain Bootstrap .form-control
+/* Generic form controls — applies to any plain Bootstrap .form-control
    / .form-select used inside the authenticated app shell (Admin, Shop Owner,
    Supervisor, Staff). Scoped under .admin-shell so it never reaches Home. */
 .admin-shell .form-control,
 .admin-shell .form-select,
 .admin-shell textarea.form-control {
-  background: rgba(255, 255, 255, 0.055);
+  background: #fff;
   color: var(--clothcore-text);
-  border: 1px solid var(--clothcore-border-strong);
+  border: 1.5px solid var(--clothcore-border-strong);
   border-radius: 12px;
 }
 
 .admin-shell .form-control::placeholder {
   color: var(--clothcore-text-muted);
+  opacity: 0.8;
 }
 
 .admin-shell .form-control:focus,
 .admin-shell .form-select:focus {
-  background: rgba(255, 255, 255, 0.08);
+  background: #fff;
   color: var(--clothcore-text);
   border-color: var(--clothcore-mauve);
-  box-shadow: 0 0 0 3px rgba(133, 79, 108, 0.18);
+  box-shadow: 0 0 0 3px rgba(133, 79, 108, 0.16);
 }
 
 .admin-shell .form-control:-webkit-autofill,
@@ -425,13 +569,13 @@
 }
 
 .admin-shell .page-link {
-  background: rgba(255, 255, 255, 0.055);
+  background: #fff;
   color: var(--clothcore-text);
   border-color: var(--clothcore-border-strong);
 }
 
 .admin-shell .page-link:hover {
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(82, 43, 91, 0.07);
   color: var(--clothcore-text);
 }
 
@@ -442,15 +586,16 @@
 }
 
 .admin-shell .page-item.disabled .page-link {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(82, 43, 91, 0.03);
   color: var(--clothcore-text-muted);
 }
 
-/* Bootstrap dropdown menus (row action menus, filter menus) */
+/* Bootstrap dropdown menus (row action menus, filter menus, account menu) */
 .admin-shell .dropdown-menu {
   background: var(--clothcore-card);
   border: 1px solid var(--clothcore-border-strong);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  border-radius: 14px;
+  box-shadow: 0 20px 50px rgba(25, 0, 25, 0.18);
 }
 
 .admin-shell .dropdown-item {
@@ -459,7 +604,7 @@
 
 .admin-shell .dropdown-item:hover,
 .admin-shell .dropdown-item:focus {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(223, 182, 178, 0.22);
   color: var(--clothcore-text);
 }
 
@@ -467,10 +612,34 @@
   border-color: var(--clothcore-border);
 }
 
+/* Every modal's Cancel/Save/Submit/Send footer button across the app reuses
+   the same two inline-style patterns (soft-peach Cancel, purple/mauve
+   gradient Submit) with no class to hook — none of them had hover feedback.
+   One rule here covers all of them at once instead of editing every modal
+   in every file. */
+.admin-shell .modal-footer .btn {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+}
+
+.admin-shell .modal-footer .btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(82, 43, 91, 0.22);
+}
+
+.admin-shell .modal-footer .btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.admin-shell .modal-footer .btn:disabled {
+  opacity: 0.65;
+}
+
 /* Bootstrap modals */
 .admin-shell .modal-content {
   background: var(--clothcore-card);
   border: 1px solid var(--clothcore-border-strong);
+  border-radius: var(--clothcore-radius-lg);
   color: var(--clothcore-text);
 }
 
@@ -479,24 +648,24 @@
   border-color: var(--clothcore-border);
 }
 
-.admin-shell .btn-close {
-  filter: invert(1) grayscale(100%) brightness(200%);
-}
+/* Bootstrap's .btn-close is a dark glyph by default — correct for our now-
+   light modal surface, so no inversion needed (it used to invert to white
+   for the old dark modal background). */
 
 .admin-shell .btn-light {
-  background: rgba(255, 255, 255, 0.055);
+  background: rgba(82, 43, 91, 0.05);
   border-color: var(--clothcore-border-strong);
   color: var(--clothcore-text);
 }
 
 .admin-shell .btn-light:hover {
-  background: rgba(255, 255, 255, 0.09);
+  background: rgba(82, 43, 91, 0.1);
   color: var(--clothcore-text);
 }
 
 /* Empty states */
 .admin-empty-state {
-  background: rgba(255, 255, 255, 0.035);
+  background: rgba(82, 43, 91, 0.035);
   border: 1px dashed var(--clothcore-border-strong);
   border-radius: var(--clothcore-radius);
   padding: 48px 24px;
@@ -505,7 +674,7 @@
 }
 
 .admin-empty-state-icon {
-  opacity: 0.4;
+  opacity: 0.5;
   margin-bottom: 12px;
 }
 
@@ -520,6 +689,170 @@
   color: var(--clothcore-text-soft);
 }
 
+/* Admin Preview banner ("Viewing as Shop Owner") — pale peach, not an
+   error-red alert. */
+.admin-preview-banner {
+  padding: 8px 24px;
+  background: rgba(217, 131, 36, 0.1);
+  border-bottom: 1px solid rgba(217, 131, 36, 0.22);
+  font-size: 12px;
+  font-weight: 600;
+  color: #a3600e;
+}
+
+/* ============================================================
+   Motion polish — shared micro-interactions for the sidebar/topbar
+   chrome (Admintopbar, NotificationBell, Sidebar, Adminsidebar). These
+   were previously static/inline-only with zero hover feedback; every
+   class below is additive to the existing inline styles (which still
+   drive state like open/active/unread) and reuses the same
+   --clothcore- and --sidebar- tokens rather than inventing new colors. */
+
+.admin-sidebar-link svg {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.admin-sidebar-link:hover svg {
+  transform: scale(1.12);
+}
+
+.cc-account-row,
+.cc-logout-row {
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.cc-account-row:hover,
+.cc-account-row.is-active {
+  background: rgba(217, 155, 168, 0.2) !important;
+  border-color: var(--sidebar-accent) !important;
+  transform: translateX(2px);
+}
+
+.cc-logout-row:hover {
+  background: var(--sidebar-danger-bg-hover) !important;
+  border-color: var(--sidebar-danger-text) !important;
+  transform: translateX(2px);
+}
+
+.cc-sidebar-logo {
+  animation: ccSidebarLogoGlow 3.5s ease-in-out infinite;
+}
+
+@keyframes ccSidebarLogoGlow {
+  0%, 100% { box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), 0 0 0 7px rgba(217, 155, 168, 0.16); }
+  50% { box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28), 0 0 0 10px rgba(217, 155, 168, 0.3); }
+}
+
+/* Notification bell (Admintopbar + NotificationBell) */
+.cc-bell-btn {
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.cc-bell-btn:hover {
+  background-color: var(--sidebar-bg-secondary) !important;
+  transform: scale(1.08);
+}
+
+.cc-bell-btn:active {
+  transform: scale(0.94);
+}
+
+.cc-bell-icon {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cc-bell-btn:hover .cc-bell-icon {
+  transform: rotate(-14deg);
+}
+
+.cc-notif-badge {
+  animation: ccNotifPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes ccNotifPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0); }
+}
+
+.cc-notif-dropdown {
+  animation: ccDropdownIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top right;
+}
+
+@keyframes ccDropdownIn {
+  from { opacity: 0; transform: translateY(-8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cc-notif-item {
+  transition: background-color 0.18s ease, padding-left 0.18s ease;
+}
+
+.cc-notif-item:hover {
+  background-color: rgba(133, 79, 108, 0.14) !important;
+  padding-left: 22px;
+}
+
+.cc-icon-btn {
+  transition: background-color 0.2s ease, transform 0.3s ease;
+}
+
+.cc-icon-btn:hover {
+  background-color: rgba(82, 43, 91, 0.16) !important;
+  transform: rotate(90deg);
+}
+
+.cc-text-btn {
+  transition: opacity 0.2s ease;
+}
+
+.cc-text-btn:hover:not(:disabled) {
+  opacity: 0.7;
+  text-decoration: underline;
+}
+
+/* Generic hover for one-off gradient CTA / outline buttons scattered across
+   the order-placement flow (Steps 1-6, Order Approval) — each is custom
+   inline-styled with its own radius/shadow already, so this only adds the
+   missing transition/hover motion rather than replacing the whole style. */
+.cc-pill-cta {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, opacity 0.2s ease;
+}
+
+.cc-pill-cta:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 14px 30px rgba(82, 43, 91, 0.4);
+}
+
+.cc-pill-cta:active:not(:disabled) {
+  transform: translateY(0) scale(1);
+}
+
+.cc-pill-cta:disabled {
+  opacity: 0.65;
+}
+
+.cc-outline-btn {
+  transition: background-color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.cc-outline-btn:hover:not(:disabled) {
+  background: rgba(82, 43, 91, 0.08) !important;
+  transform: translateY(-1px);
+}
+
+/* Toggle-style buttons (e.g. Card vs Bank Transfer payment method) that sit
+   on a dark panel themselves — a light background tint would clash, so this
+   only nudges the border + lifts slightly regardless of active state. */
+.cc-toggle-btn {
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.cc-toggle-btn:hover {
+  border-color: rgba(255, 255, 255, 0.75) !important;
+  transform: translateY(-1px);
+}
+
 @media (max-width: 991px) {
   .admin-sidebar {
     width: 76px;
@@ -528,6 +861,22 @@
 
   .admin-sidebar-link span,
   .admin-sidebar .admin-sidebar-label {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .admin-topbar,
+  .shop-topbar {
+    padding: 10px 14px;
+    flex-wrap: nowrap;
+  }
+
+  .shop-topbar-title {
+    font-size: 14px;
+  }
+
+  .shop-topbar-subtitle {
     display: none;
   }
 }

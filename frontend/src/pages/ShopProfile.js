@@ -4,7 +4,7 @@
 // panel. Reuses the existing /api/shops/my-shop + /api/shops (POST) routes
 // and the new /api/shops/me (PUT) owner-edit route.
 import React, { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Shop as ShopIcon,
@@ -23,22 +23,53 @@ import {
 } from "react-bootstrap-icons";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import { getUser } from "../utils/auth";
+import { goToPlaceOrder } from "../utils/orderStatus";
 
 const SHOP_API_URL = "http://localhost:5000/api/shops";
 const ME_API_URL = "http://localhost:5000/api/auth/me";
+const UPLOAD_BASE_URL = "http://localhost:5000";
 
+const LOGO_ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+const LOGO_MAX_SIZE = 5 * 1024 * 1024; // 5MB
+
+// Shop.approvalStatus still exists and is still shown here for Admin
+// visibility/record-keeping (Shop Owner Management, credit limit,
+// suspension) — but it is no longer a gate on placing orders. Eligibility
+// to order is
+// ONLY: role === "shopOwner" AND the required Shop Profile fields below are
+// complete (enforced by ShopProfileGuard.js / GET /api/shops/profile-status,
+// not by this status).
 const STATUS_META = {
-  Pending: { label: "Approval Pending", icon: Clock, badgeClass: "admin-badge-warning" },
-  Approved: { label: "Approved", icon: CheckCircle, badgeClass: "admin-badge-success" },
-  Rejected: { label: "Changes Required", icon: XCircle, badgeClass: "admin-badge-danger" },
+  Pending: { label: "Under Admin Review", icon: Clock, badgeClass: "admin-badge-warning" },
+  Approved: { label: "Reviewed", icon: CheckCircle, badgeClass: "admin-badge-success" },
+  Rejected: { label: "Changes Requested", icon: XCircle, badgeClass: "admin-badge-danger" },
 };
 
-const CREATE_FIELDS_REQUIRED = ["shopName", "shopAddress", "phone"];
 const PROFILE_FIELDS = [
   "shopName", "shopAddress", "phone", "email", "city", "district", "postalCode",
   "businessType", "businessRegistrationNumber", "garmentCategories",
   "estimatedMonthlyVolume", "preferredPaymentMethod", "deliveryInstructions", "businessDescription",
 ];
+
+// Distinguishes error types instead of collapsing everything into one
+// generic string — the backend now always sends a specific, safe .message
+// (see shopRoutes.js's upsertShopProfile), so this mainly covers the case
+// where the request never got a response at all (network/CORS failure).
+function describeError(err, fallback) {
+  if (!err.response) {
+    return "Could not reach the server. Please check your connection and try again.";
+  }
+
+  if (err.response.data?.message) return err.response.data.message;
+
+  switch (err.response.status) {
+    case 401: return "Your session has expired. Please log in again.";
+    case 403: return "You do not have permission to do that.";
+    case 404: return "Profile not found.";
+    case 409: return "This information conflicts with an existing record.";
+    default: return fallback;
+  }
+}
 
 function formatDate(dateString) {
   if (!dateString) return "N/A";
@@ -72,7 +103,7 @@ function Field({ label, name, value, editing, onChange, type = "text", textarea,
           <input type={type} className="form-control admin-select" value={value || ""} onChange={(e) => onChange(name, e.target.value)} />
         )
       ) : (
-        <div style={{ fontSize: "14.5px", fontWeight: 500, color: "var(--clothcore-text)", padding: "9px 12px", background: "rgba(255,255,255,0.03)", borderRadius: "10px", minHeight: "38px", display: "flex", alignItems: "center" }}>
+        <div style={{ fontSize: "14.5px", fontWeight: 500, color: "var(--clothcore-text)", padding: "9px 12px", background: "rgba(82,43,91,0.035)", borderRadius: "10px", minHeight: "38px", display: "flex", alignItems: "center" }}>
           {value || <span style={{ color: "var(--clothcore-text-muted)" }}>—</span>}
         </div>
       )}
@@ -82,6 +113,11 @@ function Field({ label, name, value, editing, onChange, type = "text", textarea,
 
 function ShopProfile() {
   const navigate = useNavigate();
+  const location = useLocation();
+  // Set by ShopProfileGuard.js when it redirected here because Place Order
+  // was blocked — lets us offer "Continue to Place Order" once they've
+  // saved, instead of leaving them to find their own way back to Step 1.
+  const fromOrderGuard = Boolean(location.state?.fromOrderGuard);
   const [owner, setOwner] = useState(null);
   const [shop, setShop] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -90,6 +126,8 @@ function ShopProfile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [messageIsError, setMessageIsError] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState("");
 
   const loadAll = useCallback(async () => {
     try {
@@ -111,7 +149,20 @@ function ShopProfile() {
         setForm(initialForm);
       } else {
         setShop(null);
-        setForm({ shopName: "", shopAddress: "", phone: "" });
+        // Owner fields must still be populated here (from /api/auth/me,
+        // which succeeds independently of whether a shop exists yet) —
+        // handleSaveProfile always PUTs both the shop and the owner record
+        // together, and axios silently drops `undefined` values from the
+        // JSON body, which turned the owner update into an empty {} and
+        // backend into "No valid fields were provided for update".
+        setForm({
+          shopName: "",
+          shopAddress: "",
+          phone: "",
+          ownerFirstName: meRes.value?.data?.firstName || "",
+          ownerLastName: meRes.value?.data?.lastName || "",
+          ownerPhone: meRes.value?.data?.phone || "",
+        });
       }
     } catch (err) {
       console.error("Load Shop Profile Error:", err);
@@ -128,72 +179,116 @@ function ShopProfile() {
     setForm((f) => ({ ...f, [name]: value }));
   };
 
-  const handleCreate = async (e) => {
-    e.preventDefault();
-    setMessage("");
+  // Real upload — a multipart POST to /api/shops/logo (see
+  // backend/middleware/upload.js), not a base64 string kept in React state.
+  // Validated client-side for a fast error message, then again on the
+  // backend (the authoritative check) for MIME type, size, and ownership.
+  const handleLogoFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file after replacing it
+    if (!file) return;
 
-    for (const field of CREATE_FIELDS_REQUIRED) {
-      if (!form[field] || !String(form[field]).trim()) {
-        setMessage("Shop name, address and phone are required.");
-        setMessageIsError(true);
-        return;
-      }
+    setLogoError("");
+
+    if (!LOGO_ACCEPTED_TYPES.includes(file.type)) {
+      setLogoError("Unsupported file type. Please use JPG, JPEG, PNG, or WEBP.");
+      return;
+    }
+    if (file.size > LOGO_MAX_SIZE) {
+      setLogoError("File is too large. Maximum size is 5MB.");
+      return;
     }
 
     try {
-      setSaving(true);
-      const payload = {};
-      PROFILE_FIELDS.forEach((f) => { if (form[f]) payload[f] = form[f]; });
-      await axios.post(SHOP_API_URL, payload);
-      setMessage("Shop profile submitted for approval.");
-      setMessageIsError(false);
-      await loadAll();
+      setLogoUploading(true);
+      const formData = new FormData();
+      formData.append("logo", file);
+      const res = await axios.post(`${SHOP_API_URL}/logo`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setShop(res.data.shop);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Could not submit shop profile.");
-      setMessageIsError(true);
+      setLogoError(describeError(err, "Could not upload logo. Please try again."));
     } finally {
-      setSaving(false);
+      setLogoUploading(false);
     }
   };
 
-  const handleSave = async () => {
+  const handleRemoveLogo = async () => {
+    try {
+      setLogoUploading(true);
+      setLogoError("");
+      const res = await axios.delete(`${SHOP_API_URL}/logo`);
+      setShop(res.data.shop);
+    } catch (err) {
+      setLogoError(describeError(err, "Could not remove logo. Please try again."));
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  // Single submit handler for both "no profile yet" and "editing an
+  // existing profile" — both cases hit the same PUT /api/shops/me upsert
+  // endpoint. Previously these were two separate handlers (handleCreate
+  // calling POST /, handleSave calling PUT /me), each with its own
+  // validation and its own fallback error message — that split was the
+  // actual root cause of the generic "Could not submit shop profile."
+  // error masking whatever the real problem was.
+  const handleSaveProfile = async (e) => {
+    if (e?.preventDefault) e.preventDefault();
     setMessage("");
+
     if (!form.shopName?.trim() || !form.shopAddress?.trim() || !form.phone?.trim()) {
       setMessage("Shop name, address and phone are required.");
       setMessageIsError(true);
       return;
     }
 
+    const wasApproved = shop?.approvalStatus === "Approved";
+
     try {
       setSaving(true);
 
       const shopPayload = {};
-      PROFILE_FIELDS.forEach((f) => { shopPayload[f] = form[f]; });
+      PROFILE_FIELDS.forEach((f) => { shopPayload[f] = form[f] ?? ""; });
       const shopRes = await axios.put(`${SHOP_API_URL}/me`, shopPayload);
-
-      const ownerPayload = {
-        firstName: form.ownerFirstName,
-        lastName: form.ownerLastName,
-        phone: form.ownerPhone,
-      };
-      const ownerRes = await axios.put(ME_API_URL, ownerPayload);
-
-      const currentUser = getUser();
-      const mergedUser = { ...currentUser, ...ownerRes.data.user };
-      if (localStorage.getItem("user")) localStorage.setItem("user", JSON.stringify(mergedUser));
-      else if (sessionStorage.getItem("user")) sessionStorage.setItem("user", JSON.stringify(mergedUser));
-
       setShop(shopRes.data.shop);
-      setOwner(ownerRes.data.user);
+
+      // Owner's own name/phone are edited on this same page once a profile
+      // exists — harmless no-op resave of the same values on first-time
+      // creation, since the create form doesn't expose these fields itself.
+      // Kept in its own try/catch: the Shop Profile save above already
+      // succeeded, so a problem here must never surface as if nothing
+      // saved at all.
+      if (form.ownerFirstName?.trim() && form.ownerLastName?.trim()) {
+        try {
+          const ownerPayload = {
+            firstName: form.ownerFirstName,
+            lastName: form.ownerLastName,
+            phone: form.ownerPhone,
+          };
+          const ownerRes = await axios.put(ME_API_URL, ownerPayload);
+
+          const currentUser = getUser();
+          const mergedUser = { ...currentUser, ...ownerRes.data.user };
+          if (localStorage.getItem("user")) localStorage.setItem("user", JSON.stringify(mergedUser));
+          else if (sessionStorage.getItem("user")) sessionStorage.setItem("user", JSON.stringify(mergedUser));
+
+          setOwner(ownerRes.data.user);
+        } catch (ownerErr) {
+          console.error("Update owner info error:", ownerErr.response?.data?.message || ownerErr.message);
+        }
+      }
+
       setEditing(false);
       setMessage(
-        shopRes.data.shop.approvalStatus === "Pending" && shop?.approvalStatus === "Approved"
-          ? "Profile updated — your shop name change requires re-approval."
-          : "Profile updated successfully."
+        wasApproved && shopRes.data.shop.approvalStatus === "Pending"
+          ? "Shop Profile updated successfully — your shop name change requires re-approval."
+          : "Shop Profile updated successfully."
       );
       setMessageIsError(false);
     } catch (err) {
-      setMessage(err.response?.data?.message || "Could not save changes.");
+      setMessage(describeError(err, "Unable to update profile. Please try again."));
       setMessageIsError(true);
     } finally {
       setSaving(false);
@@ -225,11 +320,11 @@ function ShopProfile() {
               <ShopIcon size={28} color="#fff" />
             </div>
             <h2 style={{ fontSize: "26px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "6px" }}>Set Up Your Shop Profile</h2>
-            <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)" }}>Tell us about your shop — this needs Admin approval before you can place bulk orders.</p>
+            <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)" }}>Tell us about your shop. Once Shop Name, Address and Phone are saved, you can place orders right away — no Admin approval required.</p>
           </div>
 
           <div className="admin-content-card" style={{ padding: "32px" }}>
-            <form onSubmit={handleCreate}>
+            <form onSubmit={handleSaveProfile}>
               <div className="row g-3">
                 <div className="col-12"><Field label="Shop Name" name="shopName" value={form.shopName} editing onChange={handleChange} icon={Building} /></div>
                 <div className="col-12"><Field label="Shop Address" name="shopAddress" value={form.shopAddress} editing onChange={handleChange} icon={GeoAlt} /></div>
@@ -245,8 +340,19 @@ function ShopProfile() {
               )}
 
               <button type="submit" className="admin-btn-primary" disabled={saving} style={{ marginTop: "20px", width: "100%", justifyContent: "center" }}>
-                {saving ? "Submitting..." : "Create Shop Profile"}
+                {saving ? "Saving..." : "Update Shop Profile"}
               </button>
+
+              {fromOrderGuard && !messageIsError && message && (
+                <button
+                  type="button"
+                  className="admin-btn-secondary"
+                  onClick={() => goToPlaceOrder(navigate)}
+                  style={{ marginTop: "10px", width: "100%", justifyContent: "center" }}
+                >
+                  Continue to Place Order →
+                </button>
+              )}
             </form>
           </div>
         </div>
@@ -269,7 +375,7 @@ function ShopProfile() {
         {editing ? (
           <div style={{ display: "flex", gap: "10px" }}>
             <button className="admin-btn-secondary" onClick={() => { setEditing(false); loadAll(); }} disabled={saving}>Cancel</button>
-            <button className="admin-btn-primary" onClick={handleSave} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
+            <button className="admin-btn-primary" onClick={handleSaveProfile} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</button>
           </div>
         ) : (
           <button className="admin-btn-primary" onClick={() => setEditing(true)}>Edit Profile</button>
@@ -277,8 +383,17 @@ function ShopProfile() {
       </div>
 
       {message && (
-        <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "8px", background: messageIsError ? "var(--clothcore-danger-bg)" : "var(--clothcore-success-bg)", color: messageIsError ? "var(--clothcore-danger)" : "var(--clothcore-success)", fontSize: "13px" }}>
-          {message}
+        <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "8px", background: messageIsError ? "var(--clothcore-danger-bg)" : "var(--clothcore-success-bg)", color: messageIsError ? "var(--clothcore-danger)" : "var(--clothcore-success)", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+          <span>{message}</span>
+          {fromOrderGuard && !messageIsError && (
+            <button
+              type="button"
+              onClick={() => goToPlaceOrder(navigate)}
+              style={{ background: "var(--clothcore-success)", color: "#fff", border: "none", borderRadius: "8px", padding: "6px 14px", fontSize: "12.5px", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}
+            >
+              Continue to Place Order →
+            </button>
+          )}
         </div>
       )}
 
@@ -287,16 +402,24 @@ function ShopProfile() {
         borderRadius: "var(--clothcore-radius-lg)",
         marginBottom: "20px",
         padding: "28px",
-        background: "linear-gradient(135deg, var(--clothcore-deep), var(--clothcore-purple) 60%, var(--clothcore-mauve))",
+        background: "linear-gradient(135deg, var(--clothcore-darkest), var(--clothcore-purple) 60%, var(--clothcore-mauve))",
         boxShadow: "0 16px 40px rgba(0,0,0,0.28)",
         position: "relative",
         overflow: "hidden",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px", position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ width: "64px", height: "64px", borderRadius: "18px", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.28)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: "22px", flexShrink: 0 }}>
-              {shop.shopName?.[0]?.toUpperCase() || "S"}
-            </div>
+            {shop.logoPath ? (
+              <img
+                src={`${UPLOAD_BASE_URL}${shop.logoPath}`}
+                alt={`${shop.shopName} logo`}
+                style={{ width: "64px", height: "64px", borderRadius: "18px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.28)", flexShrink: 0 }}
+              />
+            ) : (
+              <div style={{ width: "64px", height: "64px", borderRadius: "18px", background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.28)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontWeight: 700, fontSize: "22px", flexShrink: 0 }}>
+                {shop.shopName?.[0]?.toUpperCase() || "S"}
+              </div>
+            )}
             <div>
               <div style={{ fontSize: "20px", fontWeight: 700, color: "#fff" }}>{shop.shopName}</div>
               <span className={`admin-badge ${meta.badgeClass}`} style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
@@ -305,14 +428,12 @@ function ShopProfile() {
             </div>
           </div>
 
-          {shop.approvalStatus === "Approved" && (
-            <button
-              onClick={() => navigate("/orders")}
-              style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: "12px", padding: "10px 18px", fontWeight: 600, fontSize: "13px", cursor: "pointer", transition: "background-color var(--clothcore-transition-smooth)" }}
-            >
-              View My Orders →
-            </button>
-          )}
+          <button
+            onClick={() => navigate("/orders")}
+            style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: "12px", padding: "10px 18px", fontWeight: 600, fontSize: "13px", cursor: "pointer", transition: "background-color var(--clothcore-transition-smooth)" }}
+          >
+            View My Orders →
+          </button>
         </div>
 
         <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "24px", position: "relative", zIndex: 1 }}>
@@ -402,22 +523,86 @@ function ShopProfile() {
               )}
 
               {shop.approvalStatus === "Pending" && (
-                <div style={{ fontSize: "12.5px", color: "var(--clothcore-text-soft)", background: "rgba(255,255,255,0.04)", padding: "10px", borderRadius: "8px" }}>
-                  What happens next? An administrator will review your profile. You'll be notified once it's approved or if changes are needed.
+                <div style={{ fontSize: "12.5px", color: "var(--clothcore-text-soft)", background: "rgba(82,43,91,0.045)", padding: "10px", borderRadius: "8px" }}>
+                  Your profile is complete and you can place orders now. An administrator may still review it for verification and to assign a Shop ID / credit limit — this does not block ordering.
                 </div>
               )}
             </div>
           </div>
 
-          {/* Shop Logo — deferred, no upload backend yet */}
+          {/* Shop Logo — a real disk-backed upload (POST /api/shops/logo),
+              stored as a file path + metadata on the Shop document, never a
+              base64 string. Persists across refresh and logout/login since
+              it's read straight from `shop.logoPath` like every other
+              profile field. */}
           <div className="admin-content-card" style={{ padding: "24px", marginTop: "20px", textAlign: "center" }}>
             <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "16px" }}>Shop Logo</h3>
-            <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(133,79,108,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 10px", color: "var(--clothcore-blush)", fontWeight: 700, fontSize: "22px" }}>
-              <ShopIcon size={28} />
+
+            {shop.logoPath ? (
+              <img
+                src={`${UPLOAD_BASE_URL}${shop.logoPath}`}
+                alt={`${shop.shopName} logo`}
+                style={{ width: "96px", height: "96px", borderRadius: "18px", objectFit: "cover", margin: "0 auto 14px", display: "block", border: "1px solid var(--clothcore-border-strong)", boxShadow: "0 4px 14px rgba(0,0,0,0.12)" }}
+              />
+            ) : (
+              <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(133,79,108,0.2)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 14px", color: "var(--clothcore-purple)", fontWeight: 700, fontSize: "22px" }}>
+                <ShopIcon size={28} />
+              </div>
+            )}
+
+            <div style={{ fontSize: "12px", color: "var(--clothcore-text-muted)", marginBottom: "14px" }}>
+              JPG, JPEG, PNG or WEBP · Max 5MB
             </div>
-            <div style={{ fontSize: "12px", color: "var(--clothcore-text-muted)" }}>
-              Logo upload isn't available yet — this needs backend file-storage support to enable.
-            </div>
+
+            {logoError && (
+              <div style={{ fontSize: "12.5px", color: "var(--clothcore-danger)", marginBottom: "10px" }}>{logoError}</div>
+            )}
+
+            {/* Only actionable once "Edit Profile" has actually been
+                clicked — matches every other field on this page instead of
+                letting the logo be changed independently of edit mode. */}
+            {editing ? (
+              <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+                <label
+                  className="admin-btn-secondary"
+                  style={{ cursor: logoUploading ? "not-allowed" : "pointer", opacity: logoUploading ? 0.6 : 1, marginBottom: 0 }}
+                >
+                  {logoUploading ? "Uploading..." : shop.logoPath ? "Replace Logo" : "Upload Logo"}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleLogoFileChange}
+                    disabled={logoUploading}
+                    style={{ display: "none" }}
+                  />
+                </label>
+                {shop.logoPath && (
+                  <button
+                    type="button"
+                    className="admin-btn-secondary"
+                    onClick={handleRemoveLogo}
+                    disabled={logoUploading}
+                    style={{ color: "var(--clothcore-danger)" }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", gap: "8px", justifyContent: "center", flexWrap: "wrap" }}>
+                <button type="button" className="admin-btn-secondary" disabled style={{ opacity: 0.5, cursor: "not-allowed" }}>
+                  {shop.logoPath ? "Replace Logo" : "Upload Logo"}
+                </button>
+                {shop.logoPath && (
+                  <button type="button" className="admin-btn-secondary" disabled style={{ opacity: 0.5, cursor: "not-allowed", color: "var(--clothcore-danger)" }}>
+                    Remove
+                  </button>
+                )}
+                <div style={{ width: "100%", fontSize: "11.5px", color: "var(--clothcore-text-muted)", marginTop: "4px" }}>
+                  Click "Edit Profile" above to change your logo.
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

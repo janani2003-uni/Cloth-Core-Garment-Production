@@ -4,8 +4,10 @@ const router = express.Router();
 const User = require("../models/User");
 const Order = require("../models/Order");
 const Inventory = require("../models/Inventory");
+const Production = require("../models/Production");
 const Payment = require("../models/Payment");
 const { verifyToken, requireRole } = require("../middleware/authMiddleware");
+const { getVerifiedRevenueInRange, getDailyVerifiedRevenue, round2 } = require("../utils/revenue");
 
 router.use(verifyToken, requireRole("admin"));
 
@@ -36,32 +38,15 @@ router.get("/", async (req, res) => {
       createdAt: { $gte: startOfPrevPeriod, $lt: startOfThisPeriod },
     });
 
-    const revenueResult = await Order.aggregate([
-      { $match: { paymentStatus: "Paid" } },
-      { $group: { _id: null, totalRevenue: { $sum: "$totalAmount" } } },
-    ]);
-    const totalRevenue = revenueResult.length > 0 ? revenueResult[0].totalRevenue : 0;
+    // Real revenue — Verified payments only (see utils/revenue.js). Never
+    // matches the literal string "Paid", which isn't a real
+    // Order.paymentStatus value and used to silently report 0 revenue.
+    const totalRevenue = await getVerifiedRevenueInRange(null, null);
+    const revenueThisPeriod = await getVerifiedRevenueInRange(startOfThisPeriod, now);
+    const revenuePrevPeriod = await getVerifiedRevenueInRange(startOfPrevPeriod, startOfThisPeriod);
 
-    const revenueThisPeriodResult = await Order.aggregate([
-      { $match: { paymentStatus: "Paid", createdAt: { $gte: startOfThisPeriod } } },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-    const revenueThisPeriod = revenueThisPeriodResult.length > 0 ? revenueThisPeriodResult[0].total : 0;
-
-    const revenuePrevPeriodResult = await Order.aggregate([
-      {
-        $match: {
-          paymentStatus: "Paid",
-          createdAt: { $gte: startOfPrevPeriod, $lt: startOfThisPeriod },
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$totalAmount" } } },
-    ]);
-    const revenuePrevPeriod = revenuePrevPeriodResult.length > 0 ? revenuePrevPeriodResult[0].total : 0;
-
-    // Payment totals by status — distinct from Order.totalAmount-based
-    // revenue above, this reflects the actual Payment records submitted by
-    // shop owners (what's verified/collected vs. still awaiting review).
+    // Payment totals by status — the real Payment records submitted by shop
+    // owners (what's verified/collected vs. still awaiting review).
     const paymentTotalsAgg = await Payment.aggregate([
       { $group: { _id: "$status", total: { $sum: "$amount" } } },
     ]);
@@ -96,11 +81,15 @@ router.get("/", async (req, res) => {
       createdAt: order.createdAt || null,
     }));
 
-    // Top items by quantity sold (aggregated from the real `item` field on Order)
+    // Top garments by quantity sold — grouped by the clean garmentType field
+    // (Shirt/T-Shirt/Hoodie/Denim) rather than the composed `item` display
+    // string, so "T-Shirt (Cotton, White)" and "T-Shirt (Blend, Black)"
+    // count as the same garment. Falls back to `item` only for the rare
+    // legacy order that predates garmentType being recorded.
     const topProductsAgg = await Order.aggregate([
       {
         $group: {
-          _id: "$item",
+          _id: { $cond: [{ $ne: ["$garmentType", ""] }, "$garmentType", "$item"] },
           sold: { $sum: "$quantity" },
           revenue: { $sum: "$totalAmount" },
         },
@@ -114,41 +103,23 @@ router.get("/", async (req, res) => {
       revenue: p.revenue,
     }));
 
-    // Real role distribution
-    const roleAgg = await User.aggregate([
-      { $group: { _id: "$role", count: { $sum: 1 } } },
+    // Orders by status — real counts for the Order Status Distribution chart.
+    const statusAgg = await Order.aggregate([
+      { $group: { _id: "$status", count: { $sum: 1 } } },
     ]);
-    const roleDistribution = roleAgg.map((r) => ({
-      name: r._id || "Unknown",
-      count: r.count,
-      percentage: totalUsers > 0 ? Math.round((r.count / totalUsers) * 1000) / 10 : 0,
-    }));
+    const orderStatusBreakdown = statusAgg.map((s) => ({ status: s._id || "Unknown", count: s.count }));
 
-    // Revenue trend for the last 7 days (for the Sales Overview chart)
+    // Production by stage — real counts for the Production Overview chart.
+    const stageAgg = await Production.aggregate([
+      { $group: { _id: "$stage", count: { $sum: 1 } } },
+    ]);
+    const productionStageBreakdown = stageAgg.map((s) => ({ stage: s._id || "Unknown", count: s.count }));
+
+    // Revenue trend for the last 7 days (for the Sales Overview chart) —
+    // built from real Verified payments, one point per day.
     const sevenDaysAgo = new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000);
     sevenDaysAgo.setHours(0, 0, 0, 0);
-
-    const revenueByDayAgg = await Order.aggregate([
-      { $match: { paymentStatus: "Paid", createdAt: { $gte: sevenDaysAgo } } },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-          total: { $sum: "$totalAmount" },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
-    const revenueByDayMap = new Map(revenueByDayAgg.map((d) => [d._id, d.total]));
-
-    const revenueTrend = [];
-    for (let i = 0; i < 7; i += 1) {
-      const day = new Date(sevenDaysAgo.getTime() + i * 24 * 60 * 60 * 1000);
-      const key = day.toISOString().slice(0, 10);
-      revenueTrend.push({
-        date: key,
-        revenue: revenueByDayMap.get(key) || 0,
-      });
-    }
+    const revenueTrend = await getDailyVerifiedRevenue(sevenDaysAgo, now);
 
     res.status(200).json({ success: true,
       stats: {
@@ -167,7 +138,8 @@ router.get("/", async (req, res) => {
       },
       recentOrders,
       topProducts,
-      roleDistribution,
+      orderStatusBreakdown,
+      productionStageBreakdown,
       revenueTrend,
     });
   } catch (error) {
