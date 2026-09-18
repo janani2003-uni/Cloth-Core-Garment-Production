@@ -70,7 +70,14 @@ router.get("/", async (req, res) => {
       updatedAt: { $lt: startOfThisPeriod },
     });
 
-    const recentOrderDocuments = await Order.find().sort({ createdAt: -1 }).limit(5).lean();
+        // Excludes design.generatedDesignPath (multi-MB AI design image) —
+    // the mapped recentOrders below never includes it, so there is no
+    // reason to pull it out of MongoDB for this widget at all.
+    const recentOrderDocuments = await Order.find()
+      .select("-design.generatedDesignPath")
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
 
     const recentOrders = recentOrderDocuments.map((order) => ({
       _id: order._id,
