@@ -102,17 +102,12 @@ function Dashboard() {
     (o) => getEffectivePayment(o).status === "Pending"
   ).length;
 
-  const shopCompletion = shop
-    ? Math.round(
-        ([shop.shopName, shop.shopAddress, shop.phone, shop.email, shop.city, shop.businessType, shop.garmentCategories, shop.businessDescription]
-          .filter((v) => v && String(v).trim() !== "").length /
-          8) * 100
-      )
-    : 0;
-
   return (
     <ShopOwnerLayout contentClassName="p-3 p-md-4" contentStyle={undefined}>
-            {/* Shop Status Banner — 4 states: no profile / pending / rejected / approved */}
+            {/* Shop Profile banner — only fires when there's no profile yet.
+                Shop approval status (Pending/Rejected/Approved) used to get
+                its own banners here too, but that workflow no longer gates
+                anything for the shop owner, so those were removed. */}
             {shopChecked && !shop && (
               <div
                 className="admin-content-card mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3"
@@ -129,70 +124,6 @@ function Dashboard() {
                 </div>
                 <button className="admin-btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => navigate("/shop-profile")}>
                   Update Shop Profile
-                </button>
-              </div>
-            )}
-
-            {shopChecked && shop && shop.approvalStatus === "Pending" && (
-              <div
-                className="admin-content-card mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3"
-                style={{ background: "var(--clothcore-warning-bg)", border: "1px solid rgba(255,166,76,0.28)", borderRadius: "16px", padding: "16px 20px" }}
-              >
-                <div className="d-flex align-items-center gap-3">
-                  <ExclamationTriangle size={22} style={{ color: "var(--clothcore-warning)" }} />
-                  <div>
-                    <span className="admin-badge admin-badge-warning me-2">Under Admin Review</span>
-                    <span style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
-                      Your shop profile is complete — you can place orders now. It's also under Admin review for verification and Shop ID assignment.
-                    </span>
-                  </div>
-                </div>
-                <button className="admin-btn-secondary" style={{ whiteSpace: "nowrap" }} onClick={() => navigate("/shop-profile")}>
-                  View Shop Profile
-                </button>
-              </div>
-            )}
-
-            {shopChecked && shop && shop.approvalStatus === "Rejected" && (
-              <div
-                className="admin-content-card mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3"
-                style={{ background: "var(--clothcore-danger-bg)", border: "1px solid rgba(220,90,100,0.3)", borderRadius: "16px", padding: "16px 20px" }}
-              >
-                <div className="d-flex align-items-center gap-3">
-                  <ExclamationTriangle size={22} style={{ color: "var(--clothcore-danger)" }} />
-                  <div>
-                    <span className="admin-badge admin-badge-danger me-2">Changes Requested</span>
-                    <span style={{ fontSize: "14px", color: "var(--clothcore-text)" }}>
-                      An administrator requested changes to your shop profile — you can still place orders in the meantime.
-                      {shop.rejectionReason ? ` "${shop.rejectionReason}"` : ""}
-                    </span>
-                  </div>
-                </div>
-                <button className="admin-btn-primary" style={{ whiteSpace: "nowrap" }} onClick={() => navigate("/shop-profile")}>
-                  Update Shop Profile
-                </button>
-              </div>
-            )}
-
-            {shopChecked && shop && shop.approvalStatus === "Approved" && (
-              <div
-                className="admin-content-card mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3"
-                style={{ background: "var(--clothcore-success-bg)", border: "1px solid rgba(70,180,120,0.25)", borderRadius: "16px", padding: "16px 20px" }}
-              >
-                <div className="d-flex align-items-center gap-3">
-                  <CheckCircle size={22} style={{ color: "var(--clothcore-success)" }} />
-                  <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                      <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--clothcore-text)" }}>{shop.shopName}</span>
-                      <span className="admin-badge admin-badge-success">Approved Shop</span>
-                    </div>
-                    <span style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>
-                      Shop ID: {shop.shopCode || "N/A"} · Profile {shopCompletion}% complete
-                    </span>
-                  </div>
-                </div>
-                <button className="admin-btn-secondary" style={{ whiteSpace: "nowrap" }} onClick={() => navigate("/shop-profile")}>
-                  Manage Shop Profile
                 </button>
               </div>
             )}

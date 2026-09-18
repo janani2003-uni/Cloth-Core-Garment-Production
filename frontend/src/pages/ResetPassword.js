@@ -100,24 +100,6 @@ function ResetPassword() {
               <div className="auth-brand-subtitle">Garment Productions</div>
             </div>
           </button>
-
-          <div>
-            <button
-              type="button"
-              className="explore-btn me-2"
-              onClick={() => navigate("/login")}
-            >
-              Login
-            </button>
-
-            <button
-              type="button"
-              className="login-register-btn"
-              onClick={() => navigate("/register")}
-            >
-              Register
-            </button>
-          </div>
         </div>
       </nav>
 

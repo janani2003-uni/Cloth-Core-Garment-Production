@@ -8,10 +8,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Shop as ShopIcon,
-  CheckCircle,
-  Clock,
-  XCircle,
-  ClipboardCheck,
   Person,
   Telephone,
   Envelope,
@@ -32,18 +28,14 @@ const UPLOAD_BASE_URL = "http://localhost:5000";
 const LOGO_ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const LOGO_MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
-// Shop.approvalStatus still exists and is still shown here for Admin
-// visibility/record-keeping (Shop Owner Management, credit limit,
-// suspension) — but it is no longer a gate on placing orders. Eligibility
-// to order is
-// ONLY: role === "shopOwner" AND the required Shop Profile fields below are
-// complete (enforced by ShopProfileGuard.js / GET /api/shops/profile-status,
-// not by this status).
-const STATUS_META = {
-  Pending: { label: "Under Admin Review", icon: Clock, badgeClass: "admin-badge-warning" },
-  Approved: { label: "Reviewed", icon: CheckCircle, badgeClass: "admin-badge-success" },
-  Rejected: { label: "Changes Requested", icon: XCircle, badgeClass: "admin-badge-danger" },
-};
+// Shop.approvalStatus still exists on the model (Shop Owner Management,
+// credit limit, suspension are still Admin-side concerns) but it is no
+// longer a gate on placing orders, and no longer surfaced to the shop
+// owner here — it never resolves to anything actionable from their side,
+// so a permanent "Under Admin Review" badge was just noise. Eligibility to
+// order is ONLY: role === "shopOwner" AND the required Shop Profile fields
+// below are complete (enforced by ShopProfileGuard.js / GET
+// /api/shops/profile-status, not by this status).
 
 const PROFILE_FIELDS = [
   "shopName", "shopAddress", "phone", "email", "city", "district", "postalCode",
@@ -360,8 +352,6 @@ function ShopProfile() {
     );
   }
 
-  const meta = STATUS_META[shop.approvalStatus] || STATUS_META.Pending;
-  const StatusIcon = meta.icon;
   const completion = calcCompletion(shop, owner);
 
   return (
@@ -370,7 +360,7 @@ function ShopProfile() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
         <div>
           <h2 style={{ fontSize: "26px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "4px" }}>Shop Profile</h2>
-          <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>Manage your shop information and approval status.</p>
+          <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>Manage your shop information.</p>
         </div>
         {editing ? (
           <div style={{ display: "flex", gap: "10px" }}>
@@ -422,9 +412,6 @@ function ShopProfile() {
             )}
             <div>
               <div style={{ fontSize: "20px", fontWeight: 700, color: "#fff" }}>{shop.shopName}</div>
-              <span className={`admin-badge ${meta.badgeClass}`} style={{ display: "inline-flex", alignItems: "center", gap: "4px", marginTop: "6px" }}>
-                <StatusIcon size={12} /> {meta.label}
-              </span>
             </div>
           </div>
 
@@ -496,40 +483,6 @@ function ShopProfile() {
         </div>
 
         <div className="col-lg-4">
-          {/* Approval Details Panel */}
-          <div className="admin-content-card" style={{ padding: "24px" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-              <ClipboardCheck size={16} /> Approval Details
-            </h3>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "12px", fontSize: "13px" }}>
-              <div><div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Status</div><span className={`admin-badge ${meta.badgeClass}`}>{meta.label}</span></div>
-              <div><div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Submitted</div><div style={{ color: "var(--clothcore-text)" }}>{formatDate(shop.createdAt)}</div></div>
-              <div><div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Reviewed</div><div style={{ color: "var(--clothcore-text)" }}>{formatDate(shop.reviewedAt)}</div></div>
-
-              {shop.approvalStatus === "Rejected" && shop.rejectionReason && (
-                <div>
-                  <div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Admin Feedback</div>
-                  <div style={{ color: "var(--clothcore-danger)", background: "var(--clothcore-danger-bg)", padding: "10px", borderRadius: "8px", marginTop: "4px" }}>{shop.rejectionReason}</div>
-                </div>
-              )}
-
-              {shop.approvalStatus === "Approved" && (
-                <>
-                  <div><div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Shop ID</div><div style={{ color: "var(--clothcore-text)", fontWeight: 600 }}>{shop.shopCode}</div></div>
-                  <div><div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Credit Limit</div><div style={{ color: "var(--clothcore-text)" }}>LKR {Number(shop.creditLimit || 0).toLocaleString()}</div></div>
-                  <div><div style={{ color: "var(--clothcore-text-muted)", fontSize: "11px" }}>Ordering Permission</div><div style={{ color: shop.isActive ? "var(--clothcore-success)" : "var(--clothcore-danger)", fontWeight: 600 }}>{shop.isActive ? "Active" : "Suspended"}</div></div>
-                </>
-              )}
-
-              {shop.approvalStatus === "Pending" && (
-                <div style={{ fontSize: "12.5px", color: "var(--clothcore-text-soft)", background: "rgba(82,43,91,0.045)", padding: "10px", borderRadius: "8px" }}>
-                  Your profile is complete and you can place orders now. An administrator may still review it for verification and to assign a Shop ID / credit limit — this does not block ordering.
-                </div>
-              )}
-            </div>
-          </div>
-
           {/* Shop Logo — a real disk-backed upload (POST /api/shops/logo),
               stored as a file path + metadata on the Shop document, never a
               base64 string. Persists across refresh and logout/login since

@@ -62,11 +62,16 @@ router.post("/", handleUpload(uploadPaymentProof, "proofFile"), async (req, res)
       return res.status(409).json({ success: false, message: "This order must be approved before it can be paid." });
     }
 
-    // Recompute the real outstanding balance fresh from Verified payments —
-    // never from order.amountPaid alone, so a payment can't be recorded
-    // twice against the same stage due to a stale client read.
-    const verifiedPayments = await Payment.find({ orderId: order._id, status: "Verified" });
-    const amountPaidSoFar = round2(verifiedPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0));
+    // Recompute the real outstanding balance fresh from Verified AND still-
+    // Submitted (pending Admin verification) payments — never from
+    // order.amountPaid alone. Submitted payments count here too so a stage
+    // that's already been submitted is never asked for again while it's
+    // still in Admin's queue (matches GET /api/orders/:id/invoice, which a
+    // shop owner sees right before landing on this submit route — the two
+    // must agree on what's "due next" or a payment computed as valid there
+    // could get rejected here).
+    const activePayments = await Payment.find({ orderId: order._id, status: { $in: ["Verified", "Submitted"] } });
+    const amountPaidSoFar = round2(activePayments.reduce((sum, p) => sum + Number(p.amount || 0), 0));
     const advanceAmount = Number(order.advanceAmount || 0);
     const totalAmount = Number(order.totalAmount || 0);
 

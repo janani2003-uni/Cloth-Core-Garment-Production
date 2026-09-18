@@ -637,6 +637,138 @@ code {
   border: 1px solid rgba(179, 38, 30, 0.25);
 }
 
+/* ============================================================
+   Split-screen layout — Login & Register only (ForgotPassword/VerifyCode/
+   ResetPassword keep their existing navbar+centered-card look untouched).
+   .auth-page stays on the outer wrapper so every .auth-page-scoped input/
+   label/checkbox rule above still applies unchanged — this only adds the
+   two-panel frame around that same, unmodified form content. */
+.auth-split-page {
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+/* The photo + its dark tint are one combined background (set inline per
+   page, gradient layered on top of the url()) rather than a separate ::after
+   tint — that way a single mask-image fades BOTH together toward the seam,
+   instead of the photo stopping dead at a hard vertical edge. What's
+   revealed as it fades is .auth-page's own fixed cream/peach gradient
+   background (see .auth-page::before) — the exact same background
+   .auth-split-panel sits on (it has no background of its own), so the
+   image doesn't just fade to nothing, it fades INTO the panel's actual
+   backdrop and the two read as one continuous surface. */
+.auth-split-image {
+  flex: 1 1 46%;
+  position: relative;
+  background-size: cover;
+  /* Shifted right (of the source photo) so the subject — centered in the
+     original photo — lands toward the LEFT side of this narrower box
+     instead of dead-center, where the fade below used to wash them out.
+     Widened the solid zone before the fade starts for the same reason. */
+  background-position: 75% center;
+  min-height: 100vh;
+  mask-image: linear-gradient(to right, black 0%, black 58%, transparent 96%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, black 58%, transparent 96%);
+}
+
+/* No align-items: center here on purpose — centering a flex container's
+   content that way clips/hides anything taller than the container above
+   the visible area and makes it unreachable by scrolling (a well-known
+   flexbox gotcha). That's exactly what was happening on Register: the tall
+   form pushed the header off the top, "centered" into the unscrollable
+   zone. Vertical centering is done on the child instead (margin: auto 0
+   below), which degrades to plain top-alignment — fully scrollable — the
+   moment content is taller than the panel. */
+.auth-split-panel {
+  flex: 1 1 54%;
+  display: flex;
+  justify-content: center;
+  padding: 40px 32px;
+  min-height: 100vh;
+  max-height: 100vh;
+  overflow-y: auto;
+  position: relative;
+  z-index: 1;
+}
+
+.auth-split-panel-inner {
+  width: 100%;
+  max-width: 440px;
+  margin: auto;
+}
+
+/* Register's two-column rows (First/Last Name, Password/Confirm) need more
+   breathing room than Login's single-column form. */
+.auth-split-panel-inner.wide {
+  max-width: 600px;
+}
+
+/* Brand mark (left) + the Login/Register pill (right) share one header row
+   at the top of the panel — the pill is the same .nav-auth-btn component
+   Home.js uses (dark purple pill, pastel-pink Register, underline hover),
+   just relocated here now that these pages no longer have a top navbar to
+   host it on. It's a solid, opaque chip, so it reads fine sitting directly
+   on the panel's light background rather than a dark bar.
+   (Previously tried pinning this with position: sticky so it wouldn't
+   scroll away on Register's taller form — that ended up covering/
+   overlapping the heading below it instead, so it's back to scrolling
+   normally with the rest of the content.) */
+.auth-split-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.auth-split-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-split-brand img {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.auth-split-brand .auth-brand-title {
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.auth-split-brand .auth-brand-subtitle {
+  font-size: 11.5px;
+}
+
+.auth-split-header .nav-auth-btn {
+  padding: 5px 8px 5px 14px;
+}
+
+.auth-split-header .nav-auth-btn-segment {
+  padding: 7px 12px;
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .auth-split-header {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 900px) {
+  .auth-split-image {
+    display: none;
+  }
+
+  .auth-split-panel {
+    flex: 1 1 100%;
+  }
+}
+
 .auth-banner.is-success {
   background: var(--clothcore-success-bg);
   color: var(--clothcore-success);
@@ -723,6 +855,31 @@ code {
 
 .cc-card:hover::before {
   opacity: 1;
+}
+
+/* For cards that are purely informational — nothing to click, nowhere to
+   go — the spring lift/scale + pink glow sheen above reads as promising an
+   action that isn't there. This swaps it for a flat, static highlight:
+   the animated multi-color border-glow turns into a plain dim purple, no
+   movement, no pink sheen, no shadow escalation. Applied alongside .cc-card
+   (not instead of it) on sections like the Features strip, Core
+   Capabilities, Why Choose ClothCore and Contact — the "Garments We Offer"
+   cards keep the full treatment since those genuinely link to Register. */
+.cc-mild-hover {
+  transition: background var(--cc-transition-base);
+}
+
+.cc-mild-hover:hover {
+  background: var(--cc-glass-bg) padding-box, rgba(74, 31, 99, 0.32) border-box;
+  box-shadow: var(--cc-shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.cc-mild-hover:hover::before {
+  opacity: 0;
+}
+
+.cc-mild-hover:hover .cc-icon-badge {
+  transform: none;
 }
 
 .cc-card > * {

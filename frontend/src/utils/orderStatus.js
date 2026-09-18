@@ -75,24 +75,32 @@ export function getOrderActionTarget(order) {
   if (approvalStatus === "Pending") {
     return { label: "View Status", path: "/order-approval", orderId };
   }
-  const { status: effectiveStatus } = getEffectivePayment(order);
-  if (order?.status === "Delivered" || order?.status === "In Delivery" || order?.status === "Production" || effectiveStatus === "Full Paid") {
+
+  // Delivered/Cancelled are the only genuinely terminal states — everything
+  // else (Approved, Production, In Delivery) can still have real money
+  // owed, and a shop owner should be able to pay it off regardless of
+  // whether production has started, same as before delivery even begins.
+  if (order?.status === "Delivered" || order?.status === "Cancelled") {
     return { label: "View Order", path: "/orders", orderId };
   }
-  // A payment was already submitted for the amount currently due — shown
-  // as paid everywhere, so there's genuinely nothing left to pay right
-  // now. Routes to the order list rather than back through Step 7, which
-  // would otherwise invite submitting a second payment for the exact same
-  // amount while the first is still working its way through Admin review
-  // behind the scenes.
-  if (order?.pendingVerification) {
-    return { label: "View Order", path: "/orders", orderId };
+
+  const { effectiveRemaining, effectivePaid } = getEffectivePayment(order);
+
+  if (effectiveRemaining > 0) {
+    // Step 7 (and the payment submit route behind it) always compute the
+    // actually-open stage fresh from real Verified + Submitted payments —
+    // never re-asks for a stage that's already been submitted, even while
+    // it's still sitting in Admin's verification queue. So this is safe to
+    // offer any time there's real remaining balance, not just once
+    // everything already submitted has been verified.
+    return {
+      label: effectivePaid > 0 ? "Make Payment" : "Continue to Payment",
+      path: "/step5",
+      orderId,
+    };
   }
-  // Approved and nothing currently paid/submitted for this stage — covers
-  // both "never paid anything yet" and "advance verified, final balance
-  // now open to pay" the same way, since Step 7 always shows whatever's
-  // actually next due for this exact order.
-  return { label: "Continue to Payment", path: "/step5", orderId };
+
+  return { label: "View Order", path: "/orders", orderId };
 }
 
 // Reverse of the draft -> Order mapping in OrderApproval.js's createOrder()

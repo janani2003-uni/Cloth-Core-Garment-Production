@@ -355,6 +355,18 @@ router.get("/:id/invoice", async (req, res) => {
     const amountPaid = round2(verifiedPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0));
     const balanceDue = Math.max(0, round2(Number(order.totalAmount || 0) - amountPaid));
 
+    // Payments already submitted but still sitting in Admin's verification
+    // queue count toward "effectively paid" for the purpose of deciding
+    // what to ask for next — otherwise a shop owner who's already
+    // submitted the Advance (just not yet verified) would be asked to pay
+    // it a second time instead of being offered the Final balance. This
+    // mirrors the frontend's getEffectivePayment() treatment of the same
+    // still-Submitted payments. Real confirmed amountPaid/balanceDue above
+    // are untouched — only nextStage/amountToPay use the effective figure.
+    const pendingPayments = await Payment.find({ orderId: order._id, status: "Submitted" });
+    const pendingAmount = round2(pendingPayments.reduce((sum, p) => sum + Number(p.amount || 0), 0));
+    const effectivePaid = round2(amountPaid + pendingAmount);
+
     const advanceAmount = Number(order.advanceAmount || 0);
     const production = await Production.findOne({ orderId: order.orderId });
     // Informational only — production status is no longer a gate on paying
@@ -369,12 +381,12 @@ router.get("/:id/invoice", async (req, res) => {
     // remaining balance) in one go if they choose to.
     let nextStage = null;
     let amountToPay = 0;
-    if (amountPaid < advanceAmount) {
+    if (effectivePaid < advanceAmount) {
       nextStage = "Advance";
-      amountToPay = round2(advanceAmount - amountPaid);
-    } else if (balanceDue > 0) {
+      amountToPay = round2(advanceAmount - effectivePaid);
+    } else if (Number(order.totalAmount || 0) - effectivePaid > 0) {
       nextStage = "Final";
-      amountToPay = balanceDue;
+      amountToPay = round2(Number(order.totalAmount || 0) - effectivePaid);
     }
 
     return res.status(200).json({ success: true,
@@ -394,6 +406,7 @@ router.get("/:id/invoice", async (req, res) => {
       },
       amountPaid,
       balanceDue,
+      pendingAmount,
       advanceAmount,
       nextStage,
       amountToPay,

@@ -354,7 +354,7 @@ function Home() {
             <FiUser className="nav-auth-btn-icon" />
             <button
               type="button"
-              className="nav-auth-btn-segment"
+              className="nav-auth-btn-segment login"
               onClick={() => navigate("/login")}
             >
               Login
@@ -362,7 +362,7 @@ function Home() {
             <span className="nav-auth-btn-divider" aria-hidden="true">/</span>
             <button
               type="button"
-              className="nav-auth-btn-segment"
+              className="nav-auth-btn-segment register"
               onClick={() => navigate("/register")}
             >
               Register
@@ -452,15 +452,10 @@ function Home() {
         </div>
       </section>
 
-      {/* Feature Cards Section */}
+      {/* Feature Cards Section — kept classic/flat on purpose: no glow
+          blobs, no drifting particles, no pulsing icon halo (see the
+          .feature-strip-icon override below), unlike some later sections. */}
       <section className="features-strip" id="features">
-        <div className="features-strip-blob features-strip-blob-1" />
-        <div className="features-strip-blob features-strip-blob-2" />
-        <div className="fx-particles">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span className="fx-particle" key={i} />
-          ))}
-        </div>
 
         <motion.div
           className="feature-strip-grid"
@@ -471,12 +466,9 @@ function Home() {
         >
           {featureCards.map((feature) => (
             <motion.div
-              className="feature-strip-card cc-card"
+              className="feature-strip-card cc-card cc-mild-hover"
               key={feature.title}
               variants={fadeUp}
-              whileHover={{ y: -16, scale: 1.04 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <div className="feature-strip-icon cc-icon-badge">{feature.icon}</div>
               <h3>{feature.title}</h3>
@@ -573,12 +565,9 @@ function Home() {
             },
           ].map((feature) => (
             <motion.div
-              className="feature-card cc-card"
+              className="feature-card cc-card cc-mild-hover"
               key={feature.title}
               variants={fadeUp}
-              whileHover={{ y: -16, scale: 1.04 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <div className="feature-card-icon cc-icon-badge">{feature.icon}</div>
               <h3>{feature.title}</h3>
@@ -630,9 +619,6 @@ function Home() {
           <motion.div
             className="info-card"
             variants={fadeUp}
-            whileHover={{ y: -14, scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <div className="info-card-icon"><FiTarget /></div>
             <h3>Our Mission</h3>
@@ -642,9 +628,6 @@ function Home() {
           <motion.div
             className="info-card"
             variants={fadeUp}
-            whileHover={{ y: -14, scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <div className="info-card-icon"><FiEye /></div>
             <h3>Our Vision</h3>
@@ -654,9 +637,6 @@ function Home() {
           <motion.div
             className="info-card"
             variants={fadeUp}
-            whileHover={{ y: -14, scale: 1.03 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
             <div className="info-card-icon"><FiHeart /></div>
             <h3>Our Values</h3>
@@ -705,12 +685,9 @@ function Home() {
         >
           {whyChooseCards.map((card) => (
             <motion.div
-              className="why-choose-card cc-card"
+              className="why-choose-card cc-card cc-mild-hover"
               key={card.title}
               variants={fadeUp}
-              whileHover={{ y: -16, scale: 1.04 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
             >
               <div className="why-choose-icon cc-icon-badge">{card.icon}</div>
               <h3>{card.title}</h3>
@@ -724,70 +701,6 @@ function Home() {
       <section className="products-section" id="products">
         <p className="section-subtitle">MODULES &amp; PRODUCTS</p>
         <h2>What ClothCore Manages</h2>
-
-        <h3 className="products-subheading">ClothCore Modules</h3>
-
-        <motion.div
-          className="product-grid"
-          variants={stagger}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.2 }}
-        >
-          <motion.div
-            className="product-card"
-            variants={fadeUp}
-            whileHover={{ y: -16, scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="product-top">
-              <span className="product-icon">
-                <FiShoppingBag />
-              </span>
-            </div>
-            <div className="product-content">
-              <h3>Order Management</h3>
-              <p>Track purchase orders, work orders and delivery schedules from a single dashboard.</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="product-card"
-            variants={fadeUp}
-            whileHover={{ y: -16, scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="product-top">
-              <span className="product-icon">
-                <FiBox />
-              </span>
-            </div>
-            <div className="product-content">
-              <h3>Inventory Module</h3>
-              <p>Full visibility into raw materials, WIP batches and finished goods stock levels.</p>
-            </div>
-          </motion.div>
-
-          <motion.div
-            className="product-card"
-            variants={fadeUp}
-            whileHover={{ y: -16, scale: 1.04 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="product-top">
-              <span className="product-icon">
-                <GiSewingMachine />
-              </span>
-            </div>
-            <div className="product-content">
-              <h3>Production Planner</h3>
-              <p>Schedule cutting, sewing and quality checkpoints with ease.</p>
-            </div>
-          </motion.div>
-        </motion.div>
 
         <div className="materials-showcase">
           <div className="materials-blob materials-blob-1" />
@@ -859,12 +772,11 @@ function Home() {
 
         <div className="contact-layout">
           <motion.div
-            className="contact-card cc-card"
+            className="contact-card cc-card cc-mild-hover"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            whileHover={{ y: -10, scale: 1.015 }}
           >
             <div className="contact-item">
               <span className="contact-icon cc-icon-badge"><FiMail /></span>

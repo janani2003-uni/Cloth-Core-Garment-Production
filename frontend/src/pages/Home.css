@@ -134,38 +134,66 @@
   gap: 2px;
   padding: 6px 10px 6px 18px;
   border-radius: 999px;
-  background: linear-gradient(135deg, var(--cc-purple), var(--cc-purple-light));
+  background: linear-gradient(135deg, var(--cc-purple-dark), var(--cc-purple) 55%, var(--cc-purple-light));
+  border: 1px solid rgba(255, 255, 255, 0.14);
   color: white;
-  box-shadow: 0 8px 20px rgba(74, 31, 99, 0.3);
+  box-shadow: 0 8px 20px rgba(74, 31, 99, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   transition: box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .nav-auth-btn:hover {
   transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 16px 32px rgba(232, 97, 143, 0.45);
+  box-shadow: 0 16px 34px rgba(74, 31, 99, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.24);
 }
 
 .nav-auth-btn-icon {
   font-size: 15px;
   margin-right: 4px;
   flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.85);
 }
 
+/* No background fill/chip at all this time — any filled shape here, no
+   matter how it appears, ends up as a pill nested tightly inside the outer
+   pill and looks off. Just text color plus a thin underline that grows in
+   from the center — no shape, no box, nothing to clash with the outer
+   button's own curve. */
 .nav-auth-btn-segment {
+  position: relative;
   background: transparent;
   border: none;
   color: inherit;
   font-weight: 600;
   font-size: 14px;
   font-family: inherit;
-  padding: 9px 12px;
-  border-radius: 999px;
+  padding: 9px 14px;
   cursor: pointer;
-  transition: background 0.25s ease;
+  transition: color 0.25s ease;
 }
 
-.nav-auth-btn-segment:hover {
-  background: rgba(255, 255, 255, 0.18);
+.nav-auth-btn-segment::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  width: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: translateX(-50%);
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.nav-auth-btn-segment:hover::after {
+  width: calc(100% - 20px);
+}
+
+.nav-auth-btn-segment.register {
+  color: var(--cc-pink-light);
+}
+
+.nav-auth-btn-segment.register:hover {
+  color: white;
 }
 
 .nav-auth-btn-divider {
@@ -522,6 +550,13 @@
   margin-bottom: 26px;
 }
 
+/* Same calmer treatment as the workflow/why-choose/contact/feature-card
+   icon badges — the shared .cc-icon-badge pulsing blur halo read as too
+   loud/glowy here too, so it's dropped for this section as well. */
+.feature-strip-icon.cc-icon-badge::before {
+  content: none;
+}
+
 .feature-strip-card h3 {
   font-size: 1.3rem;
   font-weight: 800;
@@ -793,25 +828,15 @@
   transition: box-shadow var(--cc-transition-base);
 }
 
-.info-card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 25% 15%, rgba(255, 255, 255, 0.22), transparent 65%);
-  opacity: 0;
-  transition: opacity var(--cc-transition-base);
-  pointer-events: none;
-}
-
+/* Purely informational — no click, nowhere to go — so hover gets a flat
+   dim purple ring instead of the escalating pink-tinted shadow + white
+   sheen + icon spin that promise an action that isn't there. */
 .info-card:hover {
   box-shadow:
-    0 10px 20px rgba(74, 31, 99, 0.26),
-    0 30px 60px rgba(232, 97, 143, 0.32),
-    0 70px 100px rgba(74, 31, 99, 0.24);
-}
-
-.info-card:hover::before {
-  opacity: 1;
+    0 4px 10px rgba(74, 31, 99, 0.2),
+    0 20px 40px rgba(74, 31, 99, 0.22),
+    0 50px 80px rgba(74, 31, 99, 0.18),
+    0 0 0 2px rgba(210, 180, 230, 0.4);
 }
 
 .info-card-icon {
@@ -833,9 +858,6 @@
   z-index: 1;
 }
 
-.info-card:hover .info-card-icon {
-  transform: scale(1.15) rotate(-8deg);
-}
 
 .info-card h3 {
   font-size: 1.3rem;

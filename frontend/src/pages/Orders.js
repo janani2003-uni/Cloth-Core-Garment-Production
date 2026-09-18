@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import axios from "axios";
-import { getEffectivePayment } from "../utils/orderStatus";
+import { getEffectivePayment, getOrderActionTarget, goToOrder } from "../utils/orderStatus";
 import {
   Search,
   Eye,
@@ -20,7 +20,8 @@ import {
   Gear,
   ThreeDotsVertical,
   PencilSquare,
-  Trash
+  Trash,
+  CreditCard
 } from "react-bootstrap-icons";
 
 const API_URL = "http://localhost:5000/api/orders";
@@ -473,6 +474,15 @@ function Orders() {
                                   >
                                     <Eye size={14} /> View
                                   </button>
+                                  {getEffectivePayment(order).effectiveRemaining > 0 && order.approval?.status !== "Rejected" && order.approval?.status !== "Pending" && (
+                                    <button
+                                      className="orders-action-item"
+                                      onClick={() => { setOpenActionMenu(null); goToOrder(navigate, order); }}
+                                      style={{ display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "10px 14px", border: "none", background: "transparent", fontSize: "13px", color: "var(--clothcore-purple)", fontWeight: 600 }}
+                                    >
+                                      <CreditCard size={14} /> {getOrderActionTarget(order).label}
+                                    </button>
+                                  )}
                                   {canEditOrDelete(order) ? (
                                     <>
                                       <button
