@@ -1,7 +1,10 @@
 const express = require("express");
 const axios = require("axios");
+const path = require("path");
+const fs = require("fs");
+const { Jimp, JimpMime } = require("jimp");
 const { verifyToken } = require("../middleware/authMiddleware");
-const { uploadDesign, handleUpload, toWebPath } = require("../middleware/upload");
+const { uploadDesign, handleUpload, toWebPath, UPLOAD_ROOT } = require("../middleware/upload");
 
 const router = express.Router();
 
@@ -164,6 +167,139 @@ router.post("/generate", async (req, res) => {
 
     console.error("Design generation error:", error.message);
     return res.status(502).json({ success: false, message: "Could not reach the design service. Please try again." });
+  }
+});
+
+// Resolves a client-supplied "/uploads/<subfolder>/<file>" web path back
+// to the real file on disk, refusing anything that isn't actually inside
+// backend/uploads (path traversal, absolute paths, other hosts) and
+// anything that doesn't exist. Returns null rather than throwing so
+// callers can return a clean 400 instead of a stack trace.
+function resolveUploadedFileDiskPath(webPath) {
+  if (typeof webPath !== "string" || !webPath.startsWith("/uploads/")) return null;
+  const relative = webPath.slice("/uploads/".length);
+  const resolved = path.join(UPLOAD_ROOT, relative);
+  if (resolved !== UPLOAD_ROOT && !resolved.startsWith(UPLOAD_ROOT + path.sep)) return null;
+  if (!fs.existsSync(resolved)) return null;
+  return resolved;
+}
+
+// POST /api/design/mockup
+// Body: { logoPath: string, garmentType?: string, color?: string }
+// Step 2's "same feature as AI generation" for an uploaded logo: a
+// photorealistic mockup of the actual garment/color, generated the same
+// way /generate does. The key difference is deliberate — the logo/QR code
+// itself is NEVER re-rendered through the AI model (diffusion models don't
+// reliably preserve fine graphic detail like a QR code or exact logo
+// shape; running one back through image generation risks making it
+// unscannable or visibly wrong). Instead, the AI generates a plain, blank
+// garment photo, and the shop owner's exact uploaded file is composited
+// onto it pixel-for-pixel afterwards with Jimp — same visual quality/
+// realism as AI generation, with the actual logo guaranteed unmodified.
+router.post("/mockup", async (req, res) => {
+  const logoPath = typeof req.body?.logoPath === "string" ? req.body.logoPath.trim() : "";
+  const garmentType = (req.body?.garmentType || "").trim().slice(0, 60) || "t-shirt";
+  const color = (req.body?.color || "").trim().slice(0, 60) || "white";
+
+  const logoDiskPath = resolveUploadedFileDiskPath(logoPath);
+  if (!logoDiskPath) {
+    return res.status(400).json({ success: false, message: "A valid uploaded logo is required to generate a photo preview." });
+  }
+
+  const userId = String(req.user?.id || req.user?._id || "anonymous");
+  const now = Date.now();
+  const lastAt = lastRequestAtByUser.get(userId) || 0;
+  if (now - lastAt < MIN_SECONDS_BETWEEN_REQUESTS * 1000) {
+    return res.status(429).json({ success: false, message: "Please wait a moment before generating again." });
+  }
+  lastRequestAtByUser.set(userId, now);
+
+  const apiKey = process.env.HF_API_TOKEN;
+  if (!apiKey) {
+    console.error("Photo preview requested but HF_API_TOKEN is not set.");
+    return res.status(503).json({
+      success: false,
+      message: "Photo preview isn't configured yet — your uploaded logo is still saved and will be used for this order.",
+    });
+  }
+
+  const model = process.env.HF_IMAGE_MODEL || "stabilityai/stable-diffusion-3-medium-diffusers";
+  // Deliberately asks for a BLANK garment — no print/graphic/text — since
+  // the real logo is composited on afterwards, not generated.
+  const blankPrompt = `Product photo of a ${color} ${garmentType}, completely plain and blank with no print, no graphic, no logo, and no text anywhere on it. The garment is a realistic ${color.toLowerCase()} ${garmentType.toLowerCase()}, worn by a model facing directly forward with the chest fully visible and centered in frame, on a plain neutral studio background, front view, professional apparel product photography, sharp focus, even lighting.`;
+
+  async function callHuggingFace() {
+    return axios.post(
+      `https://router.huggingface.co/hf-inference/models/${model}`,
+      { inputs: blankPrompt, options: { wait_for_model: true } },
+      {
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+          Accept: "image/png",
+        },
+        responseType: "arraybuffer",
+        timeout: 60000,
+      }
+    );
+  }
+
+  try {
+    let response;
+    try {
+      response = await callHuggingFace();
+    } catch (firstError) {
+      if (firstError.response?.status === 503) {
+        await sleep(8000);
+        response = await callHuggingFace();
+      } else {
+        throw firstError;
+      }
+    }
+
+    const contentType = response.headers["content-type"] || "";
+    if (!contentType.startsWith("image/")) {
+      console.error("Photo preview: unexpected response type from provider:", contentType);
+      return res.status(502).json({ success: false, message: "The photo preview service returned an unexpected response. Please try again." });
+    }
+
+    const garmentImg = await Jimp.read(Buffer.from(response.data));
+    const logoImg = await Jimp.read(logoDiskPath);
+
+    // Same placement convention as the frontend's tint-overlay preview
+    // (GarmentDesignPreview.js: centered at 50%/42%, ~30% of garment
+    // width) so both preview styles put the logo in the same spot.
+    const gw = garmentImg.bitmap.width;
+    const gh = garmentImg.bitmap.height;
+    const targetW = Math.round(gw * 0.3);
+    const scale = targetW / logoImg.bitmap.width;
+    const targetH = Math.round(logoImg.bitmap.height * scale);
+    logoImg.resize({ w: targetW, h: targetH });
+    const x = Math.round(gw * 0.5 - targetW / 2);
+    const y = Math.round(gh * 0.42 - targetH / 2);
+    garmentImg.composite(logoImg, x, y);
+
+    const outBuffer = await garmentImg.getBuffer(JimpMime.png);
+    const imageUrl = `data:image/png;base64,${outBuffer.toString("base64")}`;
+
+    return res.status(200).json({ success: true, imageUrl });
+  } catch (error) {
+    if (error.code === "ECONNABORTED") {
+      return res.status(504).json({ success: false, message: "The photo preview service timed out. Please try again." });
+    }
+
+    const status = error.response?.status;
+
+    if (status === 401 || status === 403) {
+      console.error("Photo preview: provider rejected the API token.");
+      return res.status(502).json({ success: false, message: "Photo preview is temporarily unavailable. Please try again later." });
+    }
+    if (status === 429) {
+      return res.status(429).json({ success: false, message: "The photo preview service is busy right now. Please try again shortly." });
+    }
+
+    console.error("Photo preview error:", error.message);
+    return res.status(502).json({ success: false, message: "Could not generate a photo preview. Please try again." });
   }
 });
 
