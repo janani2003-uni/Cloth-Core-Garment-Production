@@ -6,3 +6,4 @@ backend/uploads/*/*
 # Contains real, live secrets (Mongo URI, JWT secret, email/API credentials)
 # in plain text — never commit this.
 Claude outputs/
+.claude/
