@@ -20,10 +20,11 @@ import {
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import { getUser } from "../utils/auth";
 import { goToPlaceOrder } from "../utils/orderStatus";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const SHOP_API_URL = "http://localhost:5000/api/shops";
-const ME_API_URL = "http://localhost:5000/api/auth/me";
-const UPLOAD_BASE_URL = "http://localhost:5000";
+const SHOP_API_URL = `${API_BASE_URL}/api/shops`;
+const ME_API_URL = `${API_BASE_URL}/api/auth/me`;
+const UPLOAD_BASE_URL = API_BASE_URL;
 
 const LOGO_ACCEPTED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 const LOGO_MAX_SIZE = 5 * 1024 * 1024; // 5MB

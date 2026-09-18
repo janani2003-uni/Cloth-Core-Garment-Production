@@ -8,8 +8,9 @@ import axios from "axios";
 import { Search, People, Shop as ShopIcon } from "react-bootstrap-icons";
 import RoleLayout from "../components/RoleLayout";
 import { SUPERVISOR_NAV_ITEMS } from "../components/roleNav";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/auth/shop-owners";
+const API_URL = `${API_BASE_URL}/api/auth/shop-owners`;
 
 function shopBadgeClass(shop) {
   if (!shop) return "admin-badge-warning";

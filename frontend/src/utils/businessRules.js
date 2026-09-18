@@ -1,6 +1,7 @@
 import axios from "axios";
+import { API_BASE_URL } from "./apiConfig";
 
-const API_URL = "http://localhost:5000/api/settings/business-rules";
+const API_URL = `${API_BASE_URL}/api/settings/business-rules`;
 
 // Client-side-only fallback, used purely so the UI has something sane to
 // show if the request fails — the backend (backend/config/businessRules.js)

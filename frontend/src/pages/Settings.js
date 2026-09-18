@@ -11,13 +11,14 @@ import {
   PASSWORD_REQUIREMENTS_MESSAGE,
   PASSWORD_REQUIREMENTS_LIST,
 } from "../utils/passwordPolicy";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ME_API_URL = "http://localhost:5000/api/auth/me";
-const PASSWORD_API_URL = "http://localhost:5000/api/auth/me/password";
-const SETTINGS_API_URL = "http://localhost:5000/api/settings";
-const BUSINESS_RULES_API_URL = "http://localhost:5000/api/settings/business-rules";
-const SHOP_API_URL = "http://localhost:5000/api/shops";
-const UPLOAD_BASE_URL = "http://localhost:5000";
+const ME_API_URL = `${API_BASE_URL}/api/auth/me`;
+const PASSWORD_API_URL = `${API_BASE_URL}/api/auth/me/password`;
+const SETTINGS_API_URL = `${API_BASE_URL}/api/settings`;
+const BUSINESS_RULES_API_URL = `${API_BASE_URL}/api/settings/business-rules`;
+const SHOP_API_URL = `${API_BASE_URL}/api/shops`;
+const UPLOAD_BASE_URL = API_BASE_URL;
 
 const ADMIN_TOGGLES = [
   { key: "orderUpdates", label: "New order notifications" },

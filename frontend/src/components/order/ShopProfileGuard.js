@@ -16,8 +16,9 @@ import { IconBuildingStore } from "@tabler/icons-react";
 import ShopOwnerLayout from "../ShopOwnerLayout";
 import { ORDER_COLORS as C } from "../../utils/orderTheme";
 import { getUser } from "../../utils/auth";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const PROFILE_STATUS_URL = "http://localhost:5000/api/shops/profile-status";
+const PROFILE_STATUS_URL = `${API_BASE_URL}/api/shops/profile-status`;
 
 function ShopProfileGuard({ children }) {
   const navigate = useNavigate();

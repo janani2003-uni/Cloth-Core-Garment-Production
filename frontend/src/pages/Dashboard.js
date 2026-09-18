@@ -16,6 +16,7 @@ import {
   BoxSeam,
   ExclamationTriangle
 } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -30,7 +31,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchOrders = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/orders");
+        const res = await axios.get(`${API_BASE_URL}/api/orders`);
         const allOrders = Array.isArray(res.data) ? res.data : [];
         const myOrders = user?._id
           ? allOrders.filter((o) => String(o.userId) === String(user._id))
@@ -51,7 +52,7 @@ function Dashboard() {
   useEffect(() => {
     const fetchShop = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/shops/my-shop");
+        const res = await axios.get(`${API_BASE_URL}/api/shops/my-shop`);
         setShop(res.data);
       } catch (err) {
         setShop(null);

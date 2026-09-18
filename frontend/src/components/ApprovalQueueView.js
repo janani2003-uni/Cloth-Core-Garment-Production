@@ -13,6 +13,7 @@ import {
 import RejectOrderModal from "./RejectOrderModal";
 import StockComparisonTable from "./StockComparisonTable";
 import GarmentDesignPreview from "./order/GarmentDesignPreview";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 const C = {
   plum900: "#190019",
@@ -22,7 +23,7 @@ const C = {
   cream100: "#FBE4D8",
 };
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 
 const STATUS_TABS = ["Pending", "Approved", "Rejected", "All"];
 

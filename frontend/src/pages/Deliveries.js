@@ -12,9 +12,10 @@ import {
   Box,
 } from "react-bootstrap-icons";
 import { getUser } from "../utils/auth";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
-const DELIVERIES_API_URL = "http://localhost:5000/api/deliveries/order";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
+const DELIVERIES_API_URL = `${API_BASE_URL}/api/deliveries/order`;
 
 function Deliveries() {
   const navigate = useNavigate();

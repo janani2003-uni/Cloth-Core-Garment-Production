@@ -44,6 +44,7 @@ import tshirtImage from "../assets/tshirt.jpg.png";
 import hoodieImage from "../assets/hoodie.jpg.png";
 import denimImage from "../assets/denim.jpg.png";
 import SuccessModal from "../components/modals/SuccessModal";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 // The four actual garment categories ClothCore takes bulk orders for —
 // reuses the same catalog photos already bundled for the order-placement
@@ -304,7 +305,7 @@ function Home() {
       // official ClothCore Gmail inbox (backend/utils/mailer.js) and only
       // resolves once that email has actually been sent. No mailto: link,
       // no fake success state.
-      await axios.post("http://localhost:5000/api/contact", inquiry);
+      await axios.post(`${API_BASE_URL}/api/contact`, inquiry);
       setInquirySent(true);
       setInquiry({ name: "", email: "", phone: "", shopName: "", subject: "", message: "" });
     } catch (err) {

@@ -10,9 +10,10 @@ import { ORDER_COLORS as C } from "../utils/orderTheme";
 import { getUser } from "../utils/auth";
 import { ADMIN_PREVIEW_ORDER_KEY } from "../components/order/AdminOrderFlowNav";
 import "../styles/orderFlow.css";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
-const PAYMENTS_API_URL = "http://localhost:5000/api/payments";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
+const PAYMENTS_API_URL = `${API_BASE_URL}/api/payments`;
 
 const MAX_PROOF_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ACCEPTED_PROOF_TYPES = ["image/jpeg", "image/jpg", "image/png", "application/pdf"];

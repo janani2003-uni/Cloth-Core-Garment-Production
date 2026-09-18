@@ -5,8 +5,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Search, TruckFront, X } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/deliveries";
+const API_URL = `${API_BASE_URL}/api/deliveries`;
 // Exactly three statuses — the backend enum (backend/models/Delivery.js)
 // only accepts these three now.
 const ALL_STATUSES = ["Not Yet Delivered", "Delivery In Progress", "Delivered"];

@@ -11,8 +11,9 @@
 // backend/routes/designRoutes.js), so that image is shown directly as-is.
 import React from "react";
 import { getGarmentImage } from "../../utils/garmentImages";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const UPLOAD_BASE_URL = "http://localhost:5000";
+const UPLOAD_BASE_URL = API_BASE_URL;
 
 // A logo path can be either a real server path ("/uploads/designs/xxx.png",
 // resolved against the backend) or a client-only data URL (instant preview

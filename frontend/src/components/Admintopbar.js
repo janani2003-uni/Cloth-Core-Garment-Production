@@ -15,8 +15,9 @@ import {
 } from "react-bootstrap-icons";
 import UserAccountMenu from "./UserAccountMenu";
 import { getUser } from "../utils/auth";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const NOTIFICATIONS_API_URL = "http://localhost:5000/api/notifications";
+const NOTIFICATIONS_API_URL = `${API_BASE_URL}/api/notifications`;
 
 function formatRelativeTime(dateInput) {
   if (!dateInput) return "";

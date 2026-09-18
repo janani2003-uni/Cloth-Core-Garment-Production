@@ -7,8 +7,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { ShieldLock, PlusCircle, Copy, Clock } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/admin-codes";
+const API_URL = `${API_BASE_URL}/api/admin-codes`;
 
 function AdminAccessCodes() {
   const [codes, setCodes] = useState([]);

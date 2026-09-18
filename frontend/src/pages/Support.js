@@ -9,8 +9,9 @@ import {
   XCircle,
   ArrowRepeat,
 } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/tickets";
+const API_URL = `${API_BASE_URL}/api/tickets`;
 
 function Support() {
   const [tickets, setTickets] = useState([]);

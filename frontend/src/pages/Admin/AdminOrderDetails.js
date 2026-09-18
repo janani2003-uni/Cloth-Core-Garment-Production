@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import AdminLayout from "../../components/AdminLayout";
 import { ArrowLeft, Image } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
 // Matches the status set used everywhere else in the app (Orders.js's
 // getStatusBadgeStyle) — was previously hardcoded to a single static
@@ -33,13 +34,13 @@ function AdminOrderDetails() {
         setLoading(true);
         setError("");
 
-        const orderRes = await axios.get(`http://localhost:5000/api/orders/${id}`);
+        const orderRes = await axios.get(`${API_BASE_URL}/api/orders/${id}`);
         setOrder(orderRes.data);
 
         const [paymentsRes, sampleRes, deliveryRes] = await Promise.allSettled([
-          axios.get(`http://localhost:5000/api/payments/order/${orderRes.data._id}`),
-          axios.get(`http://localhost:5000/api/samples/order/${orderRes.data._id}`),
-          axios.get(`http://localhost:5000/api/deliveries/order/${orderRes.data._id}`),
+          axios.get(`${API_BASE_URL}/api/payments/order/${orderRes.data._id}`),
+          axios.get(`${API_BASE_URL}/api/samples/order/${orderRes.data._id}`),
+          axios.get(`${API_BASE_URL}/api/deliveries/order/${orderRes.data._id}`),
         ]);
 
         if (paymentsRes.status === "fulfilled") setPayments(paymentsRes.value.data || []);

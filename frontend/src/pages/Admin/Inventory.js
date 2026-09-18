@@ -23,9 +23,10 @@ import {
   ArrowCounterclockwise,
   X,
 } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/inventory";
-const CATALOG_OPTIONS_URL = "http://localhost:5000/api/products/catalog-options";
+const API_URL = `${API_BASE_URL}/api/inventory`;
+const CATALOG_OPTIONS_URL = `${API_BASE_URL}/api/products/catalog-options`;
 
 // Product Catalog used to be its own separate sidebar page
 // (AdminProductCatalog.js). It didn't overlap with what this page already

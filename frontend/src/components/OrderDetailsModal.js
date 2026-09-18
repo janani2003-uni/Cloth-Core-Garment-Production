@@ -8,8 +8,9 @@ import axios from "axios";
 import { X } from "react-bootstrap-icons";
 import AppModal from "./modals/AppModal";
 import GarmentDesignPreview from "./order/GarmentDesignPreview";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 
 const C = {
   plum900: "#190019",

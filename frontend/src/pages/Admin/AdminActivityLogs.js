@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Search, ClockHistory, Person } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/activity-logs";
+const API_URL = `${API_BASE_URL}/api/activity-logs`;
 
 const TARGET_TYPES = ["All Types", "Order", "Payment", "Shop", "Staff", "Inventory", "Production", "Delivery", "User"];
 

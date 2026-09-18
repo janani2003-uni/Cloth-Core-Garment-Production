@@ -19,8 +19,9 @@ import {
   PlusLg,
   Dash,
 } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/products";
+const API_URL = `${API_BASE_URL}/api/products`;
 
 const IMAGE_KEY_OPTIONS = [
   { value: "", label: "None (generic icon)" },

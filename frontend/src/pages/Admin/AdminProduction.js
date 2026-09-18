@@ -12,8 +12,9 @@ import {
   GraphUp,
   PlusCircle
 } from 'react-bootstrap-icons';
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/production";
+const API_URL = `${API_BASE_URL}/api/production`;
 
 function AdminProduction() {
   const [searchTerm, setSearchTerm] = useState('');

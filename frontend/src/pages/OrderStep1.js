@@ -33,11 +33,12 @@ import {
   IconLoader2,
   IconAlertTriangle,
 } from "@tabler/icons-react";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 // Shared order-flow palette (frontend/src/utils/orderTheme.js) — kept as
 // the local alias `C` below so the rest of this file didn't need touching.
 
-const PRODUCTS_API_URL = "http://localhost:5000/api/products";
+const PRODUCTS_API_URL = `${API_BASE_URL}/api/products`;
 
 // The garment catalog (name, fabrics, colors, base price) is backend-driven
 // now — GET /api/products (backend/routes/productRoutes.js) — rather than

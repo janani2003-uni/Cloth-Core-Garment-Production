@@ -22,8 +22,9 @@ import {
   PASSWORD_REQUIREMENTS_MESSAGE,
   PASSWORD_REQUIREMENTS_LIST,
 } from "../../utils/passwordPolicy";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/staff";
+const API_URL = `${API_BASE_URL}/api/staff`;
 
 function AdminCreateStaffAccount() {
   const { staffId } = useParams();

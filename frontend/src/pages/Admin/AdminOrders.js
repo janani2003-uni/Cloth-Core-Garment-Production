@@ -17,8 +17,9 @@ import {
   Truck,
   CheckCircle,
 } from 'react-bootstrap-icons';
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 
 function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('');

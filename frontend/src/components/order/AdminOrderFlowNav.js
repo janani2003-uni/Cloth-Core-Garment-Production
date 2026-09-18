@@ -18,8 +18,9 @@ import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { IconFlask2, IconChevronDown } from "@tabler/icons-react";
 import { ORDER_COLORS as C, ORDER_STEPS } from "../../utils/orderTheme";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 export const ADMIN_PREVIEW_ORDER_KEY = "clothCoreAdminPreviewOrderId";
 
 function AdminOrderFlowNav() {

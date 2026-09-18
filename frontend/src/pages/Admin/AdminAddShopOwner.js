@@ -10,8 +10,9 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AdminLayout from "../../components/AdminLayout";
 import { PersonPlus, CheckCircleFill, ShopWindow } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const USERS_API_URL = "http://localhost:5000/api/auth/users";
+const USERS_API_URL = `${API_BASE_URL}/api/auth/users`;
 
 function AdminAddShopOwner() {
   const navigate = useNavigate();

@@ -36,10 +36,11 @@ import {
   Shop as ShopIcon,
   Building,
 } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const USERS_API_URL = "http://localhost:5000/api/auth/users";
-const SHOP_OWNERS_API_URL = "http://localhost:5000/api/auth/shop-owners";
-const UPLOAD_BASE_URL = "http://localhost:5000";
+const USERS_API_URL = `${API_BASE_URL}/api/auth/users`;
+const SHOP_OWNERS_API_URL = `${API_BASE_URL}/api/auth/shop-owners`;
+const UPLOAD_BASE_URL = API_BASE_URL;
 const USERS_PER_PAGE = 8;
 
 function shopBadgeClass(shop) {

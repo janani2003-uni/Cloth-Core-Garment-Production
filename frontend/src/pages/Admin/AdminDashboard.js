@@ -30,6 +30,7 @@ import {
   Filler
 } from 'chart.js';
 import "./AdminDashboard.css";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
 ChartJS.register(
   CategoryScale,
@@ -44,11 +45,11 @@ ChartJS.register(
   Filler
 );
 
-const DASHBOARD_URL = "http://localhost:5000/api/dashboard";
-const ORDER_STATS_URL = "http://localhost:5000/api/orders/stats";
-const PRODUCTION_STATS_URL = "http://localhost:5000/api/production/stats";
-const INVENTORY_URL = "http://localhost:5000/api/inventory";
-const SALES_REPORT_URL = "http://localhost:5000/api/reports/sales";
+const DASHBOARD_URL = `${API_BASE_URL}/api/dashboard`;
+const ORDER_STATS_URL = `${API_BASE_URL}/api/orders/stats`;
+const PRODUCTION_STATS_URL = `${API_BASE_URL}/api/production/stats`;
+const INVENTORY_URL = `${API_BASE_URL}/api/inventory`;
+const SALES_REPORT_URL = `${API_BASE_URL}/api/reports/sales`;
 
 // Fixed order so the Production by Stage chart always reads left-to-right
 // through the real workflow, regardless of aggregation order from Mongo.

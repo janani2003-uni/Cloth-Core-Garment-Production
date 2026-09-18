@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Search, ChatDots, Clock, CheckCircle, XCircle, ArrowRepeat } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/tickets";
+const API_URL = `${API_BASE_URL}/api/tickets`;
 const STATUSES = ["Open", "In Progress", "Resolved", "Closed"];
 
 function AdminSupportTickets() {

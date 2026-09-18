@@ -10,6 +10,7 @@ import { ORDER_COLORS as C } from "../utils/orderTheme";
 import "../styles/orderFlow.css";
 import { getBusinessRules } from "../utils/businessRules";
 import { IconCheck, IconAlertTriangle, IconMinus, IconPlus, IconLock } from "@tabler/icons-react";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 const SIZE_MEASUREMENTS = {
   S: { chest: 36, length: 26, shoulder: 16, sleeve: 7.5 },
@@ -63,7 +64,7 @@ function OrderStep3() {
     setStockLoading(true);
     setStockError("");
     axios
-      .get("http://localhost:5000/api/garment-stock", { params: { garmentType } })
+      .get(`${API_BASE_URL}/api/garment-stock`, { params: { garmentType } })
       .then((res) => {
         const bySize = {};
         (res.data?.data || []).forEach((entry) => {

@@ -4,8 +4,9 @@
 // Notification Preferences is the main relevant settings section here.
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ME_URL = "http://localhost:5000/api/auth/me";
+const ME_URL = `${API_BASE_URL}/api/auth/me`;
 
 // Update the cached user object in whichever storage the session lives in
 // (localStorage for "remember me", sessionStorage otherwise), so the rest of

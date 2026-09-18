@@ -22,10 +22,11 @@ import {
   IconBuildingStore,
   IconLock,
 } from "@tabler/icons-react";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const DESIGN_UPLOAD_URL = "http://localhost:5000/api/design/upload-logo";
-const MY_SHOP_URL = "http://localhost:5000/api/shops/my-shop";
-const UPLOAD_BASE_URL = "http://localhost:5000";
+const DESIGN_UPLOAD_URL = `${API_BASE_URL}/api/design/upload-logo`;
+const MY_SHOP_URL = `${API_BASE_URL}/api/shops/my-shop`;
+const UPLOAD_BASE_URL = API_BASE_URL;
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB — matches backend/middleware/upload.js
 const ACCEPTED_LOGO_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
@@ -203,7 +204,7 @@ function OrderStep2() {
     setAiError("");
 
     try {
-      const response = await axios.post("http://localhost:5000/api/design/generate", {
+      const response = await axios.post(`${API_BASE_URL}/api/design/generate`, {
         prompt,
         garmentType: initialDraft.garment,
         color: initialDraft.color,

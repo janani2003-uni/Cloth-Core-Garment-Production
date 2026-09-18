@@ -9,8 +9,9 @@ import {
   Box,
 } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/deliveries";
+const API_URL = `${API_BASE_URL}/api/deliveries`;
 // Exactly three statuses — the backend enum (backend/models/Delivery.js)
 // only accepts these three now.
 const DELIVERY_STATUSES = ["Not Yet Delivered", "Delivery In Progress", "Delivered"];

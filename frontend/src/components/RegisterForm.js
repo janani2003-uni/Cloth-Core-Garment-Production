@@ -4,6 +4,7 @@ import { FiUser, FiMail, FiBriefcase, FiLock, FiEye, FiEyeOff, FiAlertCircle } f
 import axios from "axios";
 import { PASSWORD_REGEX, PASSWORD_REQUIREMENTS_MESSAGE } from "../utils/passwordPolicy";
 import SuccessModal from "./modals/SuccessModal";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 function RegisterForm() {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ function RegisterForm() {
       // account exists) or throws (nothing was created), there is no
       // optimistic/fake success state in between.
       await axios.post(
-        "http://localhost:5000/api/auth/register",
+        `${API_BASE_URL}/api/auth/register`,
         {
           firstName: formData.firstName,
           lastName: formData.lastName,

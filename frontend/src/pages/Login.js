@@ -6,9 +6,10 @@ import axios from "axios";
 import logo from "../assets/logo-new.png.jpeg";
 import authSplitImage from "../assets/hero-gallery-1.jpg.png";
 import { setSession } from "../utils/auth";
+import { API_BASE_URL } from "../utils/apiConfig";
 
 const LOGIN_API_URL =
-  "http://localhost:5000/api/auth/login";
+  `${API_BASE_URL}/api/auth/login`;
 
 function Login() {
   const navigate = useNavigate();

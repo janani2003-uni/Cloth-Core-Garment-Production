@@ -16,6 +16,7 @@ import logo from '../assets/logo-new.png.jpeg';
 import { clearSession, getUser } from '../utils/auth';
 import { goToPlaceOrder } from '../utils/orderStatus';
 import LogoutConfirmModal from './modals/LogoutConfirmModal';
+import { API_BASE_URL } from "../utils/apiConfig";
 
 function Sidebar() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ function Sidebar() {
 
   useEffect(() => {
     let cancelled = false;
-    axios.get('http://localhost:5000/api/shops/my-shop')
+    axios.get(`${API_BASE_URL}/api/shops/my-shop`)
       .then((res) => { if (!cancelled) setShop(res.data); })
       .catch(() => { if (!cancelled) setShop(null); })
       .finally(() => { if (!cancelled) setShopChecked(true); });
@@ -162,7 +163,7 @@ function Sidebar() {
         >
           {shop?.logoPath ? (
             <img
-              src={`http://localhost:5000${shop.logoPath}`}
+              src={`${API_BASE_URL}${shop.logoPath}`}
               alt={`${shop.shopName || "Shop"} logo`}
               style={{ width: "36px", height: "36px", borderRadius: "50%", objectFit: "cover", marginRight: "12px", flexShrink: 0 }}
             />

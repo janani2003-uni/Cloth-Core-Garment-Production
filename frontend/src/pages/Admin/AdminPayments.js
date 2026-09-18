@@ -13,8 +13,9 @@ import {
 import AdminLayout from "../../components/AdminLayout";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import RejectOrderModal from "../../components/RejectOrderModal";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/payments";
+const API_URL = `${API_BASE_URL}/api/payments`;
 
 function AdminPayments() {
   const [payments, setPayments] = useState([]);
@@ -198,7 +199,7 @@ function AdminPayments() {
                             <td style={{ fontWeight: 600 }}>LKR {Number(p.amount || 0).toLocaleString()}</td>
                             <td style={{ color: "var(--clothcore-text-soft)" }}>
                               {p.proofFile ? (
-                                <a href={`http://localhost:5000${p.proofFile}`} target="_blank" rel="noreferrer">View Proof</a>
+                                <a href={`${API_BASE_URL}${p.proofFile}`} target="_blank" rel="noreferrer">View Proof</a>
                               ) : p.cardLast4 ? (
                                 `Card •••• ${p.cardLast4}`
                               ) : (

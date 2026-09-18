@@ -6,8 +6,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { getUser } from "../utils/auth";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ME_URL = "http://localhost:5000/api/auth/me";
+const ME_URL = `${API_BASE_URL}/api/auth/me`;
 
 function updateStoredUser(updatedUser) {
   if (localStorage.getItem("user")) {

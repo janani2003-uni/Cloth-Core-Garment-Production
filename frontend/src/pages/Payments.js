@@ -15,9 +15,10 @@ import {
 } from "react-bootstrap-icons";
 import { getUser } from "../utils/auth";
 import { getEffectivePayment, getOrderActionTarget, goToOrder } from "../utils/orderStatus";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
-const PAYMENTS_API_URL = "http://localhost:5000/api/payments/order";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
+const PAYMENTS_API_URL = `${API_BASE_URL}/api/payments/order`;
 
 // A shop owner sees their own payment as "Paid" the moment they submit it —
 // Submitted vs Verified is Admin's internal review-queue distinction, not

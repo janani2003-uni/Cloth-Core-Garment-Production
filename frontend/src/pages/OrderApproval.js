@@ -12,8 +12,9 @@ import { goToPlaceOrder } from "../utils/orderStatus";
 import { ADMIN_PREVIEW_ORDER_KEY } from "../components/order/AdminOrderFlowNav";
 import "../styles/orderFlow.css";
 import { IconRefresh, IconAlertTriangle, IconPlus } from "@tabler/icons-react";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 const POLL_INTERVAL_MS = 8000;
 
 function getDraft() {

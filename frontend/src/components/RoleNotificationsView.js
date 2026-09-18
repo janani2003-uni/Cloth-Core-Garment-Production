@@ -6,9 +6,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Bell, CheckCircle, ExclamationTriangle, CartPlus, CreditCard, ChatDots, Truck } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/notifications";
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const API_URL = `${API_BASE_URL}/api/notifications`;
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 
 const TYPE_ICON = {
   production: CartPlus,

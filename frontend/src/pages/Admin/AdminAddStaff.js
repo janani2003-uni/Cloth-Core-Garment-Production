@@ -15,6 +15,7 @@ import {
   PASSWORD_REQUIREMENTS_MESSAGE,
   PASSWORD_REQUIREMENTS_LIST,
 } from '../../utils/passwordPolicy';
+import { API_BASE_URL } from "../../utils/apiConfig";
 
 function AdminAddStaff() {
   const navigate = useNavigate();
@@ -106,7 +107,7 @@ function AdminAddStaff() {
       setSubmitting(true);
       setAccountError('');
 
-      const response = await axios.post('http://localhost:5000/api/staff', payload);
+      const response = await axios.post(`${API_BASE_URL}/api/staff`, payload);
       const staff = response.data.staff;
       setSavedStaff(staff);
 
@@ -114,7 +115,7 @@ function AdminAddStaff() {
       // password — the Admin no longer has to go through a separate
       // "Create Login Account" page afterward.
       try {
-        await axios.post(`http://localhost:5000/api/staff/${staff._id}/create-account`, {
+        await axios.post(`${API_BASE_URL}/api/staff/${staff._id}/create-account`, {
           email,
           password: formData.password,
           confirmPassword: formData.confirmPassword,

@@ -7,9 +7,10 @@ import axios from "axios";
 import { Search, CreditCard, X, FlagFill } from "react-bootstrap-icons";
 import RoleLayout from "../components/RoleLayout";
 import { SUPERVISOR_NAV_ITEMS } from "../components/roleNav";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const UPLOAD_BASE_URL = "http://localhost:5000";
-const API_URL = "http://localhost:5000/api/payments";
+const UPLOAD_BASE_URL = API_BASE_URL;
+const API_URL = `${API_BASE_URL}/api/payments`;
 const STATUS_OPTIONS = ["All Status", "Submitted", "Verified", "Rejected"];
 const STAGE_OPTIONS = ["All Stages", "Advance", "Final"];
 

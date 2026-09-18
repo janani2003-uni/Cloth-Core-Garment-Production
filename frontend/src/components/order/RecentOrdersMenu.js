@@ -12,8 +12,9 @@ import { IconClipboardList, IconChevronDown } from "@tabler/icons-react";
 import { ORDER_COLORS as C } from "../../utils/orderTheme";
 import { getUser } from "../../utils/auth";
 import { getOrderDisplayStatus, getOrderActionTarget, goToOrder, TONE_COLORS } from "../../utils/orderStatus";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
-const ORDERS_API_URL = "http://localhost:5000/api/orders";
+const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 
 function RecentOrdersMenu() {
   const navigate = useNavigate();

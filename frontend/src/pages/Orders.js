@@ -23,9 +23,10 @@ import {
   Trash,
   CreditCard
 } from "react-bootstrap-icons";
+import { API_BASE_URL } from "../utils/apiConfig";
 
-const API_URL = "http://localhost:5000/api/orders";
-const SAMPLES_API_URL = "http://localhost:5000/api/samples";
+const API_URL = `${API_BASE_URL}/api/orders`;
+const SAMPLES_API_URL = `${API_BASE_URL}/api/samples`;
 const ORDERS_PER_PAGE = 8;
 
 const SAMPLE_STATUS_BADGE = {

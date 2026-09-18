@@ -19,12 +19,13 @@ import {
   FileEarmarkPdf,
 } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
+import { API_BASE_URL } from "../../utils/apiConfig";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
-const REPORTS_API_URL = "http://localhost:5000/api/reports";
-const PRODUCTION_STATS_URL = "http://localhost:5000/api/production/stats";
-const INVENTORY_STATS_URL = "http://localhost:5000/api/inventory/stats";
+const REPORTS_API_URL = `${API_BASE_URL}/api/reports`;
+const PRODUCTION_STATS_URL = `${API_BASE_URL}/api/production/stats`;
+const INVENTORY_STATS_URL = `${API_BASE_URL}/api/inventory/stats`;
 
 function toDateInputValue(date) {
   return date.toISOString().slice(0, 10);
