@@ -4,19 +4,24 @@ const PDFDocument = require("pdfkit");
 
 const router = express.Router();
 
-// A generated design is either a real data: URI Stable Diffusion returned
-// (typically 1-3MB of base64 for a 1024x1024 PNG) or it's bogus/tampered
-// client input — there's no meaningful "too long, keep the first part"
-// middle ground for base64 image data, so anything invalid or unreasonably
-// large is rejected outright (falls back to "") rather than truncated,
-// which would silently persist a corrupt, unrenderable image.
+// A generated/mockup design is either a real data: URI Stable Diffusion
+// returned (typically 1-3MB of base64 for a 1024x1024 PNG) or it's
+// bogus/tampered client input — there's no meaningful "too long, keep the
+// first part" middle ground for base64 image data, so anything invalid or
+// unreasonably large is rejected outright (falls back to "") rather than
+// truncated, which would silently persist a corrupt, unrenderable image.
+// Shared by both design.generatedDesignPath (AI-generated) and
+// design.uploadedLogoMockupPath (AI blank garment + real composited logo) —
+// same shape, same validation rules.
 const MAX_GENERATED_DESIGN_LENGTH = 10_000_000; // ~7.5MB decoded — comfortably above realistic AI output sizes
 const DATA_URI_IMAGE_RE = /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/]+=*$/;
-function sanitizeGeneratedDesignPath(value) {
+function sanitizeDataUriImage(value) {
   if (typeof value !== "string") return "";
   if (value.length === 0 || value.length > MAX_GENERATED_DESIGN_LENGTH) return "";
   return DATA_URI_IMAGE_RE.test(value) ? value : "";
 }
+// Kept as an alias so the existing call site below reads clearly.
+const sanitizeGeneratedDesignPath = sanitizeDataUriImage;
 const Order = require("../models/Order");
 const Production = require("../models/Production");
 const Shop = require("../models/Shop");
@@ -193,7 +198,7 @@ router.get("/", async (req, res) => {
     // including it here means every dashboard/order-list load was
     // transferring the full image for every AI-designed order.
     const orders = await Order.find(filter)
-      .select("-design.generatedDesignPath")
+      .select("-design.generatedDesignPath -design.uploadedLogoMockupPath")
       .sort({ createdAt: -1 })
       .lean();
 
@@ -296,7 +301,7 @@ router.get("/approvals", requireRole("admin", "supervisor"), async (req, res) =>
     // queue view's per-order design image comes from GET
     // /:id/approval-details when a row is opened, not from this list.
     const orders = await Order.find(filter)
-      .select("-design.generatedDesignPath")
+      .select("-design.generatedDesignPath -design.uploadedLogoMockupPath")
       .sort({ createdAt: -1 });
     return res.status(200).json({ success: true, data: orders });
   } catch (error) {
@@ -781,6 +786,10 @@ router.post("/", async (req, res) => {
           uploadedLogoPath: typeof design.uploadedLogoPath === "string" ? design.uploadedLogoPath.slice(0, 300) : "",
           uploadedLogoSource: ["shop_logo", "order_upload"].includes(design.uploadedLogoSource) ? design.uploadedLogoSource : "order_upload",
           fileName: typeof design.fileName === "string" ? design.fileName.slice(0, 255) : "",
+          // Photorealistic mockup (blank garment + the real uploaded logo
+          // composited on top) — same validation as generatedDesignPath
+          // above, since it's the same data: URI shape.
+          uploadedLogoMockupPath: sanitizeDataUriImage(design.uploadedLogoMockupPath),
           ...shared,
         };
       }

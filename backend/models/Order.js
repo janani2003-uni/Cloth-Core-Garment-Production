@@ -195,6 +195,15 @@ const orderSchema = new mongoose.Schema(
       // reproducible later without depending on the AI provider again.
       generatedDesignPath: { type: String, default: "" },
 
+      // Photorealistic mockup for an UPLOADED logo — a blank garment
+      // rendered by the same Hugging Face pipeline as generatedDesignPath,
+      // with the shop's real uploaded logo file composited on top
+      // server-side (never re-rendered by AI, so exact graphics like QR
+      // codes stay intact). Kept as a data: URI for the same reason
+      // generatedDesignPath is: the exact approved image must be
+      // reproducible later without depending on the AI provider again.
+      uploadedLogoMockupPath: { type: String, default: "" },
+
       // What was actually selected in Step 1 at the time this design was
       // chosen — lets the garment-preview compositing reproduce the exact
       // same preview (garment/fabric/color) on Step 4 Review, the Admin
