@@ -3,6 +3,20 @@ const mongoose = require("mongoose");
 const PDFDocument = require("pdfkit");
 
 const router = express.Router();
+
+// A generated design is either a real data: URI Stable Diffusion returned
+// (typically 1-3MB of base64 for a 1024x1024 PNG) or it's bogus/tampered
+// client input — there's no meaningful "too long, keep the first part"
+// middle ground for base64 image data, so anything invalid or unreasonably
+// large is rejected outright (falls back to "") rather than truncated,
+// which would silently persist a corrupt, unrenderable image.
+const MAX_GENERATED_DESIGN_LENGTH = 10_000_000; // ~7.5MB decoded — comfortably above realistic AI output sizes
+const DATA_URI_IMAGE_RE = /^data:image\/(png|jpe?g|webp);base64,[A-Za-z0-9+/]+=*$/;
+function sanitizeGeneratedDesignPath(value) {
+  if (typeof value !== "string") return "";
+  if (value.length === 0 || value.length > MAX_GENERATED_DESIGN_LENGTH) return "";
+  return DATA_URI_IMAGE_RE.test(value) ? value : "";
+}
 const Order = require("../models/Order");
 const Production = require("../models/Production");
 const Shop = require("../models/Shop");
@@ -172,9 +186,16 @@ router.get("/", async (req, res) => {
       ? {}
       : { userId: req.user.id };
 
-    const orders = await Order.find(filter).sort({
-      createdAt: -1,
-    }).lean();
+    // .select excludes design.generatedDesignPath — the AI-generated
+    // design's full base64 image data URI (can be multi-MB per order).
+    // No list view renders it (only single-order fetches like
+    // GET /:id/full-details and GET /:id/approval-details do), so
+    // including it here means every dashboard/order-list load was
+    // transferring the full image for every AI-designed order.
+    const orders = await Order.find(filter)
+      .select("-design.generatedDesignPath")
+      .sort({ createdAt: -1 })
+      .lean();
 
     // order.paymentStatus/amountPaid only ever change once Admin actually
     // verifies a submitted payment (see paymentRoutes.js) — so a shop
@@ -271,7 +292,12 @@ router.get("/approvals", requireRole("admin", "supervisor"), async (req, res) =>
       filter["approval.status"] = { $in: ["Pending", "Approved", "Rejected"] };
     }
 
-    const orders = await Order.find(filter).sort({ createdAt: -1 });
+    // Same generatedDesignPath exclusion as the main list above — this
+    // queue view's per-order design image comes from GET
+    // /:id/approval-details when a row is opened, not from this list.
+    const orders = await Order.find(filter)
+      .select("-design.generatedDesignPath")
+      .sort({ createdAt: -1 });
     return res.status(200).json({ success: true, data: orders });
   } catch (error) {
     console.error("Get Order Approvals Error:", error);
@@ -733,7 +759,19 @@ router.post("/", async (req, res) => {
           type: "ai",
           designSource: "ai_generated",
           prompt: typeof design.prompt === "string" ? design.prompt.slice(0, 500) : "",
-          generatedDesignPath: typeof design.generatedDesignPath === "string" ? design.generatedDesignPath.slice(0, 2_000_000) : "",
+          // Was previously .slice(0, 2_000_000) — but a real Stable
+          // Diffusion output's base64 data URI routinely lands right around
+          // or above that (a ~1.5MB PNG already encodes to ~2M base64
+          // characters), so legitimate images were being silently
+          // truncated into corrupt, unrenderable data URIs once persisted
+          // and reloaded (the Step 2/4 preview looked fine because it read
+          // the untruncated value straight from localStorage, so this only
+          // ever surfaced after submission, in Admin/Supervisor approval
+          // views and Order Details). Validating shape + a much larger cap
+          // means a bad/oversized value is rejected outright (falls back to
+          // "") instead of being mangled into something that looks saved
+          // but silently doesn't render.
+          generatedDesignPath: sanitizeGeneratedDesignPath(design.generatedDesignPath),
           ...shared,
         };
       } else {
