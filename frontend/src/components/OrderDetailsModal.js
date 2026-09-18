@@ -134,7 +134,15 @@ function OrderDetailsModal({ orderId, onClose, onSendToProduction }) {
               )}
               {order.design?.designSource === "uploaded_logo" && (
                 <div style={{ marginTop: 8 }}>
-                  <GarmentDesignPreview garmentName={garment} colorLabel={color} logoPath={order.design.uploadedLogoPath} height={200} />
+                  {order.design.uploadedLogoMockupPath ? (
+                    <img
+                      src={order.design.uploadedLogoMockupPath}
+                      alt="Photorealistic preview of the uploaded logo on the garment"
+                      style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 12 }}
+                    />
+                  ) : (
+                    <GarmentDesignPreview garmentName={garment} colorLabel={color} logoPath={order.design.uploadedLogoPath} height={200} />
+                  )}
                 </div>
               )}
             </Section>

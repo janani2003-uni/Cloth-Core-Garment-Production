@@ -71,6 +71,13 @@ function OrderStep2() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [aiError, setAiError] = useState("");
 
+  // Photorealistic mockup for an uploaded logo — generated the same way an
+  // AI design is (same Hugging Face pipeline), but automatically once a
+  // logo is set rather than behind a manual "Generate" button, since an
+  // upload has no prompt step of its own to gate it on.
+  const [isGeneratingMockup, setIsGeneratingMockup] = useState(false);
+  const [mockupError, setMockupError] = useState("");
+
   const [designNotes, setDesignNotes] = useState(initialDraft.designNotes || "");
 
   const [shopLogo, setShopLogo] = useState(null); // { logoPath, logoOriginalName } | null
@@ -122,6 +129,18 @@ function OrderStep2() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    if (
+      design?.designSource === "uploaded_logo" &&
+      design.uploadedLogoPath &&
+      !design.uploadedLogoMockupPath &&
+      canEditDesign
+    ) {
+      generateMockup(design);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function processFile(file) {
     if (!file) return;
 
@@ -155,6 +174,7 @@ function OrderStep2() {
       setDesign(nextDesign);
       setForceOwnUpload(false);
       persistDraft({ design: nextDesign });
+      generateMockup(nextDesign);
     } catch (err) {
       setUploadError(err.response?.data?.message || "Could not upload the file. Please try again.");
     } finally {
@@ -176,6 +196,7 @@ function OrderStep2() {
   const handleRemoveDesign = () => {
     setDesign(null);
     setUploadError("");
+    setMockupError("");
     setForceOwnUpload(false);
     persistDraft({ design: null });
   };
@@ -191,7 +212,38 @@ function OrderStep2() {
     setDesign(nextDesign);
     setUploadError("");
     persistDraft({ design: nextDesign });
+    generateMockup(nextDesign);
   };
+
+  // Renders a photorealistic garment mockup — a blank garment from the same
+  // Hugging Face pipeline as "Create Shirt Design", with the shop owner's
+  // real uploaded logo file composited on top server-side (pixel-perfect,
+  // never re-rendered by AI, so exact graphics like a QR code stay intact).
+  // Not fatal if it fails: the existing tint-overlay GarmentDesignPreview
+  // still works and the order can still be placed either way.
+  async function generateMockup(baseDesign) {
+    if (!baseDesign?.uploadedLogoPath) return;
+
+    setIsGeneratingMockup(true);
+    setMockupError("");
+
+    try {
+      const response = await axios.post(`${API_BASE_URL}/api/design/mockup`, {
+        logoPath: baseDesign.uploadedLogoPath,
+        garmentType: initialDraft.garment,
+        color: initialDraft.color,
+      });
+      const nextDesign = { ...baseDesign, uploadedLogoMockupPath: response.data.imageUrl };
+      setDesign(nextDesign);
+      persistDraft({ design: nextDesign });
+    } catch (err) {
+      setMockupError(
+        err.response?.data?.message || "Could not render a photorealistic preview. Showing a standard preview instead."
+      );
+    } finally {
+      setIsGeneratingMockup(false);
+    }
+  }
 
   async function handleGenerateAI() {
     const prompt = aiPrompt.trim();
@@ -766,25 +818,83 @@ function OrderStep2() {
                     </span>
                   )}
                 </>
+              ) : isGeneratingMockup ? (
+                <div
+                  className="text-center p-4"
+                  style={{ background: C.cream100, borderRadius: "16px", minHeight: "260px", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}
+                >
+                  <IconLoader2 size={48} stroke={1.5} className="pms-spin" color={C.mauve500} style={{ marginBottom: 15 }} />
+                  <h6 className="fw-bold mb-1" style={{ color: C.plum900 }}>Rendering your garment preview…</h6>
+                  <p className="small mb-0" style={{ color: C.mauve500 }}>This can take up to a minute.</p>
+                </div>
               ) : design?.designSource === "uploaded_logo" ? (
-                <>
-                  <GarmentDesignPreview
-                    garmentName={initialDraft.garment}
-                    colorLabel={initialDraft.color}
-                    colorHex={initialDraft.colorHex}
-                    logoPath={design.uploadedLogoPath}
-                  />
-                  <div className="d-flex align-items-center gap-2 mt-3">
-                    {design.uploadedLogoSource === "shop_logo" ? (
-                      <IconBuildingStore size={16} stroke={2} color={C.mauve500} />
-                    ) : (
-                      <IconFileText size={16} stroke={2} color={C.mauve500} />
+                design.uploadedLogoMockupPath ? (
+                  <>
+                    <img
+                      src={design.uploadedLogoMockupPath}
+                      alt={`Photorealistic preview of your ${initialDraft.color} ${initialDraft.garment} with your uploaded logo`}
+                      style={{ width: "100%", maxHeight: 300, objectFit: "cover", borderRadius: 16, marginBottom: 12, boxShadow: "0 8px 24px rgba(25,0,25,0.15)" }}
+                    />
+                    <div className="d-flex align-items-center gap-2 mb-2">
+                      {design.uploadedLogoSource === "shop_logo" ? (
+                        <IconBuildingStore size={16} stroke={2} color={C.mauve500} />
+                      ) : (
+                        <IconFileText size={16} stroke={2} color={C.mauve500} />
+                      )}
+                      <h6 className="fw-bold mb-0" style={{ color: C.plum900, fontSize: 13.5 }}>
+                        {design.uploadedLogoSource === "shop_logo" ? "Using Shop Logo" : "Uploaded Logo"}
+                      </h6>
+                    </div>
+                    {canEditDesign && (
+                      <button
+                        type="button"
+                        className="btn btn-sm d-flex align-items-center gap-1 fw-bold cc-outline-btn"
+                        style={{ color: C.plum700, border: `1.5px solid ${C.mauve500}`, borderRadius: 20, padding: "6px 16px" }}
+                        onClick={() => generateMockup(design)}
+                        disabled={isGeneratingMockup}
+                      >
+                        <IconRefresh size={14} stroke={2} /> Regenerate
+                      </button>
                     )}
-                    <h6 className="fw-bold mb-0" style={{ color: C.plum900, fontSize: 13.5 }}>
-                      {design.uploadedLogoSource === "shop_logo" ? "Using Shop Logo" : "Uploaded Logo"}
-                    </h6>
-                  </div>
-                </>
+                  </>
+                ) : (
+                  <>
+                    <GarmentDesignPreview
+                      garmentName={initialDraft.garment}
+                      colorLabel={initialDraft.color}
+                      colorHex={initialDraft.colorHex}
+                      logoPath={design.uploadedLogoPath}
+                    />
+                    <div className="d-flex align-items-center gap-2 mt-3">
+                      {design.uploadedLogoSource === "shop_logo" ? (
+                        <IconBuildingStore size={16} stroke={2} color={C.mauve500} />
+                      ) : (
+                        <IconFileText size={16} stroke={2} color={C.mauve500} />
+                      )}
+                      <h6 className="fw-bold mb-0" style={{ color: C.plum900, fontSize: 13.5 }}>
+                        {design.uploadedLogoSource === "shop_logo" ? "Using Shop Logo" : "Uploaded Logo"}
+                      </h6>
+                    </div>
+                    {mockupError && (
+                      <div className="d-flex align-items-start gap-2 mt-2" style={{ color: "#b3261e", fontSize: 12, fontWeight: 600 }}>
+                        <IconAlertTriangle size={14} stroke={2} style={{ flexShrink: 0, marginTop: 1 }} />
+                        <span>
+                          {mockupError}{" "}
+                          {canEditDesign && (
+                            <button
+                              type="button"
+                              className="btn btn-link p-0 fw-bold"
+                              style={{ color: C.plum700, fontSize: 12, textDecoration: "underline" }}
+                              onClick={() => generateMockup(design)}
+                            >
+                              Try again
+                            </button>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )
               ) : (
                 <div
                   className="text-center p-4"

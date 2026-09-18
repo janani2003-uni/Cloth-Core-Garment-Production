@@ -191,13 +191,21 @@ function OrderStep4() {
                   </div>
                 ) : design?.designSource === "uploaded_logo" ? (
                   <div>
-                    <GarmentDesignPreview
-                      garmentName={draft.garment}
-                      colorLabel={draft.color}
-                      colorHex={draft.colorHex}
-                      logoPath={design.uploadedLogoPath}
-                      height={220}
-                    />
+                    {design.uploadedLogoMockupPath ? (
+                      <img
+                        src={design.uploadedLogoMockupPath}
+                        alt={`Photorealistic preview of your ${draft.color} ${draft.garment} with your uploaded logo`}
+                        style={{ maxWidth: "100%", maxHeight: 260, borderRadius: 12, marginBottom: 10 }}
+                      />
+                    ) : (
+                      <GarmentDesignPreview
+                        garmentName={draft.garment}
+                        colorLabel={draft.color}
+                        colorHex={draft.colorHex}
+                        logoPath={design.uploadedLogoPath}
+                        height={220}
+                      />
+                    )}
                     <div className="d-flex align-items-center justify-content-center gap-2 mt-2">
                       {design.uploadedLogoSource === "shop_logo" ? (
                         <IconBuildingStore size={15} stroke={2} color={C.mauve500} />

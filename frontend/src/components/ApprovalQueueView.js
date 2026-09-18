@@ -406,12 +406,20 @@ function ApprovalQueueView({ heading = "Order Approvals", subtitle = "Review and
                       if (design?.designSource === "uploaded_logo" || design?.type === "upload") {
                         return (
                           <div className="mt-2">
-                            <GarmentDesignPreview
-                              garmentName={garmentName}
-                              colorLabel={colorLabel}
-                              logoPath={design.uploadedLogoPath}
-                              height={200}
-                            />
+                            {design.uploadedLogoMockupPath ? (
+                              <img
+                                src={design.uploadedLogoMockupPath}
+                                alt="Photorealistic preview of the uploaded logo on the garment"
+                                style={{ width: "100%", maxHeight: 220, objectFit: "cover", borderRadius: 12 }}
+                              />
+                            ) : (
+                              <GarmentDesignPreview
+                                garmentName={garmentName}
+                                colorLabel={colorLabel}
+                                logoPath={design.uploadedLogoPath}
+                                height={200}
+                              />
+                            )}
                           </div>
                         );
                       }

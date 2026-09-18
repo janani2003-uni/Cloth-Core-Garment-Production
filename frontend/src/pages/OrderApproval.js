@@ -93,6 +93,7 @@ function OrderApproval() {
               uploadedLogoPath: draft.design.uploadedLogoPath,
               uploadedLogoSource: draft.design.uploadedLogoSource,
               fileName: draft.design.fileName,
+              uploadedLogoMockupPath: draft.design.uploadedLogoMockupPath,
               previewGarment: draft.garment,
               previewColor: draft.color,
               previewColorHex: draft.colorHex,
