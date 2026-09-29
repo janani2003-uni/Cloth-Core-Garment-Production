@@ -168,7 +168,7 @@ function Orders() {
   const stats = [
     { label: "Total Orders", value: totalOrders, icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.10)" },
     { label: "Pending Approval", value: pendingOrders, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-    { label: "Delivered", value: deliveredOrders, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
+    { label: "Delivered", value: deliveredOrders, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)", path: "/deliveries" },
     { label: "Total Value", value: `LKR ${totalRevenue.toLocaleString()}`, icon: Wallet2, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)" },
   ];
 
@@ -299,7 +299,14 @@ function Orders() {
           <div className="row g-3 mb-4">
             {stats.map((stat, index) => (
               <div key={index} className="col-xl-3 col-lg-6 col-md-6">
-                <div className="card admin-stat-card orders-stat-card h-100" style={{ borderRadius: "16px", border: "1px solid var(--clothcore-border)" }}>
+                <div
+                  className="card admin-stat-card orders-stat-card h-100"
+                  style={{ borderRadius: "16px", border: "1px solid var(--clothcore-border)", cursor: stat.path ? "pointer" : "default" }}
+                  role={stat.path ? "button" : undefined}
+                  tabIndex={stat.path ? 0 : undefined}
+                  onClick={stat.path ? () => navigate(stat.path) : undefined}
+                  onKeyDown={stat.path ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(stat.path); } } : undefined}
+                >
                   <div className="card-body p-4">
                     <div className="d-flex justify-content-between align-items-start">
                       <div>

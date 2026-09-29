@@ -78,10 +78,10 @@ function Dashboard() {
   const delivered = orders.filter((o) => o.status === "Delivered").length;
 
   const stats = [
-    { label: "Total Orders", value: String(totalOrders), icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
-    { label: "Pending Approval", value: String(pendingApproval), icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-    { label: "In Production", value: String(inProduction), icon: BoxSeam, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)" },
-    { label: "Delivered", value: String(delivered), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" }
+    { label: "Total Orders", value: String(totalOrders), icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)", path: "/orders" },
+    { label: "Pending Approval", value: String(pendingApproval), icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)", path: "/orders" },
+    { label: "In Production", value: String(inProduction), icon: BoxSeam, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)", path: "/orders" },
+    { label: "Delivered", value: String(delivered), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)", path: "/deliveries" }
   ];
 
   const recentOrders = sortedOrders.slice(0, 5);
@@ -137,8 +137,13 @@ function Dashboard() {
                     borderRadius: "16px",
                     boxShadow: "var(--clothcore-shadow)",
                     transition: "all 0.3s ease",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    cursor: "pointer"
                   }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(stat.path)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(stat.path); } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
                     e.currentTarget.style.boxShadow = "var(--clothcore-shadow-hover)";
