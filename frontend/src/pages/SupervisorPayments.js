@@ -100,18 +100,18 @@ function SupervisorPayments() {
   };
 
   return (
-    <RoleLayout sidebarItems={SUPERVISOR_NAV_ITEMS} roleLabel="Supervisor">
-      <div className="admin-page-header">
+    <RoleLayout sidebarItems={SUPERVISOR_NAV_ITEMS} roleLabel="Supervisor" fitScreen>
+      <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
         <div>
-          <h2 className="admin-page-title">Payments</h2>
-          <p className="admin-page-subtitle">
+          <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Payments</h2>
+          <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
             Monitor customer payments. Final verification stays with Admin — flag anything that needs their attention.
           </p>
         </div>
       </div>
 
-      <div className="admin-content-card">
-        <div style={{ padding: "20px 20px 0" }}>
+      <div className="admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ padding: "16px 16px 0", flexShrink: 0 }}>
           <div className="row g-2 mb-3">
             <div className="col-md-6">
               <div className="position-relative">
@@ -139,8 +139,8 @@ function SupervisorPayments() {
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+        <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "900px" }}>
             <thead>
               <tr>
                 <th>Order</th>

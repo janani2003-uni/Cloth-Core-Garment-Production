@@ -28,7 +28,7 @@ const DASHBOARD_VIEWS = [
 const ADMIN_MANAGEMENT_PATHS = ["/users", "/staff", "/production", "/inventory"];
 
 function detectViewFromPath(pathname) {
-  if (pathname.startsWith("/supervisor-dashboard")) return "supervisor";
+  if (pathname.startsWith("/supervisor-dashboard") || pathname.startsWith("/supervisor/")) return "supervisor";
   if (pathname.startsWith("/admin") || ADMIN_MANAGEMENT_PATHS.includes(pathname)) return "admin";
   return "shop-owner";
 }

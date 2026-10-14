@@ -17,7 +17,6 @@ import {
   IconShirtSport,
   IconJacket,
   IconHanger2,
-  IconDeviceFloppy,
   IconRefresh,
   IconLock,
   IconX,
@@ -712,20 +711,6 @@ function OrderStep1() {
                   <IconRefresh size={17} stroke={1.75} /> Reset Selection
                 </motion.button>
               )}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="btn px-4 py-2 d-flex align-items-center gap-2"
-                style={{
-                  background: "#fff",
-                  color: C.plum700,
-                  borderRadius: "25px",
-                  fontWeight: "bold",
-                  border: `1.5px solid ${C.mauve500}`,
-                }}
-              >
-                <IconDeviceFloppy size={17} stroke={1.75} /> Save Progress
-              </motion.button>
             </div>
           </motion.div>
 

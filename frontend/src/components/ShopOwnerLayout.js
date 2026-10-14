@@ -13,6 +13,11 @@ function ShopOwnerLayout({
   contentStyle = { maxWidth: "1280px", margin: "0 auto" },
   shellStyle,
   topbarTitle,
+  // Opt-in: pins the page to exactly one viewport height with no page-level
+  // scrollbar — the caller is then responsible for giving any content that
+  // can overflow (a list, a table, etc.) its own `overflow-y: auto` region.
+  // Off by default so every other page keeps its normal scrolling page.
+  fitScreen = false,
 }) {
   // An Admin browsing shop-owner pages via "View As" still has their own
   // account (role never changes) — this is just a subtle reminder of which
@@ -23,7 +28,10 @@ function ShopOwnerLayout({
     <div className="d-flex admin-shell" style={shellStyle}>
       <Sidebar />
 
-      <div className="flex-grow-1">
+      <div
+        className="flex-grow-1"
+        style={fitScreen ? { height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" } : undefined}
+      >
         <ShopTopbar title={topbarTitle} />
 
         {isAdminPreview && (
@@ -32,7 +40,10 @@ function ShopOwnerLayout({
           </div>
         )}
 
-        <div className={contentClassName} style={contentStyle}>
+        <div
+          className={contentClassName}
+          style={fitScreen ? { ...contentStyle, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : contentStyle}
+        >
           {children}
         </div>
       </div>

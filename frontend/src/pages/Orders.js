@@ -27,7 +27,6 @@ import { API_BASE_URL } from "../utils/apiConfig";
 
 const API_URL = `${API_BASE_URL}/api/orders`;
 const SAMPLES_API_URL = `${API_BASE_URL}/api/samples`;
-const ORDERS_PER_PAGE = 8;
 
 const SAMPLE_STATUS_BADGE = {
   Preparing: "admin-badge-warning",
@@ -39,7 +38,6 @@ const SAMPLE_STATUS_BADGE = {
 function Orders() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -168,7 +166,7 @@ function Orders() {
   const stats = [
     { label: "Total Orders", value: totalOrders, icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.10)" },
     { label: "Pending Approval", value: pendingOrders, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
-    { label: "Delivered", value: deliveredOrders, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)", path: "/deliveries" },
+    { label: "Delivered", value: deliveredOrders, icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" },
     { label: "Total Value", value: `LKR ${totalRevenue.toLocaleString()}`, icon: Wallet2, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)" },
   ];
 
@@ -250,10 +248,9 @@ function Orders() {
     }
   };
 
-  // Pagination
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ORDERS_PER_PAGE));
-  const indexOfFirst = (currentPage - 1) * ORDERS_PER_PAGE;
-  const currentOrders = filteredOrders.slice(indexOfFirst, indexOfFirst + ORDERS_PER_PAGE);
+  // All filtered orders render at once now — the table scrolls internally
+  // (see the fitScreen card below) instead of paginating.
+  const currentOrders = filteredOrders;
 
   if (loading) {
     return (
@@ -283,41 +280,41 @@ function Orders() {
   return (
     <ShopOwnerLayout
       contentClassName="p-3 p-md-4"
-      contentStyle={{ maxWidth: "1280px", margin: "0 auto" }}
+      contentStyle={{ maxWidth: "100%" }}
+      fitScreen
     >
-          {/* Hero Header */}
-          <div className="admin-page-header">
+          {/* Hero Header — kept intentionally compact (small padding/fonts)
+              so the Order History table below gets the bulk of the screen;
+              this is a page-local override via inline styles, not a change
+              to the shared .admin-page-header class other pages also use. */}
+          <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
             <div>
-              <h1 className="admin-page-title" style={{ fontSize: "28px" }}>My Orders</h1>
-              <p className="admin-page-subtitle" style={{ fontSize: "15px" }}>
+              <h1 className="admin-page-title" style={{ fontSize: "18px", marginBottom: 0 }}>My Orders</h1>
+              <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                 View and track every stage of your garment orders in real time
               </p>
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="row g-3 mb-4">
+          {/* Stats Cards — compact strip instead of tall cards */}
+          <div className="row g-2 mb-1" style={{ flexShrink: 0 }}>
             {stats.map((stat, index) => (
               <div key={index} className="col-xl-3 col-lg-6 col-md-6">
                 <div
                   className="card admin-stat-card orders-stat-card h-100"
-                  style={{ borderRadius: "16px", border: "1px solid var(--clothcore-border)", cursor: stat.path ? "pointer" : "default" }}
-                  role={stat.path ? "button" : undefined}
-                  tabIndex={stat.path ? 0 : undefined}
-                  onClick={stat.path ? () => navigate(stat.path) : undefined}
-                  onKeyDown={stat.path ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(stat.path); } } : undefined}
+                  style={{ borderRadius: "12px", border: "1px solid var(--clothcore-border)" }}
                 >
-                  <div className="card-body p-4">
-                    <div className="d-flex justify-content-between align-items-start">
+                  <div className="card-body px-3 py-2">
+                    <div className="d-flex justify-content-between align-items-center">
                       <div>
-                        <div style={{ fontSize: "13px", color: "var(--clothcore-text-soft)", fontWeight: "500" }}>{stat.label}</div>
-                        <div className="fw-bold" style={{ fontSize: "24px", color: "var(--clothcore-text)", marginTop: "4px" }}>{stat.value}</div>
+                        <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)", fontWeight: "500" }}>{stat.label}</div>
+                        <div className="fw-bold" style={{ fontSize: "17px", color: "var(--clothcore-text)" }}>{stat.value}</div>
                       </div>
                       <div style={{
-                        width: "48px", height: "48px", borderRadius: "12px", background: stat.bg,
-                        display: "flex", alignItems: "center", justifyContent: "center"
+                        width: "32px", height: "32px", borderRadius: "9px", background: stat.bg,
+                        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
                       }}>
-                        <stat.icon size={22} style={{ color: stat.color }} />
+                        <stat.icon size={16} style={{ color: stat.color }} />
                       </div>
                     </div>
                   </div>
@@ -327,48 +324,47 @@ function Orders() {
           </div>
 
           {/* Header with Search */}
-          <div className="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center mb-3 gap-3">
+          <div className="d-flex flex-wrap flex-md-nowrap justify-content-between align-items-center mb-1 gap-3" style={{ flexShrink: 0 }}>
             <div>
-              <h5 className="fw-bold mb-0" style={{ color: "var(--clothcore-text)" }}>Order History</h5>
-              <p className="text-muted mb-0" style={{ fontSize: "13px" }}>
+              <h5 className="fw-bold mb-0" style={{ color: "var(--clothcore-text)", fontSize: "15px" }}>Order History</h5>
+              <p className="text-muted mb-0" style={{ fontSize: "12px" }}>
                 {filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"} found
               </p>
             </div>
           </div>
 
-          {/* Table Card */}
-          <div className="card admin-content-card" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid var(--clothcore-border)" }}>
-            <div className="card-header border-0 px-4 py-4" style={{ background: "rgba(223,182,178,0.06)" }}>
-              <div className="position-relative" style={{ maxWidth: "400px" }}>
-                <Search size={18} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "var(--clothcore-text-soft)" }} />
+          {/* Table Card — fills the remaining screen space; only the table
+              body scrolls internally once it overflows. The search bar
+              stays put either way. */}
+          <div className="card admin-content-card d-flex flex-column" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid var(--clothcore-border)", flex: 1, minHeight: 0 }}>
+            <div className="card-header border-0 px-3 py-2" style={{ background: "rgba(223,182,178,0.06)", flexShrink: 0 }}>
+              <div className="position-relative" style={{ maxWidth: "360px" }}>
+                <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--clothcore-text-soft)" }} />
                 <input
                   type="text"
                   className="form-control"
                   placeholder="Search by Order ID, Item or Status..."
                   value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                  style={{ paddingLeft: "42px", borderRadius: "12px", border: "2px solid var(--clothcore-border)", fontSize: "14px", height: "44px" }}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ paddingLeft: "36px", borderRadius: "10px", border: "1.5px solid var(--clothcore-border)", fontSize: "13px", height: "36px" }}
                 />
               </div>
             </div>
 
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-hover orders-table mb-0" style={{ fontSize: "14px" }}>
+            <div className="card-body p-0" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                <table className="table table-hover orders-table mb-0" style={{ fontSize: "13px", minWidth: "1000px" }}>
                   <thead style={{ background: "rgba(223,182,178,0.10)", borderBottom: "2px solid var(--clothcore-border)" }}>
                     <tr>
-                      <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Order ID</th>
-                      <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Item</th>
-                      <th className="px-4 py-3 fw-bold text-center" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Qty</th>
-                      <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Date</th>
-                      <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Status</th>
-                      <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", minWidth: "150px" }}>Production Progress</th>
-                      <th className="px-4 py-3 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Payment</th>
-                      <th className="px-4 py-3 fw-bold text-end" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Amount</th>
-                      <th className="px-4 py-3 fw-bold text-center" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em" }}>Action</th>
+                      <th className="px-3 py-2 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Order ID</th>
+                      <th className="px-3 py-2 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", minWidth: "160px" }}>Item</th>
+                      <th className="px-3 py-2 fw-bold text-center" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Qty</th>
+                      <th className="px-3 py-2 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Date</th>
+                      <th className="px-3 py-2 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Status</th>
+                      <th className="px-3 py-2 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", minWidth: "150px" }}>Production Progress</th>
+                      <th className="px-3 py-2 fw-bold" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Payment</th>
+                      <th className="px-3 py-2 fw-bold text-end" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Amount</th>
+                      <th className="px-3 py-2 fw-bold text-center" style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", textTransform: "uppercase", letterSpacing: "0.03em", whiteSpace: "nowrap" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -391,36 +387,37 @@ function Orders() {
                         const progressValue = Number(order.progress) || 0;
                         return (
                           <tr key={order._id}>
-                            <td className="px-4 py-3">
+                            <td className="px-3 py-2" style={{ whiteSpace: "nowrap" }}>
                               <span
                                 className="fw-bold"
                                 style={{
                                   color: "var(--clothcore-purple)",
-                                  fontSize: "12.5px",
+                                  fontSize: "12px",
                                   background: "rgba(82,43,91,0.08)",
-                                  padding: "4px 10px",
+                                  padding: "3px 9px",
                                   borderRadius: "8px",
                                   display: "inline-block",
+                                  whiteSpace: "nowrap",
                                 }}
                               >
                                 {order.orderId}
                               </span>
                             </td>
-                            <td className="px-4 py-3">{order.item || "N/A"}</td>
-                            <td className="px-4 py-3 text-center"><span className="fw-bold">{order.quantity || 0}</span></td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 py-2 text-truncate" style={{ maxWidth: "220px" }} title={order.item || "N/A"}>{order.item || "N/A"}</td>
+                            <td className="px-3 py-2 text-center"><span className="fw-bold">{order.quantity || 0}</span></td>
+                            <td className="px-3 py-2" style={{ whiteSpace: "nowrap" }}>
                               <div className="d-flex align-items-center">
                                 <Calendar size={14} className="text-muted me-2" />
                                 {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : "N/A"}
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 py-2">
                               <span className={`admin-badge ${statusStyle.badgeClass}`} style={{ display: "inline-flex", alignItems: "center", gap: "4px" }}>
                                 <StatusIcon size={12} />
                                 {order.status || "N/A"}
                               </span>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 py-2">
                               <div className="d-flex align-items-center gap-2">
                                 <div className="progress orders-progress" style={{ width: "90px", height: "8px" }}>
                                   <div
@@ -437,17 +434,17 @@ function Orders() {
                                 </span>
                               </div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-3 py-2">
                               <span className={`admin-badge ${getPaymentBadgeClass(getEffectivePayment(order).status)}`}>
                                 {getEffectivePayment(order).status}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-end">
+                            <td className="px-3 py-2 text-end">
                               <span className="fw-bold" style={{ color: "var(--clothcore-text)" }}>
                                 LKR {Number(order.totalAmount || 0).toLocaleString()}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-center" style={{ position: "relative" }}>
+                            <td className="px-3 py-2 text-center" style={{ position: "relative" }}>
                               <button
                                 className="btn btn-sm orders-view-btn"
                                 onClick={() => setOpenActionMenu(openActionMenu === order._id ? null : order._id)}
@@ -491,7 +488,7 @@ function Orders() {
                                       <CreditCard size={14} /> {getOrderActionTarget(order).label}
                                     </button>
                                   )}
-                                  {canEditOrDelete(order) ? (
+                                  {canEditOrDelete(order) && (
                                     <>
                                       <button
                                         className="orders-action-item"
@@ -509,10 +506,6 @@ function Orders() {
                                         <Trash size={14} /> {deletingOrderId === order._id ? "Deleting..." : "Delete"}
                                       </button>
                                     </>
-                                  ) : (
-                                    <div style={{ padding: "8px 14px", fontSize: "11.5px", color: "var(--clothcore-text-soft)", borderTop: "1px solid var(--clothcore-border)" }}>
-                                      Edit/Delete only while Pending
-                                    </div>
                                   )}
                                 </div>
                               )}
@@ -525,43 +518,12 @@ function Orders() {
                 </table>
               </div>
             </div>
-
-            {filteredOrders.length > 0 && (
-              <div className="card-footer border-0 px-4 py-3" style={{ background: "rgba(223,182,178,0.06)" }}>
-                <div className="d-flex flex-wrap justify-content-between align-items-center">
-                  <span className="text-muted" style={{ fontSize: "14px" }}>
-                    Showing <strong>{indexOfFirst + 1}</strong>–<strong>{Math.min(indexOfFirst + ORDERS_PER_PAGE, filteredOrders.length)}</strong> of <strong>{filteredOrders.length}</strong>
-                  </span>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-sm px-3 py-1"
-                      style={{ borderRadius: "8px", border: "2px solid var(--clothcore-border)", background: "rgba(82,43,91,0.06)", fontWeight: "500", fontSize: "13px" }}
-                      disabled={currentPage === 1}
-                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    >
-                      Previous
-                    </button>
-                    <span className="d-flex align-items-center px-2" style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>
-                      Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                      className="btn btn-sm px-3 py-1"
-                      style={{ borderRadius: "8px", border: "2px solid var(--clothcore-border)", background: "rgba(82,43,91,0.06)", fontWeight: "500", fontSize: "13px" }}
-                      disabled={currentPage === totalPages}
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
-          <div className="mt-4">
+          <div className="mt-3" style={{ flexShrink: 0 }}>
             <button
               className="btn px-4 py-2"
-              style={{ background: "rgba(107,91,115,0.1)", color: "var(--clothcore-text-soft)", borderRadius: "12px", border: "none", fontWeight: "500" }}
+              style={{ background: "rgba(107,91,115,0.1)", color: "var(--clothcore-text-soft)", borderRadius: "12px", border: "none", fontWeight: "500", fontSize: "14px" }}
               onClick={() => navigate("/dashboard")}
             >
               ← Back to Dashboard

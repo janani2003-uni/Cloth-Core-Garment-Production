@@ -650,9 +650,6 @@ function Home() {
       <section className="workflow-section" id="how-it-works">
         <p className="section-subtitle">HOW IT WORKS</p>
         <h2>How ClothCore Works</h2>
-        <p className="workflow-intro">
-          From order submission to delivery tracking — here's how a bulk order moves through ClothCore.
-        </p>
 
         <motion.div
           className="workflow-timeline"

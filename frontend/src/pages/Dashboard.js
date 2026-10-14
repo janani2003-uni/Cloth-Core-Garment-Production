@@ -78,10 +78,10 @@ function Dashboard() {
   const delivered = orders.filter((o) => o.status === "Delivered").length;
 
   const stats = [
-    { label: "Total Orders", value: String(totalOrders), icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)", path: "/orders" },
-    { label: "Pending Approval", value: String(pendingApproval), icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)", path: "/orders" },
-    { label: "In Production", value: String(inProduction), icon: BoxSeam, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)", path: "/orders" },
-    { label: "Delivered", value: String(delivered), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)", path: "/deliveries" }
+    { label: "Total Orders", value: String(totalOrders), icon: Box, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
+    { label: "Pending Approval", value: String(pendingApproval), icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
+    { label: "In Production", value: String(inProduction), icon: BoxSeam, color: "var(--clothcore-mauve)", bg: "rgba(133,79,108,0.12)" },
+    { label: "Delivered", value: String(delivered), icon: CheckCircle, color: "var(--clothcore-success)", bg: "var(--clothcore-success-bg)" }
   ];
 
   const recentOrders = sortedOrders.slice(0, 5);
@@ -104,15 +104,15 @@ function Dashboard() {
   ).length;
 
   return (
-    <ShopOwnerLayout contentClassName="p-3 p-md-4" contentStyle={undefined}>
+    <ShopOwnerLayout contentClassName="p-3 p-md-4" contentStyle={{ maxWidth: "100%" }} fitScreen>
             {/* Shop Profile banner — only fires when there's no profile yet.
                 Shop approval status (Pending/Rejected/Approved) used to get
                 its own banners here too, but that workflow no longer gates
                 anything for the shop owner, so those were removed. */}
             {shopChecked && !shop && (
               <div
-                className="admin-content-card mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3"
-                style={{ background: "var(--clothcore-warning-bg)", border: "1px solid rgba(255,166,76,0.28)", borderRadius: "16px", padding: "16px 20px" }}
+                className="admin-content-card mb-2 d-flex flex-wrap justify-content-between align-items-center gap-3"
+                style={{ background: "var(--clothcore-warning-bg)", border: "1px solid rgba(255,166,76,0.28)", borderRadius: "16px", padding: "12px 18px", flexShrink: 0 }}
               >
                 <div className="d-flex align-items-center gap-3">
                   <ExclamationTriangle size={22} style={{ color: "var(--clothcore-warning)" }} />
@@ -129,21 +129,17 @@ function Dashboard() {
               </div>
             )}
 
-            {/* Stats Cards - Same as before */}
-            <div className="row g-3 mb-4">
+            {/* Stats Cards — kept compact so the Recent Orders / Active
+                Tracking boxes below get most of the screen. */}
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {stats.map((stat, index) => (
                 <div key={index} className="col-xl-3 col-lg-6 col-md-6">
                   <div className="card admin-stat-card h-100" style={{
-                    borderRadius: "16px",
+                    borderRadius: "12px",
                     boxShadow: "var(--clothcore-shadow)",
                     transition: "all 0.3s ease",
-                    overflow: "hidden",
-                    cursor: "pointer"
+                    overflow: "hidden"
                   }}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => navigate(stat.path)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(stat.path); } }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = "translateY(-4px)";
                     e.currentTarget.style.boxShadow = "var(--clothcore-shadow-hover)";
@@ -152,26 +148,27 @@ function Dashboard() {
                     e.currentTarget.style.transform = "translateY(0)";
                     e.currentTarget.style.boxShadow = "var(--clothcore-shadow)";
                   }}>
-                    <div className="card-body p-4">
-                      <div className="d-flex justify-content-between align-items-start">
+                    <div className="card-body px-3 py-2">
+                      <div className="d-flex justify-content-between align-items-center">
                         <div>
-                          <div style={{ fontSize: "13px", color: "var(--clothcore-text-soft)", fontWeight: "500" }}>
+                          <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)", fontWeight: "500" }}>
                             {stat.label}
                           </div>
-                          <div className="fw-bold" style={{ fontSize: "28px", color: "var(--clothcore-text)", marginTop: "4px" }}>
+                          <div className="fw-bold" style={{ fontSize: "17px", color: "var(--clothcore-text)" }}>
                             {stat.value}
                           </div>
                         </div>
                         <div style={{
-                          width: "48px",
-                          height: "48px",
-                          borderRadius: "12px",
+                          width: "32px",
+                          height: "32px",
+                          borderRadius: "9px",
                           background: stat.bg,
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center"
+                          justifyContent: "center",
+                          flexShrink: 0
                         }}>
-                          <stat.icon size={24} style={{ color: stat.color }} />
+                          <stat.icon size={16} style={{ color: stat.color }} />
                         </div>
                       </div>
                     </div>
@@ -180,16 +177,29 @@ function Dashboard() {
               ))}
             </div>
 
-            {/* Table + Tracking - Same as before */}
-            <div className="row g-4">
+            {/* Table + Tracking — pinned to fill the remaining viewport
+                height (see ShopOwnerLayout's fitScreen) instead of pushing
+                the page taller. Each card sizes itself to its own content
+                (no forced full-height stretch, which used to leave a big
+                blank gap below a short list) and only starts scrolling
+                internally once its content actually outgrows the space
+                left in the row — so the page itself never needs a
+                scrollbar, but nothing is ever force-stretched either.
+                Plain flexbox on purpose, not Bootstrap's row/col-lg-* — see
+                the note on Payments.js's old split layout for why h-100
+                inside a Bootstrap row that can wrap is unreliable. */}
+            <div className="dashboard-split-row" style={{ flex: 1, minHeight: 0 }}>
               {/* Recent Orders Table */}
-              <div className="col-lg-7">
-                <div className="card admin-content-card" style={{
+              <div className="dashboard-split-col" style={{ flex: "7 1 0", minHeight: 0, display: "flex" }}>
+                <div className="card admin-content-card d-flex flex-column" style={{
                   borderRadius: "20px",
                   boxShadow: "var(--clothcore-shadow-hover)",
-                  overflow: "hidden"
+                  overflow: "hidden",
+                  minHeight: 0,
+                  flex: 1,
+                  width: "100%"
                 }}>
-                  <div className="card-header border-0 px-4 py-3 d-flex justify-content-between align-items-center">
+                  <div className="card-header border-0 px-4 py-3 d-flex justify-content-between align-items-center" style={{ flexShrink: 0 }}>
                     <h5 className="fw-bold mb-0" style={{ color: "var(--clothcore-text)" }}>My Recent Orders</h5>
                     <button
                       className="btn btn-sm"
@@ -210,7 +220,7 @@ function Dashboard() {
                       that matters (status, amount, action) stays visible
                       without ever needing to scroll sideways; only the item
                       description truncates. */}
-                  <div className="card-body p-0">
+                  <div className="card-body p-0" style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
                     {ordersLoading ? (
                       <div className="text-center py-4 text-muted">Loading orders...</div>
                     ) : recentOrders.length === 0 ? (
@@ -287,13 +297,16 @@ function Dashboard() {
               </div>
 
               {/* Active Order Tracking */}
-              <div className="col-lg-5">
-                <div className="card admin-content-card" style={{
+              <div className="dashboard-split-col" style={{ flex: "5 1 0", minHeight: 0, display: "flex" }}>
+                <div className="card admin-content-card d-flex flex-column" style={{
                   borderRadius: "20px",
                   boxShadow: "var(--clothcore-shadow-hover)",
-                  overflow: "hidden"
+                  overflow: "hidden",
+                  minHeight: 0,
+                  flex: 1,
+                  width: "100%"
                 }}>
-                  <div className="card-body p-4">
+                  <div className="card-body p-4" style={{ overflowY: "auto", flex: 1, minHeight: 0 }}>
                     <h5 className="fw-bold mb-3" style={{ color: "var(--clothcore-text)" }}>
                       <BoxSeam size={20} className="me-2" style={{ color: "var(--clothcore-purple)" }} />
                       Active Order Tracking
@@ -420,6 +433,20 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+
+      <style>
+        {`
+          .dashboard-split-row {
+            display: flex;
+            gap: 16px;
+          }
+          @media (max-width: 991px) {
+            .dashboard-split-row {
+              flex-direction: column;
+            }
+          }
+        `}
+      </style>
     </ShopOwnerLayout>
   );
 }

@@ -7,8 +7,6 @@ import AdminLayout from "../../components/AdminLayout";
 import {
   People,
   Search,
-  ChevronLeft,
-  ChevronRight,
   ThreeDotsVertical,
   Eye,
   Pencil,
@@ -23,6 +21,9 @@ import {
   ShieldCheck,
   ShieldSlash,
   Key,
+  Eye as EyeIcon,
+  EyeSlash as EyeSlashIcon,
+  Copy,
 } from "react-bootstrap-icons";
 
 import {
@@ -55,14 +56,14 @@ function AdminStaffManagement() {
   const [resetError, setResetError] = useState("");
   const [resetSaving, setResetSaving] = useState(false);
 
+  const [revealedPasswords, setRevealedPasswords] = useState({});
+  const [copiedPasswordFor, setCopiedPasswordFor] = useState("");
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
   // Single work-status filter — "All" (default, everyone), "On Leave" or
   // "On Duty". Replaces the old Department / Status / Account-view
   // dropdowns with the two toggle buttons above the table.
   const [statusFilter, setStatusFilter] = useState("All");
-
-  const staffPerPage = 8;
 
   // Get all staff from backend
   const fetchStaff = async () => {
@@ -161,33 +162,9 @@ function AdminStaffManagement() {
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination
-  const indexOfLastStaff =
-    currentPage * staffPerPage;
-
-  const indexOfFirstStaff =
-    indexOfLastStaff - staffPerPage;
-
-  const currentStaff = filteredStaff.slice(
-    indexOfFirstStaff,
-    indexOfLastStaff
-  );
-
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      filteredStaff.length / staffPerPage
-    )
-  );
-
-  const paginate = (pageNumber) => {
-    if (
-      pageNumber >= 1 &&
-      pageNumber <= totalPages
-    ) {
-      setCurrentPage(pageNumber);
-    }
-  };
+  // All filtered staff render at once now — the table scrolls internally
+  // (see the fitScreen card below) instead of paginating.
+  const currentStaff = filteredStaff;
 
   // Status badge styling — On Leave (amber) / On Duty (green).
   const getStatusStyle = (status) => {
@@ -290,6 +267,32 @@ function AdminStaffManagement() {
     }
   };
 
+  const togglePasswordReveal = (memberId) => {
+    setRevealedPasswords((prev) => ({ ...prev, [memberId]: !prev[memberId] }));
+  };
+
+  const copyPassword = async (memberId, password) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(password);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = password;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedPasswordFor(memberId);
+      setTimeout(() => setCopiedPasswordFor((current) => (current === memberId ? "" : current)), 1500);
+    } catch (err) {
+      console.error("Copy Password Error:", err);
+    }
+  };
+
   // 6. Create Login (navigates to the dedicated Create Supervisor Account page)
   const handleCreateLogin = (member) => {
     navigate(`/admin/staff/${member._id}/create-account`);
@@ -359,47 +362,14 @@ function AdminStaffManagement() {
   };
 
   return (
-    <AdminLayout>
-            {/* Breadcrumb */}
-            <div
-              style={{
-                marginBottom: "20px",
-              }}
-            >
-              <span
-                style={{
-                  color: "var(--clothcore-text-soft)",
-                  fontSize: "14px",
-                }}
-              >
-                Dashboard
-              </span>
-
-              <span
-                style={{
-                  color: "var(--clothcore-text-soft)",
-                  margin: "0 8px",
-                }}
-              >
-                &gt;
-              </span>
-
-              <span
-                style={{
-                  color: "var(--clothcore-purple)",
-                  fontWeight: "600",
-                  fontSize: "14px",
-                }}
-              >
-                Staff Management
-              </span>
-            </div>
-
-            {/* Header */}
-            <div className="admin-page-header">
+    <AdminLayout fitScreen>
+            {/* Header — kept compact (page-local override, not a change to
+                the shared .admin-page-header class other pages also use)
+                so the staff table below gets most of the screen. */}
+            <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
               <div>
-                <h2 className="admin-page-title">Staff Management</h2>
-                <p className="admin-page-subtitle">
+                <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Staff Management</h2>
+                <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                   All staff members — filter by On Leave or On Duty below
                 </p>
               </div>
@@ -416,8 +386,8 @@ function AdminStaffManagement() {
               </button>
             </div>
 
-            {/* Statistics */}
-            <div className="row g-3 mb-4">
+            {/* Statistics — compact strip */}
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {stats.map((stat) => (
                 <div
                   key={stat.label}
@@ -431,12 +401,12 @@ function AdminStaffManagement() {
                         "var(--clothcore-shadow)",
                     }}
                   >
-                    <div className="card-body p-3 p-xl-4">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="card-body px-3 py-2">
+                      <div className="d-flex justify-content-between align-items-center">
                         <div>
                           <div
                             style={{
-                              fontSize: "13px",
+                              fontSize: "11px",
                               color: "var(--clothcore-text-soft)",
                               fontWeight: "500",
                             }}
@@ -447,9 +417,8 @@ function AdminStaffManagement() {
                           <div
                             className="fw-bold"
                             style={{
-                              fontSize: "24px",
+                              fontSize: "17px",
                               color: "var(--clothcore-text)",
-                              marginTop: "4px",
                             }}
                           >
                             {stat.value}
@@ -458,16 +427,17 @@ function AdminStaffManagement() {
 
                         <div
                           style={{
-                            width: "44px",
-                            height: "44px",
-                            borderRadius: "12px",
+                            width: "30px",
+                            height: "30px",
+                            borderRadius: "9px",
                             background:
                               `${stat.color}15`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent:
                               "center",
-                            fontSize: "20px",
+                            fontSize: "14px",
+                            flexShrink: 0,
                           }}
                         >
                           {stat.icon}
@@ -477,19 +447,19 @@ function AdminStaffManagement() {
                       <div className="d-flex align-items-center mt-1">
                         {stat.trend === "up" ? (
                           <ArrowUp
-                            size={14}
+                            size={11}
                             color="var(--clothcore-success)"
                           />
                         ) : (
                           <ArrowDown
-                            size={14}
+                            size={11}
                             color="var(--clothcore-danger)"
                           />
                         )}
 
                         <span
                           style={{
-                            fontSize: "12px",
+                            fontSize: "10.5px",
                             color:
                               stat.trend ===
                               "up"
@@ -508,17 +478,18 @@ function AdminStaffManagement() {
               ))}
             </div>
 
-            {/* Filters */}
+            {/* Filters — compact */}
             <div
-              className="card admin-content-card mb-4"
+              className="card admin-content-card mb-2"
               style={{
-                borderRadius: "16px",
+                borderRadius: "14px",
                 boxShadow:
                   "var(--clothcore-shadow)",
+                flexShrink: 0,
               }}
             >
-              <div className="card-body p-4">
-                <div className="row g-3 align-items-center">
+              <div className="card-body px-3 py-2">
+                <div className="row g-2 align-items-center">
                   <div className="col-lg-4">
                     <div className="position-relative">
                       <Search
@@ -543,15 +514,14 @@ function AdminStaffManagement() {
                           setSearchTerm(
                             event.target.value
                           );
-                          setCurrentPage(1);
                         }}
                         style={{
                           paddingLeft: "40px",
                           borderRadius: "10px",
                           border:
                             "1.5px solid var(--clothcore-border)",
-                          fontSize: "14px",
-                          height: "42px",
+                          fontSize: "13px",
+                          height: "36px",
                         }}
                       />
                     </div>
@@ -568,16 +538,15 @@ function AdminStaffManagement() {
                             className="btn"
                             onClick={() => {
                               setStatusFilter(isActive ? "All" : option);
-                              setCurrentPage(1);
                             }}
                             style={{
                               borderRadius: "10px",
                               border: isActive
                                 ? "1.5px solid var(--clothcore-purple)"
                                 : "1.5px solid var(--clothcore-border)",
-                              fontSize: "14px",
+                              fontSize: "13px",
                               fontWeight: isActive ? "700" : "500",
-                              height: "42px",
+                              height: "36px",
                               flex: 1,
                               background: isActive
                                 ? "var(--clothcore-purple)"
@@ -602,8 +571,8 @@ function AdminStaffManagement() {
                           borderRadius: "10px",
                           border:
                             "1.5px solid var(--clothcore-border)",
-                          fontSize: "14px",
-                          height: "42px",
+                          fontSize: "13px",
+                          height: "36px",
                           display: "flex",
                           alignItems: "center",
                           justifyContent:
@@ -629,42 +598,51 @@ function AdminStaffManagement() {
               </div>
             )}
 
-            {/* Table */}
+            {/* Table — fills the remaining screen space; only the table
+                body scrolls internally once it overflows. */}
             <div
-              className="card admin-content-card"
+              className="card admin-content-card d-flex flex-column"
               style={{
                 borderRadius: "16px",
                 boxShadow:
                   "var(--clothcore-shadow)",
+                flex: 1,
+                minHeight: 0,
               }}
             >
-              <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-hover admin-table mb-0">
+              <div className="card-body p-0" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "1050px" }}>
                     <thead>
                       <tr>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
                           #
                         </th>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
                           Staff ID
                         </th>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
                           Name
                         </th>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
+                          Email
+                        </th>
+                        <th className="px-3 py-2">
+                          Password
+                        </th>
+                        <th className="px-3 py-2">
                           Department
                         </th>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
                           Position
                         </th>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
                           Phone
                         </th>
-                        <th className="px-4 py-3">
+                        <th className="px-3 py-2">
                           Status
                         </th>
-                        <th className="px-4 py-3 text-center">
+                        <th className="px-3 py-2 text-center">
                           Actions
                         </th>
                       </tr>
@@ -674,7 +652,7 @@ function AdminStaffManagement() {
                       {loading ? (
                         <tr>
                           <td
-                            colSpan="8"
+                            colSpan="10"
                             className="text-center py-5"
                           >
                             Loading staff
@@ -702,35 +680,71 @@ function AdminStaffManagement() {
                                   member.staffId
                                 }
                               >
-                                <td className="px-4 py-3">
-                                  {indexOfFirstStaff +
-                                    index +
-                                    1}
+                                <td className="px-3 py-2">
+                                  {index + 1}
                                 </td>
 
-                                <td className="px-4 py-3 text-primary">
+                                <td className="px-3 py-2 text-primary">
                                   {member.staffId}
                                 </td>
 
-                                <td className="px-4 py-3 fw-semibold">
+                                <td className="px-3 py-2 fw-semibold">
                                   {member.name}
                                 </td>
 
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2" style={{ color: "var(--clothcore-text-soft)" }}>
+                                  {member.email || member.userId?.email || "—"}
+                                </td>
+
+                                <td className="px-3 py-2">
+                                  {member.userId?.password ? (
+                                    <div className="d-flex align-items-center gap-2">
+                                      <span style={{ fontFamily: "monospace", fontSize: "12.5px", color: "var(--clothcore-text)" }}>
+                                        {revealedPasswords[member._id] ? member.userId.password : "••••••••"}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        className="admin-link-btn"
+                                        style={{ padding: 0 }}
+                                        onClick={() => togglePasswordReveal(member._id)}
+                                        title={revealedPasswords[member._id] ? "Hide password" : "Show password"}
+                                      >
+                                        {revealedPasswords[member._id] ? <EyeSlashIcon size={13} /> : <EyeIcon size={13} />}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="admin-link-btn"
+                                        style={{ padding: 0, color: copiedPasswordFor === member._id ? "var(--clothcore-success)" : undefined }}
+                                        onClick={() => copyPassword(member._id, member.userId.password)}
+                                        title={copiedPasswordFor === member._id ? "Copied!" : "Copy password"}
+                                      >
+                                        {copiedPasswordFor === member._id ? <CheckCircle size={13} /> : <Copy size={13} />}
+                                      </button>
+                                    </div>
+                                  ) : hasAccount ? (
+                                    <span style={{ fontSize: "12px", color: "var(--clothcore-text-soft)" }} title="Set before this feature was added — use Reset Password to set a retrievable one.">
+                                      Not available
+                                    </span>
+                                  ) : (
+                                    <span style={{ color: "var(--clothcore-text-soft)" }}>—</span>
+                                  )}
+                                </td>
+
+                                <td className="px-3 py-2">
                                   {
                                     member.department
                                   }
                                 </td>
 
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   {member.position}
                                 </td>
 
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   {member.phone}
                                 </td>
 
-                                <td className="px-4 py-3">
+                                <td className="px-3 py-2">
                                   <span
                                     className="badge"
                                     style={{
@@ -756,7 +770,7 @@ function AdminStaffManagement() {
                                   </span>
                                 </td>
 
-                                <td className="px-4 py-3 text-center">
+                                <td className="px-3 py-2 text-center">
                                   <div className="dropdown">
                                     <button
                                       type="button"
@@ -869,7 +883,7 @@ function AdminStaffManagement() {
                       ) : (
                         <tr>
                           <td
-                            colSpan="8"
+                            colSpan="10"
                             className="text-center py-5"
                           >
                             <People
@@ -893,61 +907,6 @@ function AdminStaffManagement() {
                 </div>
               </div>
 
-              {!loading &&
-                filteredStaff.length > 0 && (
-                  <div className="card-footer bg-white border-0 px-4 py-3 d-flex justify-content-between align-items-center">
-                    <div>
-                      Showing{" "}
-                      {indexOfFirstStaff + 1} to{" "}
-                      {Math.min(
-                        indexOfLastStaff,
-                        filteredStaff.length
-                      )}{" "}
-                      of {filteredStaff.length} staff
-                    </div>
-
-                    <div className="d-flex gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-light"
-                        disabled={
-                          currentPage === 1
-                        }
-                        onClick={() =>
-                          paginate(
-                            currentPage - 1
-                          )
-                        }
-                      >
-                        <ChevronLeft
-                          size={16}
-                        />
-                      </button>
-
-                      <span className="btn btn-primary">
-                        {currentPage}
-                      </span>
-
-                      <button
-                        type="button"
-                        className="btn btn-light"
-                        disabled={
-                          currentPage ===
-                          totalPages
-                        }
-                        onClick={() =>
-                          paginate(
-                            currentPage + 1
-                          )
-                        }
-                      >
-                        <ChevronRight
-                          size={16}
-                        />
-                      </button>
-                    </div>
-                  </div>
-                )}
             </div>
 
       {/* View Staff Modal */}

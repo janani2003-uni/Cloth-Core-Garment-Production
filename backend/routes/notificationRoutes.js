@@ -2,7 +2,9 @@ const express = require("express");
 const router = express.Router();
 
 const Notification = require("../models/Notification");
+const User = require("../models/User");
 const { verifyToken, requireRole } = require("../middleware/authMiddleware");
+const { getDisabledNotificationTypes } = require("../utils/notificationPrefs");
 
 router.use(verifyToken);
 
@@ -12,7 +14,13 @@ router.use(verifyToken);
 // and that component is shared by Admin and Supervisor alike.
 router.get("/", requireRole("admin", "supervisor"), async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipientId: null })
+    const viewer = await User.findById(req.user.id).select("notificationPreferences");
+    const disabledTypes = getDisabledNotificationTypes(viewer?.notificationPreferences);
+
+    const filter = { recipientId: null };
+    if (disabledTypes.length) filter.type = { $nin: disabledTypes };
+
+    const notifications = await Notification.find(filter)
       .sort({ createdAt: -1 });
 
     res.status(200).json(notifications);
@@ -31,7 +39,13 @@ router.get("/", requireRole("admin", "supervisor"), async (req, res) => {
 // feed above)
 router.get("/mine", async (req, res) => {
   try {
-    const notifications = await Notification.find({ recipientId: req.user.id })
+    const viewer = await User.findById(req.user.id).select("notificationPreferences");
+    const disabledTypes = getDisabledNotificationTypes(viewer?.notificationPreferences);
+
+    const filter = { recipientId: req.user.id };
+    if (disabledTypes.length) filter.type = { $nin: disabledTypes };
+
+    const notifications = await Notification.find(filter)
       .sort({ createdAt: -1 });
 
     res.status(200).json(notifications);
@@ -49,10 +63,14 @@ router.get("/mine", async (req, res) => {
 // broadcast feed's unread count, everyone else gets their own.
 router.get("/unread-count", async (req, res) => {
   try {
+    const viewer = await User.findById(req.user.id).select("notificationPreferences");
+    const disabledTypes = getDisabledNotificationTypes(viewer?.notificationPreferences);
+
     const filter =
       ["admin", "supervisor"].includes(req.user.role)
         ? { recipientId: null, isRead: false }
         : { recipientId: req.user.id, isRead: false };
+    if (disabledTypes.length) filter.type = { $nin: disabledTypes };
 
     const count = await Notification.countDocuments(filter);
 

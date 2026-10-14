@@ -3,8 +3,6 @@ import AdminLayout from "../../components/AdminLayout";
 import axios from 'axios';
 import {
   Search,
-  ChevronLeft,
-  ChevronRight,
   BoxSeam,
   Gear,
   CheckCircle,
@@ -18,7 +16,6 @@ const API_URL = `${API_BASE_URL}/api/production`;
 
 function AdminProduction() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,8 +29,6 @@ function AdminProduction() {
     progressDistribution: [],
     recentActivity: [],
   });
-  const [totalItems, setTotalItems] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
   const [isSearching, setIsSearching] = useState(false);
 
   const [managing, setManaging] = useState(null);
@@ -41,8 +36,6 @@ function AdminProduction() {
   const [savingManage, setSavingManage] = useState(false);
   const [manageError, setManageError] = useState("");
   const [assignableStaff, setAssignableStaff] = useState([]);
-
-  const ordersPerPage = 5;
 
   const STAGE_OPTIONS = ["Not Started", "Cutting", "Sewing", "Quality Assurance", "Packing", "Completed"];
   const STATUS_OPTIONS = ["In Production", "Completed", "On Hold", "Cancelled"];
@@ -93,35 +86,34 @@ function AdminProduction() {
     };
   });
 
-  // Fetch production orders
+  // Fetch production orders — requests every matching record in one page
+  // (the backend's /api/production route still paginates server-side, so a
+  // large limit is passed instead of a small page size) since the table
+  // now scrolls internally instead of using page controls.
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
-      
+
       const response = await axios.get(API_URL, {
         params: {
-          page: currentPage,
-          limit: ordersPerPage,
+          page: 1,
+          limit: 10000,
           search: searchTerm.trim()
         }
       });
-      
+
       const data = response.data;
       setOrders(data.items || []);
-      setTotalItems(data.totalItems || 0);
-      setTotalPages(data.totalPages || 1);
     } catch (err) {
       console.error("Fetch Orders Error:", err);
       setError(err.response?.data?.message || "Could not load production orders.");
       setOrders([]);
-      setTotalItems(0);
-      setTotalPages(1);
     } finally {
       setLoading(false);
       setIsSearching(false);
     }
-  }, [currentPage, searchTerm, ordersPerPage]);
+  }, [searchTerm]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -220,7 +212,6 @@ function AdminProduction() {
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    setCurrentPage(1);
     setIsSearching(true);
   };
 
@@ -267,67 +258,62 @@ function AdminProduction() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout fitScreen>
 
-            {/* Breadcrumb */}
-            <div style={{ marginBottom: '20px' }}>
-              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Dashboard</span>
-              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: 'var(--clothcore-purple)', fontWeight: '600', fontSize: '14px' }}>Production Management</span>
-            </div>
-
-            {/* Page Header */}
-            <div className="admin-page-header">
+            {/* Page Header — kept compact (page-local override, not a
+                change to the shared .admin-page-header class other pages
+                also use) so the order table below gets most of the screen. */}
+            <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
               <div>
-                <h2 className="admin-page-title">Production Management</h2>
-                <p className="admin-page-subtitle">
+                <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Production Management</h2>
+                <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                   Monitor and manage garment production from start to finish
                 </p>
               </div>
             </div>
 
-            {/* Stats Cards - 5 in a row - Connected to Backend */}
-            <div className="row g-3 mb-4">
+            {/* Stats Cards - 5 in a row - compact strip */}
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {[
                 {
                   label: 'Total Orders',
                   value: stats.totalOrders || 0,
-                  icon: <BoxSeam size={22} color="#522b5b" />,
+                  icon: <BoxSeam size={14} color="#522b5b" />,
                   bg: 'rgba(82,43,91,0.1)'
                 },
                 {
                   label: 'In Production',
                   value: stats.inProduction || 0,
-                  icon: <Gear size={22} color="#d98324" />,
+                  icon: <Gear size={14} color="#d98324" />,
                   bg: 'var(--clothcore-warning-bg)'
                 },
                 {
                   label: 'Completed',
                   value: stats.completed || 0,
-                  icon: <CheckCircle size={22} color="#1a9c5f" />,
+                  icon: <CheckCircle size={14} color="#1a9c5f" />,
                   bg: 'var(--clothcore-success-bg)'
                 },
                 {
                   label: 'On Hold',
                   value: stats.onHold || 0,
-                  icon: <PauseCircle size={22} color="#d1495b" />,
+                  icon: <PauseCircle size={14} color="#d1495b" />,
                   bg: 'var(--clothcore-danger-bg)'
                 },
                 {
                   label: 'Avg. Progress',
                   value: `${stats.averageProgress || 0}%`,
-                  icon: <GraphUp size={22} color="#2b124c" />,
+                  icon: <GraphUp size={14} color="#2b124c" />,
                   bg: 'rgba(43,18,76,0.08)'
                 }
               ].map((stat, index) => (
                 <div key={index} className="col-xl-2 col-lg-3 col-md-6 col-sm-12">
                   <div className="card admin-stat-card">
-                    <div className="card-body">
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "8px" }}>
-                        <div style={{ 
-                          width: "40px", 
-                          height: "40px", 
-                          borderRadius: "10px", 
+                    <div className="card-body px-3 py-2">
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+                        <div style={{
+                          width: "28px",
+                          height: "28px",
+                          borderRadius: "8px",
                           background: stat.bg,
                           display: "flex",
                           alignItems: "center",
@@ -336,10 +322,10 @@ function AdminProduction() {
                           {stat.icon}
                         </div>
                       </div>
-                      <div style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", fontWeight: "500", marginBottom: "2px" }}>
+                      <div style={{ fontSize: "11px", color: "var(--clothcore-text-soft)", fontWeight: "500", marginBottom: "2px" }}>
                         {stat.label}
                       </div>
-                      <div style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)" }}>
+                      <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--clothcore-text)" }}>
                         {stat.value}
                       </div>
                     </div>
@@ -349,12 +335,12 @@ function AdminProduction() {
             </div>
 
             {/* 3 Cards in one row - real data from /api/production/stats */}
-            <div className="row g-3 mb-4">
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {/* Production Status Card */}
               <div className="col-lg-4">
                 <div className="card admin-content-card h-100" style={{ borderRadius: "12px" }}>
-                  <div className="card-body">
-                    <h6 style={{ fontSize: "15px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "16px" }}>
+                  <div className="card-body py-3">
+                    <h6 style={{ fontSize: "14px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "10px" }}>
                       Production Status
                     </h6>
                     
@@ -386,18 +372,19 @@ function AdminProduction() {
                 </div>
               </div>
 
-              {/* Production Progress Card */}
+              {/* Production Progress Card — scrolls internally once the
+                  stage breakdown outgrows a comfortable card height. */}
               <div className="col-lg-4">
-                <div className="card admin-content-card h-100" style={{ borderRadius: "12px" }}>
-                  <div className="card-body">
-                    <h6 style={{ fontSize: "15px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "16px" }}>
+                <div className="card admin-content-card h-100 d-flex flex-column" style={{ borderRadius: "12px", maxHeight: "260px" }}>
+                  <div className="card-body py-3" style={{ overflowY: "auto" }}>
+                    <h6 style={{ fontSize: "14px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "10px" }}>
                       Production Progress
                     </h6>
-                    
+
                     <div style={{ marginBottom: "8px" }}>
                       <span style={{ fontSize: "13px", fontWeight: "600", color: "var(--clothcore-text)" }}>This Month</span>
                     </div>
-                    
+
                     {progressItems.map((item, index) => (
                       <div key={index} style={{ marginBottom: index < progressItems.length - 1 ? "10px" : "0" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "2px" }}>
@@ -426,11 +413,12 @@ function AdminProduction() {
                 </div>
               </div>
 
-              {/* Recent Activities Card */}
+              {/* Recent Activities Card — scrolls internally once the feed
+                  outgrows a comfortable card height. */}
               <div className="col-lg-4">
-                <div className="card admin-content-card h-100" style={{ borderRadius: "12px" }}>
-                  <div className="card-body">
-                    <h6 style={{ fontSize: "15px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "16px" }}>
+                <div className="card admin-content-card h-100 d-flex flex-column" style={{ borderRadius: "12px", maxHeight: "260px" }}>
+                  <div className="card-body py-3" style={{ overflowY: "auto" }}>
+                    <h6 style={{ fontSize: "14px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "10px" }}>
                       Recent Activities
                     </h6>
                     
@@ -469,11 +457,12 @@ function AdminProduction() {
               </div>
             </div>
 
-            {/* Orders Table Card - Connected to Backend */}
-            <div className="card admin-content-card" style={{ borderRadius: "12px" }}>
-              <div className="card-body">
+            {/* Orders Table Card — fills the remaining screen space; only
+                the table body scrolls internally once it overflows. */}
+            <div className="card admin-content-card d-flex flex-column" style={{ borderRadius: "12px", flex: 1, minHeight: 0 }}>
+              <div className="card-body" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                 {/* Search Bar */}
-                <div style={{ marginBottom: "16px" }}>
+                <div style={{ marginBottom: "16px", flexShrink: 0 }}>
                   <div className="position-relative">
                     <Search 
                       size={16} 
@@ -504,8 +493,8 @@ function AdminProduction() {
                 </div>
 
                 {/* Table */}
-                <div className="table-responsive">
-                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+                <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "1050px" }}>
                     <thead style={{ background: "var(--clothcore-peach)" }}>
                       <tr>
                         <th style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-text-soft)" }}>#</th>
@@ -568,7 +557,7 @@ function AdminProduction() {
                           return (
                             <tr key={order._id}>
                               <td style={{ padding: "8px 10px", color: "var(--clothcore-text-soft)" }}>
-                                {((currentPage - 1) * ordersPerPage) + index + 1}
+                                {index + 1}
                               </td>
                               <td style={{ padding: "8px 10px", fontWeight: "600", color: "var(--clothcore-purple)" }}>
                                 {order.orderId}
@@ -665,88 +654,6 @@ function AdminProduction() {
                   </table>
                 </div>
 
-                {/* Pagination */}
-                {!loading && totalItems > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--clothcore-border)" }}>
-                    <div style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>
-                      Showing {((currentPage - 1) * ordersPerPage) + 1} to {Math.min(currentPage * ordersPerPage, totalItems)} of {totalItems} orders
-                    </div>
-                    <div style={{ display: "flex", gap: "4px" }}>
-                      <button
-                        onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
-                        disabled={currentPage === 1}
-                        style={{
-                          padding: "4px 10px",
-                          border: "1px solid var(--clothcore-border)",
-                          borderRadius: "6px",
-                          background: "rgba(82,43,91,0.06)",
-                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                          color: currentPage === 1 ? "#ccc" : "var(--clothcore-text)",
-                          fontSize: "13px"
-                        }}
-                      >
-                        <ChevronLeft size={14} />
-                      </button>
-                      {[...Array(Math.min(totalPages, 5))].map((_, idx) => {
-                        const pageNum = idx + 1;
-                        if (pageNum > 5) return null;
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => setCurrentPage(pageNum)}
-                            style={{
-                              padding: "4px 12px",
-                              border: currentPage === pageNum ? "none" : "1px solid var(--clothcore-border)",
-                              borderRadius: "6px",
-                              background: currentPage === pageNum ? "var(--clothcore-purple)" : "rgba(82,43,91,0.06)",
-                              color: currentPage === pageNum ? "white" : "var(--clothcore-text)",
-                              fontWeight: currentPage === pageNum ? "600" : "400",
-                              cursor: "pointer",
-                              fontSize: "13px"
-                            }}
-                          >
-                            {pageNum}
-                          </button>
-                        );
-                      })}
-                      {totalPages > 5 && (
-                        <>
-                          <span style={{ padding: "4px 8px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>...</span>
-                          <button
-                            onClick={() => setCurrentPage(totalPages)}
-                            style={{
-                              padding: "4px 12px",
-                              border: currentPage === totalPages ? "none" : "1px solid var(--clothcore-border)",
-                              borderRadius: "6px",
-                              background: currentPage === totalPages ? "var(--clothcore-purple)" : "rgba(82,43,91,0.06)",
-                              color: currentPage === totalPages ? "white" : "var(--clothcore-text)",
-                              fontWeight: currentPage === totalPages ? "600" : "400",
-                              cursor: "pointer",
-                              fontSize: "13px"
-                            }}
-                          >
-                            {totalPages}
-                          </button>
-                        </>
-                      )}
-                      <button
-                        onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          padding: "4px 10px",
-                          border: "1px solid var(--clothcore-border)",
-                          borderRadius: "6px",
-                          background: "rgba(82,43,91,0.06)",
-                          cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                          color: currentPage === totalPages ? "#ccc" : "var(--clothcore-text)",
-                          fontSize: "13px"
-                        }}
-                      >
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

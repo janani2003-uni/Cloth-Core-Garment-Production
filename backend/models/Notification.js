@@ -22,6 +22,7 @@ const notificationSchema = new mongoose.Schema(
         "inventory",
         "production",
         "order",
+        "delivery",
         "payment",
         "ticket",
         "system",

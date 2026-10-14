@@ -14,6 +14,7 @@ const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 const TYPE_ICON = {
   production: CartPlus,
   order: CartPlus,
+  delivery: Truck,
   payment: CreditCard,
   ticket: ChatDots,
   inventory: ExclamationTriangle,

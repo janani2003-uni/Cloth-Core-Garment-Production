@@ -113,21 +113,21 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
 
   return (
     <>
-      <div className="admin-page-header">
+      <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
         <div>
-          <h2 className="admin-page-title">{heading}</h2>
-          <p className="admin-page-subtitle">{subtitle}</p>
+          <h2 className="admin-page-title" style={{ fontSize: "18px" }}>{heading}</h2>
+          <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>{subtitle}</p>
         </div>
       </div>
 
       {actionError && (
-        <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "8px", background: "var(--clothcore-danger-bg)", color: "var(--clothcore-danger)", fontSize: "13px" }}>
+        <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "8px", background: "var(--clothcore-danger-bg)", color: "var(--clothcore-danger)", fontSize: "13px", flexShrink: 0 }}>
           {actionError}
         </div>
       )}
 
-      <div className="admin-content-card">
-        <div style={{ padding: "20px 20px 0" }}>
+      <div className="admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ padding: "16px 16px 0", flexShrink: 0 }}>
           <div className="row g-2 mb-3">
             <div className="col-md-8">
               <div className="position-relative">
@@ -153,8 +153,8 @@ function RoleDeliveriesView({ heading, subtitle, canManage }) {
           </div>
         </div>
 
-        <div className="table-responsive">
-          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+        <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "1050px" }}>
             <thead>
               <tr>
                 <th>Order</th>

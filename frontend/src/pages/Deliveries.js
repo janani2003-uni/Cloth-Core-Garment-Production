@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import axios from "axios";
 import {
@@ -18,8 +17,6 @@ const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 const DELIVERIES_API_URL = `${API_BASE_URL}/api/deliveries/order`;
 
 function Deliveries() {
-  const navigate = useNavigate();
-
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -144,28 +141,32 @@ function Deliveries() {
   return (
     <ShopOwnerLayout
       contentClassName="p-3 p-md-4"
-      contentStyle={{ maxWidth: "1280px", margin: "0 auto" }}
+      contentStyle={{ maxWidth: "100%" }}
+      fitScreen
     >
-          {/* Header */}
-          <div className="admin-page-header">
+          {/* Header — kept compact so the table gets most of the screen
+              (page-local override, not a change to the shared
+              .admin-page-header class other pages also use). */}
+          <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
             <div>
-              <h1 className="admin-page-title" style={{ fontSize: "28px" }}>
+              <h1 className="admin-page-title" style={{ fontSize: "18px", marginBottom: 0 }}>
                 My Deliveries
               </h1>
-              <p className="admin-page-subtitle" style={{ fontSize: "15px" }}>
+              <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                 Delivery status for all your orders
               </p>
             </div>
           </div>
 
-          {/* Table Card */}
+          {/* Table Card — fills the remaining screen space; only the table
+              body scrolls internally once it overflows. */}
           <div
-            className="card admin-content-card"
-            style={{ borderRadius: "20px", boxShadow: "var(--clothcore-shadow-hover)", overflow: "hidden" }}
+            className="card admin-content-card d-flex flex-column"
+            style={{ borderRadius: "20px", boxShadow: "var(--clothcore-shadow-hover)", overflow: "hidden", flex: 1, minHeight: 0 }}
           >
-            <div className="card-body p-0">
-              <div className="table-responsive">
-                <table className="table table-hover admin-table mb-0" style={{ fontSize: "14px" }}>
+            <div className="card-body p-0" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                <table className="table table-hover admin-table mb-0" style={{ fontSize: "14px", minWidth: "640px" }}>
                   <thead
                     style={{
                       background: "rgba(82,43,91,0.045)",
@@ -183,6 +184,8 @@ function Deliveries() {
                               fontSize: "12px",
                               textTransform: "uppercase",
                               letterSpacing: "0.5px",
+                              whiteSpace: "nowrap",
+                              ...(heading === "Item" ? { minWidth: "200px" } : {}),
                             }}
                           >
                             {heading}
@@ -227,7 +230,7 @@ function Deliveries() {
                                 #{row.orderDisplayId}
                               </span>
                             </td>
-                            <td className="px-4 py-3">{row.orderItem}</td>
+                            <td className="px-4 py-3 text-truncate" style={{ maxWidth: "260px" }} title={row.orderItem}>{row.orderItem}</td>
                             <td className="px-4 py-3">
                               <span
                                 className="badge px-3 py-2"
@@ -264,24 +267,6 @@ function Deliveries() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <button
-              className="btn px-4 py-2"
-              style={{
-                background: "rgba(107,91,115,0.12)",
-                color: "var(--clothcore-text-soft)",
-                borderRadius: "12px",
-                border: "none",
-                fontWeight: "500",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-              }}
-              onClick={() => navigate("/dashboard")}
-            >
-              ← Back to Dashboard
-            </button>
-          </div>
     </ShopOwnerLayout>
   );
 }

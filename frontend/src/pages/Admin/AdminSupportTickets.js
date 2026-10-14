@@ -102,15 +102,15 @@ function AdminSupportTickets() {
   const resolvedCount = tickets.filter((t) => t.status === "Resolved").length;
 
   return (
-    <AdminLayout>
-            <div className="admin-page-header">
+    <AdminLayout fitScreen>
+            <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
               <div>
-                <h2 className="admin-page-title">Support Tickets</h2>
-                <p className="admin-page-subtitle">Respond to issues raised by shop owners.</p>
+                <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Support Tickets</h2>
+                <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>Respond to issues raised by shop owners.</p>
               </div>
             </div>
 
-            <div className="row g-3 mb-4">
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {[
                 { label: "Open", value: openCount, icon: Clock, color: "var(--clothcore-warning)", bg: "var(--clothcore-warning-bg)" },
                 { label: "In Progress", value: inProgressCount, icon: ArrowRepeat, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
@@ -118,21 +118,21 @@ function AdminSupportTickets() {
               ].map((stat) => (
                 <div key={stat.label} className="col-xl-4 col-md-4">
                   <div className="card admin-stat-card">
-                    <div className="card-body">
-                      <div className="admin-stat-icon mb-2" style={{ background: stat.bg, width: "40px", height: "40px" }}>
-                        <stat.icon size={18} style={{ color: stat.color }} />
+                    <div className="card-body px-3 py-2">
+                      <div className="admin-stat-icon mb-1" style={{ background: stat.bg, width: "28px", height: "28px" }}>
+                        <stat.icon size={14} style={{ color: stat.color }} />
                       </div>
-                      <div className="admin-stat-label">{stat.label}</div>
-                      <div className="admin-stat-value" style={{ fontSize: "22px" }}>{stat.value}</div>
+                      <div className="admin-stat-label" style={{ fontSize: "11px" }}>{stat.label}</div>
+                      <div className="admin-stat-value" style={{ fontSize: "16px" }}>{stat.value}</div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="card admin-content-card">
-              <div className="card-body">
-                <div className="row g-2 mb-3">
+            <div className="card admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+              <div className="card-body" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div className="row g-2 mb-3" style={{ flexShrink: 0 }}>
                   <div className="col-md-8">
                     <div className="position-relative">
                       <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--clothcore-text-soft)" }} />
@@ -153,8 +153,8 @@ function AdminSupportTickets() {
                   </div>
                 </div>
 
-                <div className="table-responsive">
-                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+                <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "750px" }}>
                     <thead>
                       <tr><th>Subject</th><th>Shop Owner</th><th>Status</th><th>Last Updated</th><th></th></tr>
                     </thead>

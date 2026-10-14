@@ -354,17 +354,27 @@ function Settings() {
   };
 
   const settingsCard = (
+          // The flex/overflow properties below only take effect inside
+          // ShopOwnerLayout's fitScreen wrapper (a definite-height flex
+          // column) — this same card is also reused unchanged inside
+          // AdminLayout, which has no such wrapper, so there they're simply
+          // no-ops and the Admin page keeps its normal scrolling behavior.
           <div className="card admin-content-card" style={{
             borderRadius: "20px",
             boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
-            overflow: "hidden"
+            overflow: "hidden",
+            flex: 1,
+            minHeight: 0,
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
           }}>
-            <div className="card-body p-0">
-              <div className="row g-0">
+            <div className="card-body p-0" style={{ flex: 1, minHeight: 0, display: "flex" }}>
+              <div className="row g-0" style={{ flex: 1, minHeight: 0, width: "100%" }}>
                 {/* Left Menu */}
                 <div
                   className="col-md-3 border-end p-4"
-                  style={{ background: "rgba(82,43,91,0.035)", borderColor: "var(--clothcore-border)" }}
+                  style={{ background: "rgba(82,43,91,0.035)", borderColor: "var(--clothcore-border)", overflowY: "auto" }}
                 >
                   <h3 className="fw-bold mb-4" style={{ color: "var(--clothcore-purple)" }}>
                     Settings
@@ -435,7 +445,7 @@ function Settings() {
                 </div>
 
                 {/* Right Side */}
-                <div className="col-md-9 p-4">
+                <div className="col-md-9 p-4" style={{ overflowY: "auto" }}>
                   {activeTab === "profile" && (
                     <>
                       <div className="d-flex justify-content-between mb-4">
@@ -961,8 +971,10 @@ function Settings() {
   }
 
   return (
-    <ShopOwnerLayout>
-          {settingsCard}
+    <ShopOwnerLayout fitScreen contentStyle={{ maxWidth: "100%" }}>
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column", width: "100%" }}>
+            {settingsCard}
+          </div>
     </ShopOwnerLayout>
   );
 }

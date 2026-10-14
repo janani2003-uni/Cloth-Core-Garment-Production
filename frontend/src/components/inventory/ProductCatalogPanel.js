@@ -204,12 +204,12 @@ function ProductCatalogPanel() {
 
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px", marginBottom: "24px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: "12px", marginBottom: "10px", flexShrink: 0 }}>
         <div>
-          <h2 style={{ fontSize: "24px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "4px", display: "flex", alignItems: "center", gap: "10px" }}>
-            <Bag size={22} /> Product Catalog
+          <h2 style={{ fontSize: "17px", fontWeight: "700", color: "var(--clothcore-text)", marginBottom: "2px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <Bag size={16} /> Product Catalog
           </h2>
-          <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>
+          <p style={{ fontSize: "12px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>
             The garment types, fabrics, colors and base pricing shop owners choose from in Step 1 of placing an order.
           </p>
         </div>
@@ -218,9 +218,9 @@ function ProductCatalogPanel() {
         </button>
       </div>
 
-      <div className="admin-content-card">
-        <div className="table-responsive">
-          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+      <div className="admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+        <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "900px" }}>
             <thead>
               <tr>
                 <th>Garment</th>

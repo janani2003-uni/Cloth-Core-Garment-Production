@@ -81,15 +81,6 @@ function AdminAddShopOwner() {
 
   return (
     <AdminLayout>
-      {/* Breadcrumb */}
-      <div style={{ marginBottom: "20px" }}>
-        <span style={{ color: "var(--clothcore-text-soft)", fontSize: "14px" }}>Dashboard</span>
-        <span style={{ color: "var(--clothcore-text-soft)", margin: "0 8px" }}>&gt;</span>
-        <span style={{ color: "var(--clothcore-text-soft)", fontSize: "14px" }}>Shop Owner Management</span>
-        <span style={{ color: "var(--clothcore-text-soft)", margin: "0 8px" }}>&gt;</span>
-        <span style={{ color: "var(--clothcore-purple)", fontWeight: "600", fontSize: "14px" }}>Add Shop Owner</span>
-      </div>
-
       {/* Page Header */}
       <div className="admin-page-header">
         <div>

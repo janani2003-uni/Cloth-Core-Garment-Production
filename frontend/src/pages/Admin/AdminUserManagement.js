@@ -31,8 +31,6 @@ import {
   CheckCircle,
   XCircle,
   Filter,
-  ChevronLeft,
-  ChevronRight,
   Shop as ShopIcon,
   Building,
 } from "react-bootstrap-icons";
@@ -41,7 +39,6 @@ import { API_BASE_URL } from "../../utils/apiConfig";
 const USERS_API_URL = `${API_BASE_URL}/api/auth/users`;
 const SHOP_OWNERS_API_URL = `${API_BASE_URL}/api/auth/shop-owners`;
 const UPLOAD_BASE_URL = API_BASE_URL;
-const USERS_PER_PAGE = 8;
 
 function shopBadgeClass(shop) {
   if (!shop) return "admin-badge-warning";
@@ -145,7 +142,6 @@ function AdminUserManagement() {
     useState("All Shop Status");
   const [selectedPeriod, setSelectedPeriod] =
   useState("This Year");
-  const [currentPage, setCurrentPage] = useState(1);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -513,41 +509,9 @@ function AdminUserManagement() {
     matchesSelectedPeriod,
   ]);
 
-  // ==========================
-  // Pagination
-  // ==========================
-  const totalPages = Math.max(
-    1,
-    Math.ceil(
-      filteredUsers.length / USERS_PER_PAGE
-    )
-  );
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const indexOfLastUser =
-    currentPage * USERS_PER_PAGE;
-
-  const indexOfFirstUser =
-    indexOfLastUser - USERS_PER_PAGE;
-
-  const currentUsers = filteredUsers.slice(
-    indexOfFirstUser,
-    indexOfLastUser
-  );
-
-  const paginate = (pageNumber) => {
-    if (
-      pageNumber >= 1 &&
-      pageNumber <= totalPages
-    ) {
-      setCurrentPage(pageNumber);
-    }
-  };
+  // All filtered users render at once now — the table scrolls internally
+  // (see the fitScreen card below) instead of paginating.
+  const currentUsers = filteredUsers;
 
   // ==========================
   // Filter values
@@ -568,21 +532,23 @@ function AdminUserManagement() {
 
 
   return (
-    <AdminLayout>
-            {/* Page Header */}
-            <div className="admin-page-header">
+    <AdminLayout fitScreen>
+            {/* Page Header — kept compact (page-local override, not a
+                change to the shared .admin-page-header class other pages
+                also use) so the user list below gets most of the screen. */}
+            <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
               <div>
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <h2 className="admin-page-title mb-0">Shop Owner Management</h2>
+                <div className="d-flex align-items-center gap-2 mb-0">
+                  <h2 className="admin-page-title mb-0" style={{ fontSize: "18px" }}>Shop Owner Management</h2>
 
                   <span
                     className="badge"
                     style={{
                       background: "rgba(255,255,255,0.18)",
                       color: "#fff",
-                      padding: "4px 12px",
+                      padding: "3px 10px",
                       borderRadius: "20px",
-                      fontSize: "13px",
+                      fontSize: "11.5px",
                       fontWeight: "500",
                     }}
                   >
@@ -590,14 +556,14 @@ function AdminUserManagement() {
                   </span>
                 </div>
 
-                <p className="admin-page-subtitle">
+                <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                   Shop owner accounts and the live Shop Profile details they've saved
                 </p>
               </div>
             </div>
 
-            {/* Statistics Cards */}
-            <div className="row g-3 mb-4">
+            {/* Statistics Cards — compact strip */}
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {stats.map((stat) => (
                 <div
                   key={stat.label}
@@ -606,17 +572,17 @@ function AdminUserManagement() {
                   <div
                     className="card admin-stat-card h-100"
                     style={{
-                      borderRadius: "14px",
+                      borderRadius: "12px",
                       boxShadow:
                         "var(--clothcore-shadow)",
                     }}
                   >
-                    <div className="card-body p-3 p-xl-4">
-                      <div className="d-flex justify-content-between align-items-start mb-2">
+                    <div className="card-body px-3 py-2">
+                      <div className="d-flex justify-content-between align-items-center">
                         <div>
                           <div
                             style={{
-                              fontSize: "13px",
+                              fontSize: "11px",
                               color: "var(--clothcore-text-soft)",
                               fontWeight: "500",
                             }}
@@ -627,9 +593,8 @@ function AdminUserManagement() {
                           <div
                             className="fw-bold"
                             style={{
-                              fontSize: "24px",
+                              fontSize: "17px",
                               color: "var(--clothcore-text)",
-                              marginTop: "4px",
                             }}
                           >
                             {stat.value}
@@ -638,19 +603,20 @@ function AdminUserManagement() {
 
                         <div
                           style={{
-                            width: "44px",
-                            height: "44px",
-                            borderRadius: "12px",
+                            width: "30px",
+                            height: "30px",
+                            borderRadius: "9px",
                             background:
                               `${stat.color}15`,
                             display: "flex",
                             alignItems: "center",
                             justifyContent:
                               "center",
+                            flexShrink: 0,
                           }}
                         >
                           <People
-                            size={20}
+                            size={15}
                             style={{
                               color: stat.color,
                             }}
@@ -661,19 +627,19 @@ function AdminUserManagement() {
                       <div className="d-flex align-items-center mt-1">
                         {stat.trend === "up" ? (
                           <ArrowUp
-                            size={14}
+                            size={11}
                             color="var(--clothcore-success)"
                           />
                         ) : (
                           <ArrowDown
-                            size={14}
+                            size={11}
                             color="var(--clothcore-danger)"
                           />
                         )}
 
                         <span
                           style={{
-                            fontSize: "12px",
+                            fontSize: "10.5px",
                             color:
                               stat.trend === "up"
                                 ? "var(--clothcore-success)"
@@ -691,17 +657,18 @@ function AdminUserManagement() {
               ))}
             </div>
 
-            {/* Search and Filters */}
+            {/* Search and Filters — compact */}
             <div
-              className="card admin-content-card mb-4"
+              className="card admin-content-card mb-2"
               style={{
-                borderRadius: "16px",
+                borderRadius: "14px",
                 boxShadow:
                   "var(--clothcore-shadow)",
+                flexShrink: 0,
               }}
             >
-              <div className="card-body p-4">
-                <div className="row g-3 align-items-center">
+              <div className="card-body px-3 py-2">
+                <div className="row g-2 align-items-center">
                   <div className="col-lg-4">
                     <div className="position-relative">
                       <Search
@@ -725,15 +692,14 @@ function AdminUserManagement() {
                           setSearchTerm(
                             event.target.value
                           );
-                          setCurrentPage(1);
                         }}
                         style={{
                           paddingLeft: "40px",
                           borderRadius: "10px",
                           border:
                             "1.5px solid var(--clothcore-border)",
-                          fontSize: "14px",
-                          height: "42px",
+                          fontSize: "13px",
+                          height: "36px",
                         }}
                       />
                     </div>
@@ -744,13 +710,12 @@ function AdminUserManagement() {
                       value={selectedShopStatus}
                       onChange={(event) => {
                         setSelectedShopStatus(event.target.value);
-                        setCurrentPage(1);
                       }}
                       style={{
                         borderRadius: "10px",
                         border: "1.5px solid var(--clothcore-border)",
-                        fontSize: "14px",
-                        height: "42px",
+                        fontSize: "13px",
+                        height: "36px",
                       }}
                     >
                       {shopStatuses.map((status) => (
@@ -767,13 +732,12 @@ function AdminUserManagement() {
                       value={selectedStatus}
                       onChange={(event) => {
                         setSelectedStatus(event.target.value);
-                        setCurrentPage(1);
                       }}
                       style={{
                         borderRadius: "10px",
                         border: "1.5px solid var(--clothcore-border)",
-                        fontSize: "14px",
-                        height: "42px",
+                        fontSize: "13px",
+                        height: "36px",
                       }}
                     >
                       {statuses.map((status) => (
@@ -790,13 +754,12 @@ function AdminUserManagement() {
                       value={selectedPeriod}
                       onChange={(event) => {
                         setSelectedPeriod(event.target.value);
-                        setCurrentPage(1);
                       }}
                       style={{
                         borderRadius: "10px",
                         border: "1.5px solid var(--clothcore-border)",
-                        fontSize: "14px",
-                        height: "42px",
+                        fontSize: "13px",
+                        height: "36px",
                       }}
                     >
                       <option value="Today">Today</option>
@@ -814,8 +777,8 @@ function AdminUserManagement() {
                       style={{
                         borderRadius: "10px",
                         border: "1.5px solid var(--clothcore-border)",
-                        fontSize: "14px",
-                        height: "42px",
+                        fontSize: "13px",
+                        height: "36px",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -850,48 +813,51 @@ function AdminUserManagement() {
               </div>
             )}
 
-            {/* Users Table */}
+            {/* Users Table — fills the remaining screen space; only the
+                table body scrolls internally once it overflows. */}
             <div
-              className="card admin-content-card"
+              className="card admin-content-card d-flex flex-column"
               style={{
                 borderRadius: "16px",
                 boxShadow: "var(--clothcore-shadow)",
+                flex: 1,
+                minHeight: 0,
               }}
             >
-              <div className="card-body p-0">
-                <div className="table-responsive">
-                  <table className="table table-hover admin-table mb-0">
+              <div className="card-body p-0" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
                     <thead style={{ background: "var(--clothcore-peach)" }}>
                       <tr>
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           #
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           User
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           Email
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           Shop
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           Shop Status
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           Account Status
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold">
                           Start Date
                         </th>
 
-                        <th className="px-4 py-3 small text-uppercase text-muted fw-bold text-center">
+                        <th className="px-3 py-2 small text-uppercase text-muted fw-bold text-center">
                           Actions
                         </th>
                       </tr>
@@ -923,21 +889,21 @@ function AdminUserManagement() {
                           return (
                             <tr key={user.id}>
                               <td
-                                className="px-4 py-3 fw-bold"
+                                className="px-3 py-2 fw-bold"
                                 style={{
                                   color: "var(--clothcore-text-soft)",
                                   fontSize: "13px",
                                 }}
                               >
-                                {indexOfFirstUser + index + 1}
+                                {index + 1}
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <div className="d-flex align-items-center gap-2">
                                   <div
                                     style={{
-                                      width: "36px",
-                                      height: "36px",
+                                      width: "28px",
+                                      height: "28px",
                                       borderRadius: "50%",
                                       background:
                                         "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))",
@@ -945,7 +911,7 @@ function AdminUserManagement() {
                                       display: "flex",
                                       alignItems: "center",
                                       justifyContent: "center",
-                                      fontSize: "13px",
+                                      fontSize: "11.5px",
                                       fontWeight: "600",
                                       flexShrink: 0,
                                     }}
@@ -956,7 +922,7 @@ function AdminUserManagement() {
                                   <span
                                     className="fw-medium"
                                     style={{
-                                      fontSize: "14px",
+                                      fontSize: "13px",
                                       color: "var(--clothcore-text)",
                                     }}
                                   >
@@ -966,7 +932,7 @@ function AdminUserManagement() {
                               </td>
 
                               <td
-                                className="px-4 py-3"
+                                className="px-3 py-2"
                                 style={{
                                   fontSize: "13px",
                                   color: "var(--clothcore-text-soft)",
@@ -976,7 +942,7 @@ function AdminUserManagement() {
                               </td>
 
                               <td
-                                className="px-4 py-3"
+                                className="px-3 py-2"
                                 style={{
                                   fontSize: "13px",
                                   color: "var(--clothcore-text)",
@@ -992,13 +958,13 @@ function AdminUserManagement() {
                                 )}
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <span className={`admin-badge ${shopBadgeClass(user.shop)}`}>
                                   {shopStatusLabel(user.shop)}
                                 </span>
                               </td>
 
-                              <td className="px-4 py-3">
+                              <td className="px-3 py-2">
                                 <span
                                   className="badge"
                                   style={{
@@ -1030,7 +996,7 @@ function AdminUserManagement() {
                               </td>
 
                               <td
-                                className="px-4 py-3"
+                                className="px-3 py-2"
                                 style={{
                                   fontSize: "13px",
                                   color: "var(--clothcore-text-soft)",
@@ -1039,7 +1005,7 @@ function AdminUserManagement() {
                                 {user.joinedDate}
                               </td>
 
-                              <td className="px-4 py-3 text-center">
+                              <td className="px-3 py-2 text-center">
                                 <div className="dropdown">
                                   <button
                                     type="button"
@@ -1156,122 +1122,6 @@ function AdminUserManagement() {
                 </div>
               </div>
 
-              {/* Pagination */}
-              {!loading && filteredUsers.length > 0 && (
-                <div className="card-footer bg-white border-0 px-4 py-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-                  <div
-                    style={{
-                      fontSize: "14px",
-                      color: "var(--clothcore-text-soft)",
-                    }}
-                  >
-                    Showing {indexOfFirstUser + 1} to{" "}
-                    {Math.min(
-                      indexOfLastUser,
-                      filteredUsers.length
-                    )}{" "}
-                    of {filteredUsers.length} shop owners
-                  </div>
-
-                  <nav aria-label="User pagination">
-                    <ul className="pagination mb-0 gap-1">
-                      <li
-                        className={`page-item ${
-                          currentPage === 1
-                            ? "disabled"
-                            : ""
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          className="page-link"
-                          onClick={() =>
-                            paginate(currentPage - 1)
-                          }
-                          disabled={currentPage === 1}
-                          style={{
-                            borderRadius: "8px",
-                            border: "1px solid var(--clothcore-border)",
-                            color: "var(--clothcore-text)",
-                            padding: "6px 12px",
-                          }}
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-                      </li>
-
-                      {Array.from(
-                        { length: totalPages },
-                        (_, index) => index + 1
-                      ).map((pageNumber) => (
-                        <li
-                          key={pageNumber}
-                          className={`page-item ${
-                            currentPage === pageNumber
-                              ? "active"
-                              : ""
-                          }`}
-                        >
-                          <button
-                            type="button"
-                            className="page-link"
-                            onClick={() =>
-                              paginate(pageNumber)
-                            }
-                            style={{
-                              borderRadius: "8px",
-                              border:
-                                currentPage === pageNumber
-                                  ? "none"
-                                  : "1px solid var(--clothcore-border)",
-                              background:
-                                currentPage === pageNumber
-                                  ? "linear-gradient(135deg, var(--clothcore-purple), var(--clothcore-mauve))"
-                                  : "transparent",
-                              color:
-                                currentPage === pageNumber
-                                  ? "white"
-                                  : "var(--clothcore-text)",
-                              padding: "6px 12px",
-                              minWidth: "36px",
-                              textAlign: "center",
-                            }}
-                          >
-                            {pageNumber}
-                          </button>
-                        </li>
-                      ))}
-
-                      <li
-                        className={`page-item ${
-                          currentPage === totalPages
-                            ? "disabled"
-                            : ""
-                        }`}
-                      >
-                        <button
-                          type="button"
-                          className="page-link"
-                          onClick={() =>
-                            paginate(currentPage + 1)
-                          }
-                          disabled={
-                            currentPage === totalPages
-                          }
-                          style={{
-                            borderRadius: "8px",
-                            border: "1px solid var(--clothcore-border)",
-                            color: "var(--clothcore-text)",
-                            padding: "6px 12px",
-                          }}
-                        >
-                          <ChevronRight size={16} />
-                        </button>
-                      </li>
-                    </ul>
-                  </nav>
-                </div>
-              )}
             </div>
 
             {/* Shop Profile detail modal — mirrors exactly what the shop

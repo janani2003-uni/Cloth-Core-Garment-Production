@@ -36,6 +36,7 @@ function getIcon(type) {
       return <ExclamationTriangle size={16} />;
     case "order":
     case "production":
+    case "delivery":
       return <Truck size={16} />;
     case "ticket":
       return <ChatDots size={16} />;

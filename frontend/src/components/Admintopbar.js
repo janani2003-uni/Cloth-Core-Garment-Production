@@ -8,6 +8,7 @@ import {
   PersonPlus,
   ExclamationTriangle,
   CartPlus,
+  Truck,
   CreditCard,
   CheckCircle,
   ChatDots,
@@ -95,6 +96,8 @@ function Admintopbar() {
         return <CartPlus size={18} />;
       case "order":
         return <CartPlus size={18} />;
+      case "delivery":
+        return <Truck size={18} />;
       case "payment":
         return <CreditCard size={18} />;
       case "ticket":
@@ -136,6 +139,12 @@ function Admintopbar() {
         return {
           backgroundColor: "#ede9fe",
           color: "#7c3aed",
+        };
+
+      case "delivery":
+        return {
+          backgroundColor: "#e0f2fe",
+          color: "#0369a1",
         };
 
       case "payment":

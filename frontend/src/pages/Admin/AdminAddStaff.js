@@ -16,6 +16,7 @@ import {
   PASSWORD_REQUIREMENTS_LIST,
 } from '../../utils/passwordPolicy';
 import { API_BASE_URL } from "../../utils/apiConfig";
+import AlertModal from "../../components/modals/AlertModal";
 
 function AdminAddStaff() {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ function AdminAddStaff() {
   const [savedStaff, setSavedStaff] = useState(null);
   const [accountCreated, setAccountCreated] = useState(false);
   const [accountError, setAccountError] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
 
   const departments = ['HR', 'Delivery', 'Production'];
 
@@ -68,7 +70,7 @@ function AdminAddStaff() {
 
     for (const [field, label] of Object.entries(requiredFields)) {
       if (!formData[field] || formData[field].trim() === '') {
-        alert(`${label} is required`);
+        setAlertMessage(`${label} is required`);
         return;
       }
     }
@@ -76,17 +78,17 @@ function AdminAddStaff() {
     const email = formData.email.trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      alert('Please enter a valid email address.');
+      setAlertMessage('Please enter a valid email address.');
       return;
     }
 
     if (!PASSWORD_REGEX.test(formData.password)) {
-      alert(PASSWORD_REQUIREMENTS_MESSAGE);
+      setAlertMessage(PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match.');
+      setAlertMessage('Passwords do not match.');
       return;
     }
 
@@ -133,7 +135,7 @@ function AdminAddStaff() {
 
       // Show backend error message
       const errorMessage = err.response?.data?.message || 'Failed to add staff member. Please try again.';
-      alert(errorMessage);
+      setAlertMessage(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -145,15 +147,6 @@ function AdminAddStaff() {
 
   return (
     <AdminLayout>
-            {/* Breadcrumb */}
-            <div style={{ marginBottom: '20px' }}>
-              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Dashboard</span>
-              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Staff Management</span>
-              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: 'var(--clothcore-purple)', fontWeight: '600', fontSize: '14px' }}>Add Staff Member</span>
-            </div>
-
             {/* Page Header */}
             <div className="admin-page-header">
               <div>
@@ -516,6 +509,12 @@ function AdminAddStaff() {
           }
         `}
       </style>
+
+      <AlertModal
+        open={!!alertMessage}
+        message={alertMessage}
+        onClose={() => setAlertMessage('')}
+      />
 
       {/* Success screen — Staff profile saved. The Supervisor login was
           created automatically using the email + password entered above;

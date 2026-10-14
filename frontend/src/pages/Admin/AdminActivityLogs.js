@@ -58,19 +58,19 @@ function AdminActivityLogs() {
   });
 
   return (
-    <AdminLayout>
-            <div className="admin-page-header">
+    <AdminLayout fitScreen>
+            <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
               <div>
-                <h2 className="admin-page-title">Activity Logs</h2>
-                <p className="admin-page-subtitle">
+                <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Activity Logs</h2>
+                <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                   A record of significant actions taken across the system.
                 </p>
               </div>
             </div>
 
-            <div className="card admin-content-card">
-              <div className="card-body">
-                <div className="row g-2 mb-3">
+            <div className="card admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+              <div className="card-body" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
+                <div className="row g-2 mb-3" style={{ flexShrink: 0 }}>
                   <div className="col-md-8">
                     <div className="position-relative">
                       <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--clothcore-text-soft)" }} />
@@ -98,8 +98,8 @@ function AdminActivityLogs() {
                   </div>
                 </div>
 
-                <div className="table-responsive">
-                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+                <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "800px" }}>
                     <thead>
                       <tr>
                         <th>Actor</th>

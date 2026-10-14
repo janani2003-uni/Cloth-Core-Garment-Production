@@ -25,7 +25,7 @@ function OrderStepHeader({ stepIndex, title, subtitle, icon }) {
     <div className="mb-4">
       {isAdmin && <AdminOrderFlowNav />}
 
-      <OrderProgressIndicator />
+      {isAdmin && <OrderProgressIndicator />}
 
       <div>
         <div

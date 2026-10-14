@@ -15,7 +15,6 @@ import {
   Building,
   Tag,
   CashCoin,
-  Truck,
 } from "react-bootstrap-icons";
 import ShopOwnerLayout from "../components/ShopOwnerLayout";
 import { getUser } from "../utils/auth";
@@ -356,12 +355,12 @@ function ShopProfile() {
   const completion = calcCompletion(shop, owner);
 
   return (
-    <ShopOwnerLayout>
-      <div style={{ maxWidth: "1160px", margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "20px" }}>
+    <ShopOwnerLayout fitScreen contentStyle={{ maxWidth: "100%" }}>
+      <div style={{ width: "100%", flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "12px", marginBottom: "10px", flexShrink: 0 }}>
         <div>
-          <h2 style={{ fontSize: "26px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "4px" }}>Shop Profile</h2>
-          <p style={{ fontSize: "14px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>Manage your shop information.</p>
+          <h2 style={{ fontSize: "20px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "2px" }}>Shop Profile</h2>
+          <p style={{ fontSize: "12.5px", color: "var(--clothcore-text-soft)", marginBottom: "0" }}>Manage your shop information.</p>
         </div>
         {editing ? (
           <div style={{ display: "flex", gap: "10px" }}>
@@ -374,7 +373,7 @@ function ShopProfile() {
       </div>
 
       {message && (
-        <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "8px", background: messageIsError ? "var(--clothcore-danger-bg)" : "var(--clothcore-success-bg)", color: messageIsError ? "var(--clothcore-danger)" : "var(--clothcore-success)", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
+        <div style={{ marginBottom: "16px", padding: "10px 14px", borderRadius: "8px", background: messageIsError ? "var(--clothcore-danger-bg)" : "var(--clothcore-success-bg)", color: messageIsError ? "var(--clothcore-danger)" : "var(--clothcore-success)", fontSize: "13px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px", flexShrink: 0 }}>
           <span>{message}</span>
           {fromOrderGuard && !messageIsError && (
             <button
@@ -391,12 +390,13 @@ function ShopProfile() {
       {/* Status Summary Hero */}
       <div className="clothcore-fade-in" style={{
         borderRadius: "var(--clothcore-radius-lg)",
-        marginBottom: "20px",
-        padding: "28px",
+        marginBottom: "10px",
+        padding: "18px 20px",
         background: "linear-gradient(135deg, var(--clothcore-darkest), var(--clothcore-purple) 60%, var(--clothcore-mauve))",
         boxShadow: "0 16px 40px rgba(0,0,0,0.28)",
         position: "relative",
         overflow: "hidden",
+        flexShrink: 0,
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "20px", position: "relative", zIndex: 1 }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
@@ -415,23 +415,16 @@ function ShopProfile() {
               <div style={{ fontSize: "20px", fontWeight: 700, color: "#fff" }}>{shop.shopName}</div>
             </div>
           </div>
-
-          <button
-            onClick={() => navigate("/orders")}
-            style={{ background: "rgba(255,255,255,0.14)", border: "1px solid rgba(255,255,255,0.3)", color: "#fff", borderRadius: "12px", padding: "10px 18px", fontWeight: 600, fontSize: "13px", cursor: "pointer", transition: "background-color var(--clothcore-transition-smooth)" }}
-          >
-            View My Orders →
-          </button>
         </div>
 
-        <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "24px", position: "relative", zIndex: 1 }}>
+        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "14px", position: "relative", zIndex: 1 }}>
           {[
             { label: "Shop ID", value: shop.shopCode || "Not yet assigned" },
             { label: "Account Status", value: shop.isActive ? "Active" : "Suspended" },
             { label: "Profile Completion", value: `${completion}%` },
             { label: "Registered", value: formatDate(shop.createdAt) },
           ].map((stat) => (
-            <div key={stat.label} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "12px", padding: "10px 16px", minWidth: "140px" }}>
+            <div key={stat.label} style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.18)", borderRadius: "10px", padding: "7px 14px", minWidth: "130px" }}>
               <div style={{ fontSize: "10.5px", color: "rgba(255,255,255,0.7)", textTransform: "uppercase", letterSpacing: "0.04em" }}>{stat.label}</div>
               <div style={{ fontSize: "14.5px", fontWeight: 700, color: "#fff", marginTop: "2px" }}>{stat.value}</div>
             </div>
@@ -441,7 +434,10 @@ function ShopProfile() {
         <div style={{ position: "absolute", top: "-40px", right: "-40px", width: "180px", height: "180px", borderRadius: "50%", background: "rgba(255,255,255,0.06)", zIndex: 0 }} />
       </div>
 
-      <div className="row g-3">
+      {/* Scrollable content — everything below the hero (Owner/Shop/Business
+          Details on the left, Logo on the right) scrolls in this one region
+          so the header, hero and Edit/Save buttons stay pinned in view. */}
+      <div className="row g-3" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
         <div className="col-lg-8">
           {/* Owner Information */}
           <div className="admin-content-card" style={{ padding: "24px", marginBottom: "20px" }}>
@@ -470,17 +466,6 @@ function ShopProfile() {
             </div>
           </div>
 
-          {/* Business Details */}
-          <div className="admin-content-card" style={{ padding: "24px" }}>
-            <h3 style={{ fontSize: "15px", fontWeight: 700, color: "var(--clothcore-text)", marginBottom: "16px" }}>Business Details</h3>
-            <div className="row g-3">
-              <div className="col-md-6"><Field label="Main Garment Categories (optional)" name="garmentCategories" value={form.garmentCategories} editing={editing} onChange={handleChange} icon={Tag} /></div>
-              <div className="col-md-6"><Field label="Est. Monthly Bulk Order Quantity (optional)" name="estimatedMonthlyVolume" value={form.estimatedMonthlyVolume} editing={editing} onChange={handleChange} icon={Truck} /></div>
-              <div className="col-md-6"><Field label="Preferred Payment Method (optional)" name="preferredPaymentMethod" value={form.preferredPaymentMethod} editing={editing} onChange={handleChange} icon={CashCoin} /></div>
-              <div className="col-12"><Field label="Delivery Instructions (optional)" name="deliveryInstructions" value={form.deliveryInstructions} editing={editing} onChange={handleChange} textarea /></div>
-              <div className="col-12"><Field label="Short Business Description (optional)" name="businessDescription" value={form.businessDescription} editing={editing} onChange={handleChange} textarea /></div>
-            </div>
-          </div>
         </div>
 
         <div className="col-lg-4">

@@ -5,7 +5,7 @@
 // here deliberately — this whole page is the access control for them.
 import React, { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { ShieldLock, PlusCircle, Copy, Clock } from "react-bootstrap-icons";
+import { ShieldLock, PlusCircle, Copy, CheckCircle, Clock } from "react-bootstrap-icons";
 import AdminLayout from "../../components/AdminLayout";
 import { API_BASE_URL } from "../../utils/apiConfig";
 
@@ -21,6 +21,7 @@ function AdminAccessCodes() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [busyId, setBusyId] = useState(null);
+  const [copiedCode, setCopiedCode] = useState("");
 
   const fetchCodes = useCallback(async () => {
     try {
@@ -81,18 +82,39 @@ function AdminAccessCodes() {
     }
   };
 
-  const handleCopy = (code) => {
-    navigator.clipboard?.writeText(code);
+  const handleCopy = async (code) => {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        // Fallback for contexts where the Clipboard API isn't available
+        // (e.g. non-secure origins) — a hidden textarea + execCommand still
+        // works everywhere modern browsers run.
+        const textarea = document.createElement("textarea");
+        textarea.value = code;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode((current) => (current === code ? "" : current)), 1500);
+    } catch (err) {
+      console.error("Copy Code Error:", err);
+    }
   };
 
   return (
-    <AdminLayout>
-      <div className="admin-page-header">
+    <AdminLayout fitScreen>
+      <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
         <div>
-          <h2 className="admin-page-title" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <ShieldLock size={22} /> Admin Access Codes
+          <h2 className="admin-page-title" style={{ display: "flex", alignItems: "center", gap: "10px", fontSize: "18px" }}>
+            <ShieldLock size={18} /> Admin Access Codes
           </h2>
-          <p className="admin-page-subtitle">
+          <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
             Codes an existing account can enter at login (with their normal password) to become an Admin. Share these only with people you trust.
           </p>
         </div>
@@ -101,13 +123,12 @@ function AdminAccessCodes() {
         </button>
       </div>
 
-      <div className="admin-content-card">
-        <div className="table-responsive">
-          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+      <div className="admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+        <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "800px" }}>
             <thead>
               <tr>
                 <th>Code</th>
-                <th>Label</th>
                 <th>Status</th>
                 <th>Created By</th>
                 <th>Times Used</th>
@@ -117,14 +138,14 @@ function AdminAccessCodes() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="text-center py-5"><div className="spinner-border" role="status" style={{ color: "var(--clothcore-mauve)" }} /></td></tr>
+                <tr><td colSpan={6} className="text-center py-5"><div className="spinner-border" role="status" style={{ color: "var(--clothcore-mauve)" }} /></td></tr>
               ) : error ? (
-                <tr><td colSpan={7} className="text-center py-5">
+                <tr><td colSpan={6} className="text-center py-5">
                   <div style={{ color: "var(--clothcore-danger)", marginBottom: "10px" }}>{error}</div>
                   <button className="admin-btn-secondary" onClick={fetchCodes}>Retry</button>
                 </td></tr>
               ) : codes.length === 0 ? (
-                <tr><td colSpan={7} className="p-0">
+                <tr><td colSpan={6} className="p-0">
                   <div className="admin-empty-state" style={{ border: "none", borderRadius: 0 }}>
                     <ShieldLock size={36} className="admin-empty-state-icon" />
                     <div className="admin-empty-state-title">No admin access codes yet</div>
@@ -140,14 +161,26 @@ function AdminAccessCodes() {
                         <span style={{ fontFamily: "monospace", fontWeight: 700, color: "var(--clothcore-purple)", letterSpacing: "0.05em" }}>{c.code}</span>
                         <button
                           className="admin-link-btn"
-                          style={{ marginLeft: "8px", padding: 0 }}
+                          style={{
+                            marginLeft: "8px",
+                            padding: 0,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px",
+                            color: copiedCode === c.code ? "var(--clothcore-success)" : undefined,
+                          }}
                           onClick={() => handleCopy(c.code)}
-                          title="Copy code"
+                          title={copiedCode === c.code ? "Copied!" : "Copy code"}
                         >
-                          <Copy size={13} />
+                          {copiedCode === c.code ? (
+                            <>
+                              <CheckCircle size={13} /> Copied
+                            </>
+                          ) : (
+                            <Copy size={13} />
+                          )}
                         </button>
                       </td>
-                      <td>{c.label || <span style={{ color: "var(--clothcore-text-muted)" }}>—</span>}</td>
                       <td>
                         <span className={`admin-badge ${c.isActive ? "admin-badge-success" : "admin-badge-danger"}`}>
                           {c.isActive ? "Active" : "Inactive"}

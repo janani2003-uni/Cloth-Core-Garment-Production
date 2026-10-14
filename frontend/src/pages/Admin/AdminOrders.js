@@ -6,8 +6,6 @@ import OrderDetailsModal from "../../components/OrderDetailsModal";
 import ConfirmModal from "../../components/modals/ConfirmModal";
 import {
   Search,
-  ChevronLeft,
-  ChevronRight,
   Eye,
   Printer,
   XCircle as XCircleIcon,
@@ -23,10 +21,8 @@ const ORDERS_API_URL = `${API_BASE_URL}/api/orders`;
 
 function AdminOrders() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [selectedPayment, setSelectedPayment] = useState('All Payment');
-  const ordersPerPage = 6;
   const [orders, setOrders] = useState([]);
   const [orderStats, setOrderStats] = useState({
     totalOrders: 0,
@@ -88,11 +84,9 @@ function AdminOrders() {
     return matchesSearch && matchesStatus && matchesPayment;
   });
 
-  const indexOfLastOrder = currentPage * ordersPerPage;
-  const indexOfFirstOrder = indexOfLastOrder - ordersPerPage;
-  const currentOrders = filteredOrders.slice(indexOfFirstOrder, indexOfLastOrder);
-  const totalPages = Math.max(1, Math.ceil(filteredOrders.length / ordersPerPage));
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
+  // All filtered orders render at once now — the table scrolls internally
+  // (see the fitScreen card below) instead of paginating.
+  const currentOrders = filteredOrders;
 
   const getStatusBadgeClass = (status) => {
     const classes = {
@@ -170,47 +164,43 @@ function AdminOrders() {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout fitScreen>
 
-            {/* Breadcrumb */}
-            <div style={{ marginBottom: '20px' }}>
-              <span style={{ color: 'var(--clothcore-text-soft)', fontSize: '14px' }}>Dashboard</span>
-              <span style={{ color: 'var(--clothcore-text-soft)', margin: '0 8px' }}>&gt;</span>
-              <span style={{ color: 'var(--clothcore-purple)', fontWeight: '600', fontSize: '14px' }}>Orders Management</span>
-            </div>
-
-            {/* Page Header */}
-            <div className="admin-page-header">
+            {/* Page Header — kept compact (page-local override, not a
+                change to the shared .admin-page-header class other pages
+                also use) so the order table below gets most of the screen. */}
+            <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
               <div>
-                <h2 className="admin-page-title" style={{ fontSize: '24px' }}>Orders Management</h2>
-                <p className="admin-page-subtitle">
+                <h2 className="admin-page-title" style={{ fontSize: '18px' }}>Orders Management</h2>
+                <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                   Manage customer orders and track their status
                 </p>
               </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="row g-3 mb-4">
+            {/* Stats Cards — compact strip */}
+            <div className="row g-2 mb-2" style={{ flexShrink: 0 }}>
               {stats.map((stat, index) => (
                 <div key={index} className="col-xl-2 col-lg-3 col-md-6 col-sm-12">
                   <div className="card admin-stat-card">
-                    <div className="card-body">
-                      <div className="admin-stat-icon mb-2" style={{ background: stat.bg, width: "40px", height: "40px" }}>
-                        <stat.icon size={18} style={{ color: stat.color }} />
+                    <div className="card-body px-3 py-2">
+                      <div className="admin-stat-icon mb-1" style={{ background: stat.bg, width: "28px", height: "28px" }}>
+                        <stat.icon size={14} style={{ color: stat.color }} />
                       </div>
-                      <div className="admin-stat-label">{stat.label}</div>
-                      <div className="admin-stat-value" style={{ fontSize: "22px" }}>{stat.value}</div>
+                      <div className="admin-stat-label" style={{ fontSize: "11px" }}>{stat.label}</div>
+                      <div className="admin-stat-value" style={{ fontSize: "16px" }}>{stat.value}</div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
 
-            {/* Orders Table Card */}
-            <div className="card admin-content-card">
-              <div className="card-body">
+            {/* Orders Table Card — fills the remaining screen space; only
+                the table body scrolls internally once it overflows. */}
+            <div className="card admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+              <div className="card-body" style={{ flex: 1, minHeight: 0, overflow: "hidden", display: "flex", flexDirection: "column" }}>
                 {/* Search and Filters */}
-                <div style={{ marginBottom: "16px" }}>
+                <div style={{ marginBottom: "16px", flexShrink: 0 }}>
                   <div className="row g-2">
                     <div className="col-md-5">
                       <div className="position-relative">
@@ -231,7 +221,6 @@ function AdminOrders() {
                           value={searchTerm}
                           onChange={(e) => {
                             setSearchTerm(e.target.value);
-                            setCurrentPage(1);
                           }}
                           style={{ paddingLeft: "36px", height: "38px" }}
                         />
@@ -243,7 +232,6 @@ function AdminOrders() {
                         value={selectedStatus}
                         onChange={(e) => {
                           setSelectedStatus(e.target.value);
-                          setCurrentPage(1);
                         }}
                         style={{ height: "38px" }}
                       >
@@ -258,7 +246,6 @@ function AdminOrders() {
                         value={selectedPayment}
                         onChange={(e) => {
                           setSelectedPayment(e.target.value);
-                          setCurrentPage(1);
                         }}
                         style={{ height: "38px" }}
                       >
@@ -283,7 +270,6 @@ function AdminOrders() {
                           setSearchTerm('');
                           setSelectedStatus('All Status');
                           setSelectedPayment('All Payment');
-                          setCurrentPage(1);
                         }}
                       >
                         <Filter size={14} />
@@ -294,8 +280,8 @@ function AdminOrders() {
                 </div>
 
                 {/* Table */}
-                <div className="table-responsive">
-                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+                <div className="table-responsive" style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+                  <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "900px" }}>
                     <thead>
                       <tr>
                         <th>#</th>
@@ -324,7 +310,7 @@ function AdminOrders() {
                       ) : currentOrders.map((order, index) => (
                           <tr key={order._id}>
                             <td style={{ color: "var(--clothcore-text-soft)" }}>
-                              {indexOfFirstOrder + index + 1}
+                              {index + 1}
                             </td>
                             <td style={{ fontWeight: "600", color: "var(--clothcore-purple)" }}>
                               {order.orderId}
@@ -371,64 +357,6 @@ function AdminOrders() {
                   </table>
                 </div>
 
-                {/* Pagination — reflects the real number of pages, no fake page numbers */}
-                {filteredOrders.length > 0 && (
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "16px", paddingTop: "12px", borderTop: "1px solid var(--clothcore-border)" }}>
-                    <div style={{ fontSize: "13px", color: "var(--clothcore-text-soft)" }}>
-                      Showing {indexOfFirstOrder + 1} to {Math.min(indexOfLastOrder, filteredOrders.length)} of {filteredOrders.length} orders
-                    </div>
-                    <div style={{ display: "flex", gap: "4px" }}>
-                      <button
-                        onClick={() => setCurrentPage(Math.max(currentPage - 1, 1))}
-                        disabled={currentPage === 1}
-                        style={{
-                          padding: "4px 10px",
-                          border: "1px solid var(--clothcore-border)",
-                          borderRadius: "6px",
-                          background: "rgba(82,43,91,0.06)",
-                          cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                          color: currentPage === 1 ? "#ccc" : "var(--clothcore-text)",
-                          fontSize: "13px"
-                        }}
-                      >
-                        <ChevronLeft size={14} />
-                      </button>
-                      {pageNumbers.map((page) => (
-                        <button
-                          key={page}
-                          onClick={() => setCurrentPage(page)}
-                          style={{
-                            padding: "4px 12px",
-                            border: currentPage === page ? "none" : "1px solid var(--clothcore-border)",
-                            borderRadius: "6px",
-                            background: currentPage === page ? "var(--clothcore-purple)" : "rgba(82,43,91,0.06)",
-                            color: currentPage === page ? "white" : "var(--clothcore-text)",
-                            fontWeight: currentPage === page ? "600" : "400",
-                            cursor: "pointer",
-                            fontSize: "13px"
-                          }}
-                        >
-                          {page}
-                        </button>
-                      ))}
-                      <button
-                        onClick={() => setCurrentPage(Math.min(currentPage + 1, totalPages))}
-                        disabled={currentPage === totalPages}
-                        style={{
-                          padding: "4px 10px",
-                          border: "1px solid var(--clothcore-border)",
-                          borderRadius: "6px",
-                          background: "rgba(82,43,91,0.06)",
-                          cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                          color: currentPage === totalPages ? "#ccc" : "var(--clothcore-text)",
-                          fontSize: "13px"
-                        }}
-                      >
-                        <ChevronRight size={14} />
-                      </button>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

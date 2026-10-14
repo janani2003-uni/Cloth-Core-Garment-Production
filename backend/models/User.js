@@ -105,6 +105,18 @@ const userSchema = new mongoose.Schema(
       minlength: [8, "Password must contain at least 8 characters"],
     },
 
+    // Reversible copy of the password, set only for Supervisor accounts
+    // (created/reset by an Admin via staffRoutes.js) so the Admin who issued
+    // the credentials can look them up again in Staff Management. `select:
+    // false` keeps it out of every normal query — routes must explicitly
+    // request it, and even then only ever decrypt/return it to an Admin.
+    // Login itself never reads this field; it only ever checks `password`.
+    encryptedPassword: {
+      type: String,
+      default: null,
+      select: false,
+    },
+
     passwordChangedAt: {
       type: Date,
       default: null,

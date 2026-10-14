@@ -8,6 +8,7 @@ const User = require("../models/User");
 const logActivity = require("../utils/logActivity");
 const { verifyToken, requireRole } = require("../middleware/authMiddleware");
 const { PASSWORD_REGEX, PASSWORD_REQUIREMENTS_MESSAGE } = require("../utils/passwordPolicy");
+const { encryptCredential, decryptCredential } = require("../utils/credentialCrypto");
 
 // Admin and Supervisor can both manage the staff roster (Supervisors need
 // this to know who they're assigning production work to); deleting a staff
@@ -28,16 +29,34 @@ async function findStaffByIdParam(idParam) {
   return Staff.findOne({ staffId: idParam });
 }
 
-// GET all staff — includes the linked login account's email/isActive (not
-// the password) so the frontend can show account status without a second
-// round-trip per row.
+// Admin-only: decrypts each staff member's linked login password (if any)
+// onto userId.password and always strips the raw encryptedPassword before
+// the response leaves the server — a Supervisor hitting this same route
+// (allowed for the roster itself) never gets a password field at all.
+function attachPasswordForAdmin(staffList, requesterRole) {
+  return staffList.map((member) => {
+    if (member.userId && typeof member.userId === "object") {
+      const encrypted = member.userId.encryptedPassword;
+      delete member.userId.encryptedPassword;
+      if (requesterRole === "admin") {
+        member.userId.password = encrypted ? decryptCredential(encrypted) : null;
+      }
+    }
+    return member;
+  });
+}
+
+// GET all staff — includes the linked login account's email/isActive, and
+// (Admin only) its plaintext password, so the frontend can show account
+// status and credentials without a second round-trip per row.
 router.get("/", async (req, res) => {
   try {
     const staff = await Staff.find()
-      .populate("userId", "email isActive role")
-      .sort({ createdAt: -1 });
+      .populate("userId", "email isActive role encryptedPassword")
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return res.status(200).json(staff);
+    return res.status(200).json(attachPasswordForAdmin(staff, req.user.role));
   } catch (error) {
     console.error("Get Staff Error:", error);
 
@@ -50,15 +69,17 @@ router.get("/", async (req, res) => {
 // GET one staff member by Mongo _id or staffId
 router.get("/:staffId", async (req, res) => {
   try {
-    const staff = await findStaffByIdParam(req.params.staffId).then((doc) =>
-      doc ? doc.populate("userId", "email isActive role") : doc
+    const staffDoc = await findStaffByIdParam(req.params.staffId).then((doc) =>
+      doc ? doc.populate("userId", "email isActive role encryptedPassword") : doc
     );
 
-    if (!staff) {
+    if (!staffDoc) {
       return res.status(404).json({ success: false,
         message: "Staff member not found",
       });
     }
+
+    const [staff] = attachPasswordForAdmin([staffDoc.toObject()], req.user.role);
 
     return res.status(200).json(staff);
   } catch (error) {
@@ -268,6 +289,7 @@ router.post("/:staffId/create-account", requireRole("admin"), async (req, res) =
       email: finalEmail,
       shopName: "ClothCore",
       password: hashedPassword,
+      encryptedPassword: encryptCredential(password),
       role: "supervisor",
       status: "Active",
       isActive: true,
@@ -344,6 +366,7 @@ router.patch("/:staffId/reset-password", requireRole("admin"), async (req, res) 
     }
 
     user.password = await bcrypt.hash(newPassword, 10);
+    user.encryptedPassword = encryptCredential(newPassword);
     user.passwordChangedAt = new Date();
     await user.save();
 

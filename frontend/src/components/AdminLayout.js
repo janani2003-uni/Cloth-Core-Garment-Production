@@ -6,7 +6,18 @@ import React from "react";
 import Adminsidebar from "./Adminsidebar";
 import Admintopbar from "./Admintopbar";
 
-function AdminLayout({ children, contentClassName = "", shellStyle }) {
+function AdminLayout({
+  children,
+  contentClassName = "",
+  shellStyle,
+  // Opt-in: pins the page to exactly one viewport height with no
+  // page-level scrollbar — the caller is responsible for giving any
+  // content that can overflow (a list, a table, etc.) its own
+  // `overflow-y: auto` region. Off by default so every other Admin page
+  // keeps its normal scrolling behavior. Mirrors ShopOwnerLayout's
+  // fitScreen prop.
+  fitScreen = false,
+}) {
   return (
     <div className="d-flex admin-shell" style={shellStyle}>
       <Adminsidebar />
@@ -17,16 +28,27 @@ function AdminLayout({ children, contentClassName = "", shellStyle }) {
           viewport instead of scrolling within its own bounds. */}
       <div
         className={`flex-grow-1${contentClassName ? ` ${contentClassName}` : ""}`}
-        style={{ minWidth: 0 }}
+        style={{
+          minWidth: 0,
+          ...(fitScreen ? { height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" } : {}),
+        }}
       >
         <Admintopbar />
 
-        <div style={{ padding: "24px" }}>
+        <div style={{ padding: "24px", ...(fitScreen ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
           {/* Admin tables tend to be wider than Shop Owner content
               (more columns), so this gets a bit more breathing room than
               ShopOwnerLayout's/RoleLayout's 1280px — still centered instead
               of stretching to the viewport edge on wide monitors. */}
-          <div className="container-fluid px-0" style={{ maxWidth: "1400px", margin: "0 auto" }}>
+          <div
+            className="container-fluid px-0"
+            style={{
+              maxWidth: "1400px",
+              margin: "0 auto",
+              width: "100%",
+              ...(fitScreen ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}),
+            }}
+          >
             {children}
           </div>
         </div>

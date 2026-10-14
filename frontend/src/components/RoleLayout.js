@@ -8,7 +8,18 @@ import RoleSidebar from "./RoleSidebar";
 import Admintopbar from "./Admintopbar";
 import { getUser } from "../utils/auth";
 
-function RoleLayout({ sidebarItems, roleLabel, children }) {
+function RoleLayout({
+  sidebarItems,
+  roleLabel,
+  children,
+  // Opt-in: pins the page to exactly one viewport height with no
+  // page-level scrollbar — the caller is responsible for giving any
+  // content that can overflow (a list, a table, etc.) its own
+  // `overflow-y: auto` region. Off by default so every other Role page
+  // keeps its normal scrolling behavior. Mirrors AdminLayout's fitScreen
+  // prop.
+  fitScreen = false,
+}) {
   // An Admin previewing the Supervisor dashboard via "View As" still has
   // their own account (role never changes) — this is just a subtle reminder
   // of which interface they're currently looking at.
@@ -18,7 +29,10 @@ function RoleLayout({ sidebarItems, roleLabel, children }) {
     <div className="d-flex admin-shell">
       <RoleSidebar items={sidebarItems} roleLabel={roleLabel} />
 
-      <div className="flex-grow-1">
+      <div
+        className="flex-grow-1"
+        style={fitScreen ? { height: "100vh", overflow: "hidden", display: "flex", flexDirection: "column" } : undefined}
+      >
         <Admintopbar />
 
         {isAdminPreview && (
@@ -27,8 +41,16 @@ function RoleLayout({ sidebarItems, roleLabel, children }) {
           </div>
         )}
 
-        <div style={{ padding: "24px" }}>
-          <div className="container-fluid px-0" style={{ maxWidth: "1280px", margin: "0 auto" }}>
+        <div style={{ padding: "24px", ...(fitScreen ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}) }}>
+          <div
+            className="container-fluid px-0"
+            style={{
+              maxWidth: "1280px",
+              margin: "0 auto",
+              width: "100%",
+              ...(fitScreen ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : {}),
+            }}
+          >
             {children}
           </div>
         </div>

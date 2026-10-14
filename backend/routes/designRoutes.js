@@ -161,7 +161,18 @@ router.post("/generate", async (req, res) => {
     if (status === 429) {
       return res.status(429).json({ success: false, message: "The design service is busy right now. Please try again shortly." });
     }
+    // The provider account is out of inference credits — distinct from a
+    // bad prompt, and no amount of rephrasing fixes it. Surfacing the
+    // actual cause instead of the generic 4xx message below so this isn't
+    // mistaken for a prompt problem.
+    if (status === 402) {
+      console.error("Design generation: provider account has no remaining inference credits.");
+      return res.status(503).json({ success: false, message: "AI design generation is temporarily unavailable (the service account is out of credits). Please upload a design instead, or contact support." });
+    }
     if (status >= 400 && status < 500) {
+      console.error("Design generation: provider rejected the request.", status, (() => {
+        try { return JSON.parse(Buffer.from(error.response?.data || "").toString("utf8")); } catch { return error.response?.data; }
+      })());
       return res.status(400).json({ success: false, message: "The design description couldn't be processed. Try rephrasing it." });
     }
 
@@ -267,13 +278,23 @@ router.post("/mockup", async (req, res) => {
     const logoImg = await Jimp.read(logoDiskPath);
 
     // Same placement convention as the frontend's tint-overlay preview
-    // (GarmentDesignPreview.js: centered at 50%/42%, ~30% of garment
-    // width) so both preview styles put the logo in the same spot.
+    // (GarmentDesignPreview.js: centered at 50%/42%, bounded to a ~30%
+    // width × ~20% height box on the garment) so both preview styles put
+    // the logo in the same spot, at the same size. Bounding BOTH
+    // dimensions (not just width) matters — a customer's uploaded file is
+    // often a tall/wide photo rather than a square logo, and scaling
+    // purely to a target width let a portrait photo's height run
+    // unconstrained, stretching it most of the way down the shirt instead
+    // of sitting like a normal chest print. Scaling by the smaller of the
+    // two ratios keeps the whole image inside the box either way, exactly
+    // like CSS `object-fit: contain`.
     const gw = garmentImg.bitmap.width;
     const gh = garmentImg.bitmap.height;
-    const targetW = Math.round(gw * 0.3);
-    const scale = targetW / logoImg.bitmap.width;
-    const targetH = Math.round(logoImg.bitmap.height * scale);
+    const maxW = gw * 0.3;
+    const maxH = gh * 0.2;
+    const scale = Math.min(maxW / logoImg.bitmap.width, maxH / logoImg.bitmap.height);
+    const targetW = Math.max(1, Math.round(logoImg.bitmap.width * scale));
+    const targetH = Math.max(1, Math.round(logoImg.bitmap.height * scale));
     logoImg.resize({ w: targetW, h: targetH });
     const x = Math.round(gw * 0.5 - targetW / 2);
     const y = Math.round(gh * 0.42 - targetH / 2);
@@ -296,6 +317,13 @@ router.post("/mockup", async (req, res) => {
     }
     if (status === 429) {
       return res.status(429).json({ success: false, message: "The photo preview service is busy right now. Please try again shortly." });
+    }
+    // Same out-of-credits case as /generate — the uploaded logo itself is
+    // already saved regardless, so this only affects the photorealistic
+    // preview, not the order.
+    if (status === 402) {
+      console.error("Photo preview: provider account has no remaining inference credits.");
+      return res.status(503).json({ success: false, message: "Photo preview is temporarily unavailable (the service account is out of credits). Your uploaded logo is still saved and will be used for this order." });
     }
 
     console.error("Photo preview error:", error.message);

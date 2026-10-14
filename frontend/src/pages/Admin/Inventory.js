@@ -60,7 +60,6 @@ function InventoryManagement() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
 
   // MongoDB states
   const [items, setItems] = useState([]);
@@ -100,8 +99,6 @@ function InventoryManagement() {
     minimumStock: 100,
     description: ""
   });
-
-  const itemsPerPage = 7;
 
   // Colors and fabric types — fetched from the SAME Product catalog Order
   // Step 1 reads from (GET /api/products/catalog-options), rather than a
@@ -184,22 +181,9 @@ function InventoryManagement() {
     return matchesSearch && matchesCategory && matchesColor && matchesStatus;
   });
 
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.max(1, Math.ceil(filteredData.length / itemsPerPage));
-
-  const paginate = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-    }
-  };
-
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, selectedCategory, selectedColor, selectedStatus]);
+  // All filtered items render at once now — the list scrolls internally
+  // instead of paginating.
+  const currentItems = filteredData;
 
   // Handle Add Item form changes
   const handleFormChange = (e) => {
@@ -399,17 +383,20 @@ function InventoryManagement() {
   };
 
   return (
-    <AdminLayout shellStyle={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
-          {/* Page Header + Tabs */}
-          <div className="admin-page-header">
+    <AdminLayout shellStyle={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }} fitScreen>
+          {/* Page Header + Tabs — kept compact (page-local override, not a
+              change to the shared .admin-page-header class other pages
+              also use) so the materials/catalog content below gets most of
+              the screen. */}
+          <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
             <div>
-              <h2 className="admin-page-title">Inventory Management</h2>
-              <p className="admin-page-subtitle">
+              <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Inventory Management</h2>
+              <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>
                 Raw materials, the product catalog and size-level garment stock — all in one place.
               </p>
             </div>
           </div>
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "10px", flexShrink: 0 }}>
             <div style={{ display: "flex", gap: "6px", borderBottom: "2px solid var(--clothcore-border)" }}>
               {TABS.map((tab) => (
                 <button
@@ -420,19 +407,19 @@ function InventoryManagement() {
                     display: "flex",
                     alignItems: "center",
                     gap: "6px",
-                    padding: "10px 18px",
+                    padding: "8px 16px",
                     background: "transparent",
                     border: "none",
                     borderBottom: activeTab === tab.key ? "2px solid var(--clothcore-purple)" : "2px solid transparent",
                     marginBottom: "-2px",
                     color: activeTab === tab.key ? "var(--clothcore-purple)" : "var(--clothcore-text-soft)",
                     fontWeight: activeTab === tab.key ? "700" : "500",
-                    fontSize: "14px",
+                    fontSize: "13px",
                     cursor: "pointer",
                     transition: "all 0.15s ease",
                   }}
                 >
-                  <tab.icon size={16} /> {tab.label}
+                  <tab.icon size={15} /> {tab.label}
                 </button>
               ))}
             </div>
@@ -476,12 +463,13 @@ function InventoryManagement() {
             </div>
           ) : (
             <>
-              {/* Stats Cards */}
-              <div style={{ 
-                display: "grid", 
-                gridTemplateColumns: "repeat(5, 1fr)", 
-                gap: "14px",
-                marginBottom: "20px"
+              {/* Stats Cards — compact strip */}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(5, 1fr)",
+                gap: "10px",
+                marginBottom: "10px",
+                flexShrink: 0
               }}>
                 {[
                   { label: "Total Items", value: totalItems.toLocaleString(), icon: BoxSeam, color: "var(--clothcore-purple)", bg: "rgba(82,43,91,0.1)" },
@@ -493,45 +481,48 @@ function InventoryManagement() {
                   <div key={index} style={{
                     backgroundColor: "var(--clothcore-card)",
                     borderRadius: "8px",
-                    padding: "14px 16px",
+                    padding: "10px 12px",
                     boxShadow: "var(--clothcore-shadow)",
                     border: "1px solid var(--clothcore-border)"
                   }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <div>
-                        <div style={{ color: "var(--clothcore-text-soft)", fontSize: "12px", fontWeight: "500", marginBottom: "4px" }}>
+                        <div style={{ color: "var(--clothcore-text-soft)", fontSize: "11px", fontWeight: "500", marginBottom: "2px" }}>
                           {stat.label}
                         </div>
-                        <div style={{ fontSize: "20px", fontWeight: "700", color: "var(--clothcore-text)" }}>
+                        <div style={{ fontSize: "16px", fontWeight: "700", color: "var(--clothcore-text)" }}>
                           {stat.value}
                         </div>
                       </div>
                       <div style={{
                         backgroundColor: stat.bg,
-                        borderRadius: "8px",
-                        padding: "8px",
+                        borderRadius: "7px",
+                        padding: "6px",
                         display: "flex",
                         alignItems: "center",
-                        justifyContent: "center"
+                        justifyContent: "center",
+                        flexShrink: 0
                       }}>
-                        <stat.icon size={18} color={stat.color} />
+                        <stat.icon size={14} color={stat.color} />
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: "flex", gap: "20px" }}>
-                {/* Left Sidebar */}
-                <div style={{ 
-                  width: "220px", 
+              <div style={{ display: "flex", gap: "16px", flex: "1 1 auto", minHeight: 0 }}>
+                {/* Left Sidebar — scrolls internally once the category
+                    list outgrows the available height. */}
+                <div style={{
+                  width: "200px",
                   flexShrink: 0,
                   backgroundColor: "var(--clothcore-card)",
                   borderRadius: "8px",
-                  padding: "16px",
+                  padding: "14px",
                   boxShadow: "var(--clothcore-shadow)",
                   border: "1px solid var(--clothcore-border)",
-                  height: "fit-content"
+                  maxHeight: "100%",
+                  overflowY: "auto"
                 }}>
                   {/* Categories */}
                   <div style={{ marginBottom: "16px" }}>
@@ -620,15 +611,16 @@ function InventoryManagement() {
                 </div>
 
                 {/* Right Content */}
-                <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ flex: 1, minWidth: 0, minHeight: 0, display: "flex", flexDirection: "column" }}>
                   {/* Search and Filters */}
                   <div style={{
                     backgroundColor: "var(--clothcore-card)",
                     borderRadius: "8px",
-                    padding: "14px 16px",
-                    marginBottom: "16px",
+                    padding: "12px 14px",
+                    marginBottom: "10px",
                     boxShadow: "var(--clothcore-shadow)",
-                    border: "1px solid var(--clothcore-border)"
+                    border: "1px solid var(--clothcore-border)",
+                    flexShrink: 0
                   }}>
                     <div style={{ display: "flex", gap: "10px", alignItems: "center", flexWrap: "wrap" }}>
                       <div style={{ flex: 1, minWidth: "200px", position: "relative" }}>
@@ -743,17 +735,23 @@ function InventoryManagement() {
                     </div>
                   </div>
 
-                  {/* Table */}
+                  {/* Table — fills the remaining space; scrolls internally
+                      once it overflows. */}
                   <div style={{
                     backgroundColor: "var(--clothcore-card)",
                     borderRadius: "8px",
                     boxShadow: "var(--clothcore-shadow)",
                     border: "1px solid var(--clothcore-border)",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    display: "flex",
+                    flexDirection: "column",
+                    flex: 1,
+                    minHeight: 0
                   }}>
-                    <div style={{ overflowX: "auto" }}>
+                    <div style={{ overflow: "auto", flex: 1, minHeight: 0 }}>
                       <table className="admin-table" style={{
                         width: "100%",
+                        minWidth: "1100px",
                         borderCollapse: "collapse",
                         fontSize: "13px"
                       }}>
@@ -794,7 +792,7 @@ function InventoryManagement() {
                                 onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
                                 >
                                   <td style={{ padding: "10px 14px", color: "var(--clothcore-text-soft)", fontSize: "13px" }}>
-                                    {indexOfFirstItem + index + 1}
+                                    {index + 1}
                                   </td>
                                   <td style={{ padding: "10px 14px" }}>
                                     <div style={{
@@ -889,63 +887,6 @@ function InventoryManagement() {
                       </table>
                     </div>
 
-                    {/* Pagination */}
-                    <div style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      padding: "12px 16px",
-                      borderTop: "1px solid var(--clothcore-border)",
-                      backgroundColor: "var(--clothcore-bg)"
-                    }}>
-                      <span style={{ color: "var(--clothcore-text-soft)", fontSize: "13px" }}>
-                        Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} items
-                      </span>
-                      <div style={{ display: "flex", gap: "4px" }}>
-                        <button
-                          onClick={() => paginate(currentPage - 1)}
-                          disabled={currentPage === 1}
-                          style={{
-                            padding: "6px 14px",
-                            border: "1px solid var(--clothcore-border)",
-                            borderRadius: "4px",
-                            backgroundColor: "var(--clothcore-card)",
-                            color: currentPage === 1 ? "rgba(107, 91, 115, 0.5)" : "var(--clothcore-text-soft)",
-                            fontSize: "13px",
-                            cursor: currentPage === 1 ? "not-allowed" : "pointer"
-                          }}
-                        >
-                          Previous
-                        </button>
-                        <button style={{
-                          padding: "6px 14px",
-                          border: "none",
-                          borderRadius: "4px",
-                          backgroundColor: "var(--clothcore-purple)",
-                          color: "white",
-                          fontSize: "13px",
-                          cursor: "pointer",
-                          fontWeight: "500"
-                        }}>
-                          {currentPage}
-                        </button>
-                        <button
-                          onClick={() => paginate(currentPage + 1)}
-                          disabled={currentPage === totalPages}
-                          style={{
-                            padding: "6px 14px",
-                            border: "1px solid var(--clothcore-border)",
-                            borderRadius: "4px",
-                            backgroundColor: "var(--clothcore-card)",
-                            color: currentPage === totalPages ? "rgba(107, 91, 115, 0.5)" : "var(--clothcore-text-soft)",
-                            fontSize: "13px",
-                            cursor: currentPage === totalPages ? "not-allowed" : "pointer"
-                          }}
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>

@@ -62,16 +62,16 @@ function SupervisorShopOwners() {
   });
 
   return (
-    <RoleLayout sidebarItems={SUPERVISOR_NAV_ITEMS} roleLabel="Supervisor">
-      <div className="admin-page-header">
+    <RoleLayout sidebarItems={SUPERVISOR_NAV_ITEMS} roleLabel="Supervisor" fitScreen>
+      <div className="admin-page-header" style={{ flexShrink: 0, padding: "14px 22px", marginBottom: "8px" }}>
         <div>
-          <h2 className="admin-page-title">Shop Owners</h2>
-          <p className="admin-page-subtitle">Directory of shop owner accounts and their shop approval status. View-only — role and account changes are managed by an Admin.</p>
+          <h2 className="admin-page-title" style={{ fontSize: "18px" }}>Shop Owners</h2>
+          <p className="admin-page-subtitle" style={{ fontSize: "12px" }}>Directory of shop owner accounts and their shop approval status. View-only — role and account changes are managed by an Admin.</p>
         </div>
       </div>
 
-      <div className="admin-content-card">
-        <div style={{ padding: "20px 20px 0" }}>
+      <div className="admin-content-card d-flex flex-column" style={{ flex: 1, minHeight: 0 }}>
+        <div style={{ padding: "16px 16px 0", flexShrink: 0 }}>
           <div className="position-relative" style={{ maxWidth: "360px" }}>
             <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--clothcore-text-soft)" }} />
             <input
@@ -85,8 +85,8 @@ function SupervisorShopOwners() {
           </div>
         </div>
 
-        <div className="table-responsive" style={{ marginTop: "16px" }}>
-          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px" }}>
+        <div className="table-responsive" style={{ marginTop: "16px", flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <table className="table table-hover admin-table mb-0" style={{ fontSize: "13px", minWidth: "850px" }}>
             <thead>
               <tr>
                 <th>Name</th>

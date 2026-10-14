@@ -111,7 +111,7 @@ router.post("/", canManage, async (req, res) => {
       await Notification.create({
         title: "Delivery Scheduled",
         message: `Delivery for order ${order.orderId} has been scheduled for ${new Date(delivery.scheduledDate).toLocaleDateString()}.`,
-        type: "order",
+        type: "delivery",
         relatedId: order._id,
         relatedModel: "Order",
         recipientId: order.userId,
@@ -239,7 +239,7 @@ router.put("/:id", canManage, async (req, res) => {
       await Notification.create({
         title: "Order Delivered",
         message: `Delivery completed for order ${updatedOrder?.orderId || ""}.`,
-        type: "order",
+        type: "delivery",
         relatedId: delivery.orderId,
         relatedModel: "Order",
         recipientId: updatedOrder?.userId || null,
@@ -259,7 +259,7 @@ router.put("/:id", canManage, async (req, res) => {
         await Notification.create({
           title: "Delivery In Progress",
           message: `Order ${dispatchedOrder.orderId} is now out for delivery.`,
-          type: "order",
+          type: "delivery",
           relatedId: delivery.orderId,
           relatedModel: "Order",
           recipientId: dispatchedOrder.userId,
@@ -332,7 +332,7 @@ router.patch("/:id/status", canUpdateOwnStatus, async (req, res) => {
       await Notification.create({
         title: "Order Delivered",
         message: `Delivery completed for order ${updatedOrder?.orderId || ""}.`,
-        type: "order",
+        type: "delivery",
         relatedId: delivery.orderId,
         relatedModel: "Order",
         recipientId: updatedOrder?.userId || null,
@@ -347,7 +347,7 @@ router.patch("/:id/status", canUpdateOwnStatus, async (req, res) => {
         await Notification.create({
           title: "Delivery In Progress",
           message: `Order ${dispatchedOrder.orderId} is now out for delivery.`,
-          type: "order",
+          type: "delivery",
           relatedId: delivery.orderId,
           relatedModel: "Order",
           recipientId: dispatchedOrder.userId,
