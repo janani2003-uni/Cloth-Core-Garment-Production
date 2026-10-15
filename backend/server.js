@@ -1,4 +1,5 @@
 
+const dns = require("dns");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -7,6 +8,20 @@ const path = require("path");
 require("dotenv").config({
   path: path.join(__dirname, ".env"),
 });
+
+// This machine is frequently on a mobile hotspot whose own DNS resolver
+// intermittently fails to resolve MongoDB Atlas's shard hostnames — fixable
+// by hand via Windows' network adapter settings, but that fix doesn't
+// survive reconnecting to the hotspot (it's a per-connection-session
+// setting), so it silently comes back. Pointing Node's own resolver at
+// public DNS makes the app immune to that regardless of the OS network
+// config, instead of relying on someone noticing and redoing it each time.
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+// Some mobile-hotspot networks answer AAAA (IPv6) queries but then black-hole
+// the actual IPv6 route, which makes a dual-stack lookup wait out a full
+// connection-attempt timeout before falling back to IPv4 — preferring IPv4
+// up front avoids that stall entirely.
+dns.setDefaultResultOrder("ipv4first");
 
 
 const authRoutes = require("./routes/authRoutes");
@@ -102,6 +117,17 @@ function connectToDatabase() {
   mongoose
     .connect(process.env.MONGO_URI, {
       serverSelectionTimeoutMS: 30000,
+      // A socket that goes half-dead on a flaky link (rather than cleanly
+      // erroring) used to just hang — nothing timed it out, so neither the
+      // driver nor a route handler ever found out it needed to retry.
+      // Capping it forces that detection instead of a silent stall.
+      socketTimeoutMS: 20000,
+      // Bounds how long a query will sit in Mongoose's buffer waiting for
+      // the connection to come back before failing with a clear error —
+      // comfortably under the frontend's own 25s request timeout, so a real
+      // outage surfaces as "try again" instead of the request just hanging
+      // until the browser gives up.
+      bufferTimeoutMS: 20000,
     })
     .then(() => {
       console.log("MongoDB Connected");
@@ -120,8 +146,15 @@ function connectToDatabase() {
 
 // If an already-open connection drops later (network blip, Atlas pause),
 // log it clearly instead of leaving the server in a silent, unreachable state.
+// The driver keeps retrying in the background on its own — logging
+// "reconnected" too makes that visible, instead of "disconnected" being the
+// last thing anyone sees even once it has already recovered.
 mongoose.connection.on("disconnected", () => {
-  console.error("MongoDB disconnected.");
+  console.error("MongoDB disconnected. The driver will keep retrying in the background...");
+});
+
+mongoose.connection.on("reconnected", () => {
+  console.log("MongoDB reconnected.");
 });
 
 mongoose.connection.on("error", (err) => {

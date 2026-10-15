@@ -70,7 +70,13 @@ function Login() {
           headers: {
             "Content-Type": "application/json",
           },
-          timeout: 10000,
+          // Longer than the UI would like, but the backend's own MongoDB
+          // reconnect logic (server.js) can take up to 30s to recover from a
+          // brief network blip before it gives up and returns an error —
+          // 10s here was shorter than that, so a connection that would have
+          // succeeded on its own instead surfaced as a scary "backend took
+          // too long" popup.
+          timeout: 25000,
         }
       );
 
